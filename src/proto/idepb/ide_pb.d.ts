@@ -411,6 +411,34 @@ export namespace Position {
   }
 }
 
+export class Range extends jspb.Message {
+  hasStart(): boolean;
+  clearStart(): void;
+  getStart(): Position | undefined;
+  setStart(value?: Position): void;
+
+  hasEnd(): boolean;
+  clearEnd(): void;
+  getEnd(): Position | undefined;
+  setEnd(value?: Position): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Range.AsObject;
+  static toObject(includeInstance: boolean, msg: Range): Range.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: Range, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Range;
+  static deserializeBinaryFromReader(message: Range, reader: jspb.BinaryReader): Range;
+}
+
+export namespace Range {
+  export type AsObject = {
+    start?: Position.AsObject,
+    end?: Position.AsObject,
+  }
+}
+
 export class Location extends jspb.Message {
   getPath(): string;
   setPath(value: string): void;
@@ -440,6 +468,52 @@ export namespace Location {
     path: string,
     start?: Position.AsObject,
     end?: Position.AsObject,
+  }
+}
+
+export class DocumentSymbol extends jspb.Message {
+  getName(): string;
+  setName(value: string): void;
+
+  getDetail(): string;
+  setDetail(value: string): void;
+
+  getKind(): SymbolKindMap[keyof SymbolKindMap];
+  setKind(value: SymbolKindMap[keyof SymbolKindMap]): void;
+
+  hasRange(): boolean;
+  clearRange(): void;
+  getRange(): Range | undefined;
+  setRange(value?: Range): void;
+
+  hasSelectionrange(): boolean;
+  clearSelectionrange(): void;
+  getSelectionrange(): Range | undefined;
+  setSelectionrange(value?: Range): void;
+
+  clearChildrenList(): void;
+  getChildrenList(): Array<DocumentSymbol>;
+  setChildrenList(value: Array<DocumentSymbol>): void;
+  addChildren(value?: DocumentSymbol, index?: number): DocumentSymbol;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DocumentSymbol.AsObject;
+  static toObject(includeInstance: boolean, msg: DocumentSymbol): DocumentSymbol.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: DocumentSymbol, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DocumentSymbol;
+  static deserializeBinaryFromReader(message: DocumentSymbol, reader: jspb.BinaryReader): DocumentSymbol;
+}
+
+export namespace DocumentSymbol {
+  export type AsObject = {
+    name: string,
+    detail: string,
+    kind: SymbolKindMap[keyof SymbolKindMap],
+    range?: Range.AsObject,
+    selectionrange?: Range.AsObject,
+    childrenList: Array<DocumentSymbol.AsObject>,
   }
 }
 
@@ -482,6 +556,11 @@ export namespace SelectRangeResponse {
 }
 
 export class DescribeRangeResponse extends jspb.Message {
+  clearSymbolsList(): void;
+  getSymbolsList(): Array<DocumentSymbol>;
+  setSymbolsList(value: Array<DocumentSymbol>): void;
+  addSymbols(value?: DocumentSymbol, index?: number): DocumentSymbol;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): DescribeRangeResponse.AsObject;
   static toObject(includeInstance: boolean, msg: DescribeRangeResponse): DescribeRangeResponse.AsObject;
@@ -494,6 +573,7 @@ export class DescribeRangeResponse extends jspb.Message {
 
 export namespace DescribeRangeResponse {
   export type AsObject = {
+    symbolsList: Array<DocumentSymbol.AsObject>,
   }
 }
 
@@ -530,6 +610,11 @@ export namespace RenameResponse {
 }
 
 export class FindUsesResponse extends jspb.Message {
+  clearLocationsList(): void;
+  getLocationsList(): Array<Location>;
+  setLocationsList(value: Array<Location>): void;
+  addLocations(value?: Location, index?: number): Location;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): FindUsesResponse.AsObject;
   static toObject(includeInstance: boolean, msg: FindUsesResponse): FindUsesResponse.AsObject;
@@ -542,6 +627,7 @@ export class FindUsesResponse extends jspb.Message {
 
 export namespace FindUsesResponse {
   export type AsObject = {
+    locationsList: Array<Location.AsObject>,
   }
 }
 
@@ -678,6 +764,37 @@ export interface RequestTypeMap {
 }
 
 export const RequestType: RequestTypeMap;
+
+export interface SymbolKindMap {
+  SYMBOL_KIND_FILE: 0;
+  SYMBOL_KIND_MODULE: 1;
+  SYMBOL_KIND_NAMESPACE: 2;
+  SYMBOL_KIND_PACKAGE: 3;
+  SYMBOL_KIND_CLASS: 4;
+  SYMBOL_KIND_METHOD: 5;
+  SYMBOL_KIND_PROPERTY: 6;
+  SYMBOL_KIND_FIELD: 7;
+  SYMBOL_KIND_CONSTRUCTOR: 8;
+  SYMBOL_KIND_ENUM: 9;
+  SYMBOL_KIND_INTERFACE: 10;
+  SYMBOL_KIND_FUNCTION: 11;
+  SYMBOL_KIND_VARIABLE: 12;
+  SYMBOL_KIND_CONSTANT: 13;
+  SYMBOL_KIND_STRING: 14;
+  SYMBOL_KIND_NUMBER: 15;
+  SYMBOL_KIND_BOOLEAN: 16;
+  SYMBOL_KIND_ARRAY: 17;
+  SYMBOL_KIND_OBJECT: 18;
+  SYMBOL_KIND_KEY: 19;
+  SYMBOL_KIND_NULL: 20;
+  SYMBOL_KIND_ENUM_MEMBER: 21;
+  SYMBOL_KIND_STRUCT: 22;
+  SYMBOL_KIND_EVENT: 23;
+  SYMBOL_KIND_OPERATOR: 24;
+  SYMBOL_KIND_TYPE_PARAMETER: 25;
+}
+
+export const SymbolKind: SymbolKindMap;
 
 export interface ResponseTypeMap {
   RESPONSE_INVALID: 0;

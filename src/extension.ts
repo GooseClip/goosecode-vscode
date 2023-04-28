@@ -2,7 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { WebSocket, WebSocketServer } from 'ws';
-import { RequestMessage, RequestType, ResponseMessage, GetFilesResponse, ListFilesResponse, OpenFilesResponse, FindStringResponse, Location, Position, SelectRangeResponse, DescribeRangeResponse, GoToDefinitionResponse, RenameResponse, FindUsesResponse } from './proto/idepb/ide_pb'; // Import your generated protobuf TypeScript definitions
+import { RequestMessage, RequestType, ResponseMessage, SymbolKindMap, GetFilesResponse, ListFilesResponse, OpenFilesResponse, FindStringResponse, Location, Position, SelectRangeResponse, DescribeRangeResponse, GoToDefinitionResponse, RenameResponse, FindUsesResponse, ErrorResponse, DocumentSymbol, SymbolKind, Range } from './proto/idepb/ide_pb'; // Import your generated protobuf TypeScript definitions
 import { getProjectRoot, getFileContents, listProjectFiles, findStringInProject, openFiles, selectRange, describeRange, goToDefinition, rename, findUses } from './goosecode';
 import { ResponseType } from './proto/idepb/ide_pb';
 
@@ -37,6 +37,129 @@ function isEntireWord(selection: vscode.Selection): boolean {
 
   return regex.test(selectedText);
 }
+
+function convertLocations(vsLocations: vscode.Location[]): Location[] {
+  const pblocs: Location[] = [];
+  const projectRoot = getProjectRoot();
+  for (const l of vsLocations) {
+    const loc = new Location();
+    loc.setPath(l.uri.path.replace(projectRoot, ""));
+    const startPos = new Position();
+    startPos.setLine(l.range.start.line);
+    startPos.setCharacter(l.range.start.character);
+    loc.setStart(startPos);
+
+    const endPos = new Position();
+    endPos.setLine(l.range.end.line);
+    endPos.setCharacter(l.range.end.character);
+    loc.setEnd(endPos);
+    pblocs.push(loc);
+  }
+  return pblocs;
+}
+
+function convertRange(vsRange: vscode.Range | vscode.Location): Range {
+  const range = new Range();
+
+  const startPos = new Position();
+  const r = vsRange instanceof vscode.Range ? vsRange : (vsRange as vscode.Location).range; 
+    startPos.setLine(r.start.line);
+    startPos.setCharacter(r.start.character);
+    range.setStart(startPos);
+
+    const endPos = new Position();
+    endPos.setLine(r.end.line);
+    endPos.setCharacter(r.end.character);
+    range.setEnd(endPos);
+  return range;
+}
+
+function convertSymbolKind(symbolKind: vscode.SymbolKind): number {
+  switch (symbolKind) {
+    case vscode.SymbolKind.File:
+      return SymbolKind.SYMBOL_KIND_FILE;
+    case vscode.SymbolKind.Module:
+      return SymbolKind.SYMBOL_KIND_MODULE;
+    case vscode.SymbolKind.Namespace:
+      return SymbolKind.SYMBOL_KIND_NAMESPACE;
+    case vscode.SymbolKind.Package:
+      return SymbolKind.SYMBOL_KIND_PACKAGE;
+    case vscode.SymbolKind.Class:
+      return SymbolKind.SYMBOL_KIND_CLASS;
+    case vscode.SymbolKind.Method:
+      return SymbolKind.SYMBOL_KIND_METHOD;
+    case vscode.SymbolKind.Property:
+      return SymbolKind.SYMBOL_KIND_PROPERTY;
+    case vscode.SymbolKind.Field:
+      return SymbolKind.SYMBOL_KIND_FIELD;
+    case vscode.SymbolKind.Constructor:
+      return SymbolKind.SYMBOL_KIND_CONSTRUCTOR;
+    case vscode.SymbolKind.Enum:
+      return SymbolKind.SYMBOL_KIND_ENUM;
+    case vscode.SymbolKind.Interface:
+      return SymbolKind.SYMBOL_KIND_INTERFACE;
+    case vscode.SymbolKind.Function:
+      return SymbolKind.SYMBOL_KIND_FUNCTION;
+    case vscode.SymbolKind.Variable:
+      return SymbolKind.SYMBOL_KIND_VARIABLE;
+    case vscode.SymbolKind.Constant:
+      return SymbolKind.SYMBOL_KIND_CONSTANT;
+    case vscode.SymbolKind.String:
+      return SymbolKind.SYMBOL_KIND_STRING;
+    case vscode.SymbolKind.Number:
+      return SymbolKind.SYMBOL_KIND_NUMBER;
+    case vscode.SymbolKind.Boolean:
+      return SymbolKind.SYMBOL_KIND_BOOLEAN;
+    case vscode.SymbolKind.Array:
+      return SymbolKind.SYMBOL_KIND_ARRAY;
+    case vscode.SymbolKind.Object:
+      return SymbolKind.SYMBOL_KIND_OBJECT;
+    case vscode.SymbolKind.Key:
+      return SymbolKind.SYMBOL_KIND_KEY;
+    case vscode.SymbolKind.Null:
+      return SymbolKind.SYMBOL_KIND_NULL;
+    case vscode.SymbolKind.EnumMember:
+      return SymbolKind.SYMBOL_KIND_ENUM_MEMBER;
+    case vscode.SymbolKind.Struct:
+      return SymbolKind.SYMBOL_KIND_STRUCT;
+    case vscode.SymbolKind.Event:
+      return SymbolKind.SYMBOL_KIND_EVENT;
+    case vscode.SymbolKind.Operator:
+      return SymbolKind.SYMBOL_KIND_OPERATOR;
+    case vscode.SymbolKind.TypeParameter:
+      return SymbolKind.SYMBOL_KIND_TYPE_PARAMETER;
+    default:
+      throw new Error(`Unknown symbol kind: ${symbolKind}`);
+  }
+}
+
+function convertSymbols(vsSymbols: Array<vscode.DocumentSymbol | vscode.SymbolInformation>): DocumentSymbol[] {
+  const pbSymbols: DocumentSymbol[] = [];
+  for (const d of vsSymbols) {
+    const symbol = new DocumentSymbol();
+    if (d instanceof vscode.DocumentSymbol) {
+      symbol.setName(d.name);
+      symbol.setDetail(d.detail);
+      // @ts-ignore
+      symbol.setKind(convertSymbolKind(d.kind));
+      symbol.setRange(convertRange(d.range));
+      symbol.setSelectionrange(convertRange(d.selectionRange));
+      symbol.setChildrenList(convertSymbols(d.children));
+    } else if (d instanceof vscode.SymbolInformation) {
+      symbol.setName(d.name);
+      symbol.setDetail(d.containerName);
+      // @ts-ignore
+      symbol.setKind(convertSymbolKind(d.kind));
+      symbol.setRange(convertRange(d.location));
+    }else{
+      throw new Error("Unknown symbol type");
+    }
+    pbSymbols.push(symbol);
+  }
+
+  return pbSymbols;
+}
+
 
 async function handleListFilesRequest(socket: WebSocket, request: RequestMessage) {
   const files = await listProjectFiles();
@@ -78,28 +201,24 @@ async function handleFindRequest(socket: WebSocket, request: RequestMessage) {
   response.setCommandId(request.getCommandId());
   const fsr = new FindStringResponse();
   const projectRoot = getProjectRoot();
-  const pblocs: Location[] = [];
-  for (const hit of hits) {
-    const loc = new Location();
-    loc.setPath(hit.uri.path.replace(projectRoot, ""));
-    console.log("[FIND]", loc.getPath());
-    const startPos = new Position();
-    startPos.setLine(hit.range.start.line);
-    startPos.setCharacter(hit.range.start.character);
-    loc.setStart(startPos);
-
-    const endPos = new Position();
-    endPos.setLine(hit.range.end.line);
-    endPos.setCharacter(hit.range.end.character);
-    loc.setEnd(endPos);
-    pblocs.push(loc);
-  }
+  const pblocs: Location[] = convertLocations(hits);
   fsr.setLocationsList(pblocs);
   response.setFindString(fsr);
   socket.send(response.serializeBinary());
 }
 
 // ------- WIP
+
+async function sendError(socket: WebSocket, request: RequestMessage, error: string) {
+  console.log(`[ERROR][${request.getType()}], error: ${error}`);
+  const response = new ResponseMessage();
+  response.setType(ResponseType.RESPONSE_ERROR);
+  response.setCommandId(request.getCommandId());
+  const err = new ErrorResponse();
+  err.setError(error);
+  response.setError(err);
+  socket.send(response.serializeBinary());
+}
 
 async function handleSelectRange(socket: WebSocket, request: RequestMessage) {
   const location = request.getSelectRange()!.getLocation();
@@ -109,6 +228,10 @@ async function handleSelectRange(socket: WebSocket, request: RequestMessage) {
   const end = new vscode.Position(location!.getEnd()!.getLine(), location!.getEnd()!.getCharacter());
 
   const selection = selectRange(start, end);
+  if (!selection) {
+    sendError(socket, request, "Failed to select range");
+    return;
+  }
 
   const response = new ResponseMessage();
   response.setType(ResponseType.RESPONSE_SELECT_RANGE);
@@ -125,17 +248,27 @@ async function handleDescribeRange(socket: WebSocket, request: RequestMessage) {
   const start = new vscode.Position(location!.getStart()!.getLine(), location!.getStart()!.getCharacter());
   const end = new vscode.Position(location!.getEnd()!.getLine(), location!.getEnd()!.getCharacter());
 
-  // const selection = selectRange(start, end);
-  // if (isEntireWord(selection!)) {
-    const descriptions = await describeRange(start, end);
-  // }else{
-    // console.log("Selection is not entire word");
-  // }
+  const selection = selectRange(start, end);
+  if (!selection) {
+    sendError(socket, request, "Failed to select range");
+    return;
+  }
+
+  const symbols = await describeRange(start, end);
+  if (!symbols) {
+    sendError(socket, request, "Failed to get descriptions");
+    return;
+  }
+
+  console.log("vsSymbols:", symbols.length);
+  const pbSymbols = convertSymbols(symbols);
 
   const response = new ResponseMessage();
   response.setType(ResponseType.RESPONSE_DESCRIBE_RANGE);
   response.setCommandId(request.getCommandId());
   const drr = new DescribeRangeResponse();
+  console.log("Set pbSymbols:", pbSymbols.length);
+  drr.setSymbolsList(pbSymbols);
   response.setDescribeRange(drr);
   socket.send(response.serializeBinary());
 }
@@ -148,32 +281,50 @@ async function handleGoToDefinition(socket: WebSocket, request: RequestMessage) 
   const end = new vscode.Position(location!.getEnd()!.getLine(), location!.getEnd()!.getCharacter());
 
   const selection = selectRange(start, end);
-  if (isEntireWord(selection!)) {
-    await goToDefinition();
-  }else{
-    console.log("Selection is not entire word");
+  if (!selection) {
+    sendError(socket, request, "Failed to select range");
+    return;
   }
-  
+
+  if (!isEntireWord(selection!)) {
+    sendError(socket, request, "Selection is not word");
+    return;
+  }
+
+  if (!await goToDefinition()) {
+    sendError(socket, request, "Failed to go to definition");
+    return;
+  }
+
   const response = new ResponseMessage();
   response.setType(ResponseType.RESPONSE_GO_TO_DEFINITION);
   response.setCommandId(request.getCommandId());
   const gtdr = new GoToDefinitionResponse();
-  response.setOpenFiles(gtdr);
+  response.setGoToDefinition(gtdr);
   socket.send(response.serializeBinary());
 }
 
 async function handleRename(socket: WebSocket, request: RequestMessage) {
   const location = request.getRename()!.getLocation();
-  
+
   await openFiles([location!.getPath()]);
   const start = new vscode.Position(location!.getStart()!.getLine(), location!.getStart()!.getCharacter());
   const end = new vscode.Position(location!.getEnd()!.getLine(), location!.getEnd()!.getCharacter());
-  
+
   const selection = selectRange(start, end);
-  if (isEntireWord(selection!)) {
-    await rename(request.getRename()!.getNewName());
-  }else{
-    console.log("Selection is not entire word");
+  if (!selection) {
+    sendError(socket, request, "Failed to select range");
+    return;
+  }
+
+  if (!isEntireWord(selection!)) {
+    sendError(socket, request, "Selection is not word");
+    return;
+  }
+
+  if (!await rename(request.getRename()!.getNewName())) {
+    sendError(socket, request, "Failed to rename;");
+    return;
   }
 
   const response = new ResponseMessage();
@@ -193,17 +344,30 @@ async function handleFindUses(socket: WebSocket, request: RequestMessage) {
 
 
   const selection = selectRange(start, end);
-  if (isEntireWord(selection!)) {
-    const uses = findUses();
-  }else{
-    console.log("Selection is not entire word");
+  if (!selection) {
+    sendError(socket, request, "Failed to select range");
+    return;
+  }
+
+  if (!isEntireWord(selection!)) {
+    sendError(socket, request, "Selection is not word");
+    return;
+  }
+
+  const uses = await findUses();
+  if (!uses) {
+    sendError(socket, request, "Failed to find uses");
+    return;
   }
 
   const response = new ResponseMessage();
   response.setType(ResponseType.RESPONSE_FIND_USES);
   response.setCommandId(request.getCommandId());
   const fur = new FindUsesResponse();
-  response.setOpenFiles(fur);
+  const pblocs: Location[] = convertLocations(uses);
+  fur.setLocationsList(pblocs);
+  console.log("setting uses:", pblocs.length);
+  response.setFindUses(fur);
   socket.send(response.serializeBinary());
 }
 
@@ -216,10 +380,16 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('WebSocket connection opened');
 
     socket.on('message', async (message) => {
+      var request: RequestMessage;
       try {
-        const request = RequestMessage.deserializeBinary(new Uint8Array(message as ArrayBuffer));
+        request = RequestMessage.deserializeBinary(new Uint8Array(message as ArrayBuffer));
         console.log('Received ProtoBuf message:', JSON.stringify(request.toObject()));
 
+      } catch (e) {
+        console.log("[ERROR] failed to unmarshal");
+        return;
+      }
+      try {
         switch (request.getType()) {
           case RequestType.REQUEST_LIST_FILES:
             console.log("REQUEST_LIST_FILES");
@@ -257,11 +427,12 @@ export function activate(context: vscode.ExtensionContext) {
             console.log("REQUEST_FIND_USES");
             handleFindUses(socket, request);
             break;
-            
+
         }
         // Process your ProtoBuf message here
 
       } catch (error) {
+        sendError(socket, request, "Caught an exception while handling message");
         console.error('Error processing message:', error);
       }
     });

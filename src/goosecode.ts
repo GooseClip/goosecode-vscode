@@ -171,17 +171,6 @@ export async function findStringInProject(searchPattern: string, includedFiles: 
     return locations;
 }
 
-/*
-const activeEditor = vscode.window.activeTextEditor;
-if (activeEditor) {
-  const document = activeEditor.document;
-  const range = new vscode.Range(document.positionAt(0), document.positionAt(document.getText().length));
-
-  const symbols = await describeSymbolsInRange(document, range);
-  console.log(symbols);
-}
-*/
-
 export function selectRange(start: vscode.Position, end: vscode.Position): vscode.Selection | undefined {
     const activeEditor = vscode.window.activeTextEditor;
 
@@ -197,7 +186,7 @@ export function selectRange(start: vscode.Position, end: vscode.Position): vscod
 }
 
 export async function describeRange(start: vscode.Position, end: vscode.Position
-    ): Promise<Array<vscode.DocumentSymbol | vscode.SymbolInformation>> {
+    ): Promise<Array<vscode.DocumentSymbol | vscode.SymbolInformation> | undefined> {
         
         const activeEditor = vscode.window.activeTextEditor;
         const uri = activeEditor!.document.uri;
@@ -212,7 +201,7 @@ export async function describeRange(start: vscode.Position, end: vscode.Position
 
     if (!symbols) {
         console.log("[WARN][DESCRIBE] no symbols");
-        return [];
+        return ;
     }
 
   
@@ -220,6 +209,7 @@ export async function describeRange(start: vscode.Position, end: vscode.Position
 
     console.log("[DESCRIBE]", symbols.length);
     for (const symbol of symbols) {
+        console.log(typeof symbol);
         const symbolRange = symbol instanceof vscode.DocumentSymbol ? symbol.range : symbol.location.range;
         if (range.intersection(symbolRange)) {
             symbolsInRange.push(symbol);
@@ -229,7 +219,7 @@ export async function describeRange(start: vscode.Position, end: vscode.Position
     return symbolsInRange;
 }
 
-export async function goToDefinition(): Promise<void> {
+export async function goToDefinition(): Promise<boolean> {
     const activeEditor = vscode.window.activeTextEditor;
 
     if (activeEditor) {
@@ -249,18 +239,19 @@ export async function goToDefinition(): Promise<void> {
             const editor = await vscode.window.showTextDocument(document);
             console.log("[GOTO]", "HERE4", JSON.stringify(location));
             editor.selection = new vscode.Selection(location.targetRange.start, location.targetRange.end);
-            console.log("[GOTO]", "HERE5");
             editor.revealRange(location.targetRange, vscode.TextEditorRevealType.InCenter);
             console.log("[GO TO DEFINITION]");
+            return true;
         } else {
             console.log("[WARN][GOTO]", 'No definition found for the symbol under the cursor.');
         }
     } else {
         console.log("[WARN][GOTO]", 'No active text editor found.');
     }
+    return false;
 }
 
-export async function rename(newName: string): Promise<void> {
+export async function rename(newName: string): Promise<boolean> {
     const activeEditor = vscode.window.activeTextEditor;
 
     if (activeEditor) {
@@ -278,15 +269,17 @@ export async function rename(newName: string): Promise<void> {
             // Apply the rename edits
             await vscode.workspace.applyEdit(workspaceEdit);
             console.log("[RENAME]");
+            return true;
         } else {
             console.log("[WARN][RENAME]", 'No symbol found to rename at the cursor position.');
         }
     } else {
         console.log("[WARN][RENAME]", 'No active text editor found.');
     }
+    return false;
 }
 
-export async function findUses(): Promise<vscode.Location[] | null> {
+export async function findUses(): Promise<vscode.Location[] | undefined> {
     const activeEditor = vscode.window.activeTextEditor;
 
     if (activeEditor) {
@@ -304,10 +297,8 @@ export async function findUses(): Promise<vscode.Location[] | null> {
             return references;
         } else {
             console.log("[WARN][FIND USES]", 'No references found for the symbol at the cursor position.');
-            return null;
         }
     } else {
         console.log("[WARN][FIND USES]", 'No active text editor found.');
-        return null;
     }
 }
