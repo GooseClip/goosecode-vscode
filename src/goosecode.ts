@@ -36,6 +36,11 @@ const defaultExclusions = [
     '**/.*'
 ];
 
+/*
+async function getLintErrors(uri: vscode.Uri): Promise<vscode.Diagnostic[]> {
+  return vscode.languages.getDiagnostics(uri);
+}
+*/
 
 export async function listProjectFiles(
     exclusions?: string[]
