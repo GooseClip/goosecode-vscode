@@ -510,7 +510,7 @@ interface IModelContentChange {
 }
 
 async function handleContentChange(socket: WebSocket, request: RequestMessage) {
-  const change: IModelContentChange = request.getChange()!;
+  const change: IModelContentChange = request.getContentChange()!;
 
   const activeEditor = vscode.window.activeTextEditor;
 
@@ -538,7 +538,7 @@ async function handleContentChange(socket: WebSocket, request: RequestMessage) {
 
   // respond with equivalent of 200 OK
   const response = new ResponseMessage();
-  response.setType(ResponseType.RESPONSE_CONTENT_CHANGE_OK);
+  response.setType(ResponseType.RESPONSE_CONTENT_CHANGE);
   response.setCommandId(request.getCommandId());
   const cc = new ContentChangeResponse();
   response.setContentChangeResponse(cc);
@@ -564,7 +564,7 @@ async function streamContentChanges(socket: WebSocket) {
       // TODO handle infinite loop
       for (const change of event.contentChanges) {
         const request = new RequestMessage();
-        request.setType(RequestType.REQUEST_CONTENT_CHANGED);
+        request.setType(RequestType.REQUEST_CONTENT_CHANGE);
         request.setCommandId(getRandomString(6));
         request.setContentChange(change);
         socket.send(request.serializeBinary());
@@ -584,9 +584,9 @@ async function handleGetEditorDiagnostics(socket: WebSocket, request: RequestMes
     let diagnostics = vscode.languages.getDiagnostics(document.uri);
 
     const response = new ResponseMessage();
-    response.setType(ResponseType.RESPONSE_GET_EDITOR_DIAGNOSTICS);
+    response.setType(ResponseType.RESPONSE_EDITOR_DIAGNOSTICS);
     response.setCommandId(request.getCommandId());
-    const ged = new GetEditorDiagnostics();
+    const ged = new EditorDiagnostics();
     response.setEditorDiagnostics(ged);
     socket.send(response.serializeBinary());
   }
@@ -650,11 +650,11 @@ export function activate(context: vscode.ExtensionContext) {
             console.log("REQUEST_FIND_USES");
             handleFindUses(socket, request);
             break;
-          case RequestType.REQUEST_GET_EDITOR_STATE:
+          case RequestType.REQUEST_EDITOR_STATE:
             console.log("REQUEST_GET_EDITOR_STATE");
             handleGetEditorState(socket, request);
             break;
-          case RequestType.REQUEST_CONTENT_CHANGED:
+          case RequestType.REQUEST_CONTENT_CHANGE:
             console.log("REQUEST_CONTENT_CHANGED");
             handleContentChange(socket, request);
             break;
