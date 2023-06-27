@@ -6,6 +6,14 @@ import { RequestMessage, RequestType, ResponseMessage, SymbolKindMap, GetFilesRe
 import { getProjectRoot, getFileContents, listProjectFiles, findStringInProject, openFiles, selectRange, describeRange, goToDefinition, rename, findUses } from './goosecode';
 import { ResponseType } from './proto/idepb/ide_pb';
 
+import express = require('express');
+import expressWs = require('express-ws');
+import { RawData } from 'ws';
+import * as http from 'http';
+import * as path from 'path';
+import { promisify } from 'util';
+import { readFile } from 'fs';
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 // export function activate(context: vscode.ExtensionContext) {
@@ -62,15 +70,15 @@ function convertRange(vsRange: vscode.Range | vscode.Location): Range {
   const range = new Range();
 
   const startPos = new Position();
-  const r = vsRange instanceof vscode.Range ? vsRange : (vsRange as vscode.Location).range; 
-    startPos.setLine(r.start.line);
-    startPos.setCharacter(r.start.character);
-    range.setStart(startPos);
+  const r = vsRange instanceof vscode.Range ? vsRange : (vsRange as vscode.Location).range;
+  startPos.setLine(r.start.line);
+  startPos.setCharacter(r.start.character);
+  range.setStart(startPos);
 
-    const endPos = new Position();
-    endPos.setLine(r.end.line);
-    endPos.setCharacter(r.end.character);
-    range.setEnd(endPos);
+  const endPos = new Position();
+  endPos.setLine(r.end.line);
+  endPos.setCharacter(r.end.character);
+  range.setEnd(endPos);
   return range;
 }
 
@@ -151,7 +159,7 @@ function convertSymbols(vsSymbols: Array<vscode.DocumentSymbol | vscode.SymbolIn
       // @ts-ignore
       symbol.setKind(convertSymbolKind(d.kind));
       symbol.setRange(convertRange(d.location));
-    }else{
+    } else {
       throw new Error("Unknown symbol type");
     }
     pbSymbols.push(symbol);
@@ -371,6 +379,219 @@ async function handleFindUses(socket: WebSocket, request: RequestMessage) {
   socket.send(response.serializeBinary());
 }
 
+async function serveMonacoEditor() {
+  interface IRange {
+    startLineNumber: number;
+    startColumn: number;
+    endLineNumber: number;
+    endColumn: number;
+  }
+
+  interface IModelContentChange {
+    range: IRange;
+    rangeOffset: number;
+    rangeLength: number;
+    text: string;
+  }
+  const readFileAsync = promisify(readFile);
+  const app = express();
+  const server = http.createServer(app);
+  const wsApp = expressWs(app as any, server);
+
+  var changeSource = 'user';
+
+  app.use('/vs', express.static(path.join(__dirname, '../node_modules/monaco-editor/min/vs')));
+
+  app.get('/', async (_: express.Request, res: express.Response) => {
+    const html = await readFileAsync(path.join(__dirname, '../src/monaco_webview.html'), 'utf-8');
+    res.send(html);
+  });
+
+  let websocket: WebSocket | null = null;
+
+  // registers websocket
+  wsApp.app.ws('/', (ws, req) => {
+    websocket = ws;
+
+    const activeEditor = vscode.window.activeTextEditor;
+    if (activeEditor) {
+      const documentText = activeEditor.document.getText();
+
+      ws.send(JSON.stringify({ initialText: documentText, source: "vscode" }));
+    }
+
+    // receives from Monaco Client
+    ws.on('message', (msg: RawData) => {
+      if (typeof (msg) === 'string') {
+        const change = JSON.parse(msg);
+
+        changeSource = change.source;
+
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor) {
+          console.log("No active editor");
+          return;
+        }
+
+        // Convert the Monaco IRange to a VSCode Range
+        // Note that VSCode lines and columns start at 0, so we subtract 1 from the Monaco values
+        const range = new vscode.Range(
+          change.range.startLineNumber - 1,
+          change.range.startColumn - 1,
+          change.range.endLineNumber - 1,
+          change.range.endColumn - 1,
+        );
+
+        // Apply the change to the active editor
+        activeEditor.edit((editBuilder) => {
+          editBuilder.replace(range, change.text);
+        }).then(() => {
+          changeSource = "user";
+        });
+
+      } else {
+        console.error('Received non-string message data', msg); // TODO handle appropriately
+      }
+    });
+  });
+
+  server.listen(3000, 'localhost', () => {
+    console.log('Listening on localhost:3000');
+  });
+
+  // sends to Monaco Client
+  vscode.workspace.onDidChangeTextDocument((event) => {
+    if (event.document === vscode.window.activeTextEditor?.document) {
+      // console.log("(pre check)" + changeSource);
+      if (changeSource === "user") {
+        for (const change of event.contentChanges) {
+          if (websocket && websocket.readyState === websocket.OPEN) {
+            websocket.send(JSON.stringify({ ...change, source: 'vscode' }));
+          }
+        }
+      }
+    }
+  });
+}
+
+async function handleGetEditorState(socket: WebSocket, request: RequestMessage) {
+  // TODO change to the editor relevant to the requested file
+  const activeEditor = vscode.window.activeTextEditor;
+
+  if (!activeEditor) {
+    sendError(socket, request, "Failed to get editor state");
+    return;
+  }
+
+  const documentText = activeEditor.document.getText();
+
+  const response = new ResponseMessage();
+  response.setType(ResponseType.RESPONSE_EDITOR_STATE);
+  response.setCommandId(request.getCommandId());
+  const es = new EditorStateResponse();
+  response.setEditorState(es);
+  socket.send(response.serializeBinary());
+}
+
+// TODO convert to protobuf definition
+interface IRange {
+  startLineNumber: number;
+  startColumn: number;
+  endLineNumber: number;
+  endColumn: number;
+}
+
+// TODO convert to protobuf definition
+interface IModelContentChange {
+  range: IRange;
+  rangeOffset: number;
+  rangeLength: number;
+  text: string;
+}
+
+async function handleContentChange(socket: WebSocket, request: RequestMessage) {
+  const change: IModelContentChange = request.getChange()!;
+
+  const activeEditor = vscode.window.activeTextEditor;
+
+  if (!activeEditor) {
+    sendError(socket, request, "Failed to handle content change");
+    return;
+  }
+
+  // TODO change this such that it leverages protobuf if possible?
+  // Convert the Monaco IRange to a VSCode Range
+  // Note that VSCode lines and columns start at 0, so we subtract 1 from the Monaco values
+  const range = new vscode.Range(
+    change.range.startLineNumber - 1,
+    change.range.startColumn - 1,
+    change.range.endLineNumber - 1,
+    change.range.endColumn - 1,
+  );
+
+  // Apply the change to the active editor
+  activeEditor.edit((editBuilder) => {
+    editBuilder.replace(range, change.text);
+  }).then(() => {
+    // TODO prevent infinite loop by reassigning a var here
+  });
+
+  // respond with equivalent of 200 OK
+  const response = new ResponseMessage();
+  response.setType(ResponseType.RESPONSE_CONTENT_CHANGE_OK);
+  response.setCommandId(request.getCommandId());
+  const cc = new ContentChangeResponse();
+  response.setContentChangeResponse(cc);
+  socket.send(response.serializeBinary());
+}
+
+
+function getRandomString(length: number): string {
+  const _chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
+
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += _chars.charAt(Math.floor(Math.random() * _chars.length));
+  }
+  return result;
+}
+
+async function streamContentChanges(socket: WebSocket) {
+  // sends to Monaco Client
+  vscode.workspace.onDidChangeTextDocument((event) => {
+    // TODO change to the editor relevant to the requested file
+    if (event.document === vscode.window.activeTextEditor?.document) {
+      // TODO handle infinite loop
+      for (const change of event.contentChanges) {
+        const request = new RequestMessage();
+        request.setType(RequestType.REQUEST_CONTENT_CHANGED);
+        request.setCommandId(getRandomString(6));
+        request.setContentChange(change);
+        socket.send(request.serializeBinary());
+        // TODO retrieve and handle response from websocket somehow
+      }
+    }
+  });
+}
+
+async function handleGetEditorDiagnostics(socket: WebSocket, request: RequestMessage) {
+  // TODO change from activeTextEditor to relevant file
+  let editor = vscode.window.activeTextEditor;
+  if (editor) {
+    let document = editor.document;
+
+    // Get all diagnostics for the current document
+    let diagnostics = vscode.languages.getDiagnostics(document.uri);
+
+    const response = new ResponseMessage();
+    response.setType(ResponseType.RESPONSE_GET_EDITOR_DIAGNOSTICS);
+    response.setCommandId(request.getCommandId());
+    const ged = new GetEditorDiagnostics();
+    response.setEditorDiagnostics(ged);
+    socket.send(response.serializeBinary());
+  }
+}
+
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "websocket-protobuf-example" is now active!');
 
@@ -378,6 +599,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   websocketServer.on('connection', (socket) => {
     console.log('WebSocket connection opened');
+
+    streamContentChanges(socket);
 
     socket.on('message', async (message) => {
       var request: RequestMessage;
@@ -426,6 +649,14 @@ export function activate(context: vscode.ExtensionContext) {
           case RequestType.REQUEST_FIND_USES:
             console.log("REQUEST_FIND_USES");
             handleFindUses(socket, request);
+            break;
+          case RequestType.REQUEST_GET_EDITOR_STATE:
+            console.log("REQUEST_GET_EDITOR_STATE");
+            handleGetEditorState(socket, request);
+            break;
+          case RequestType.REQUEST_CONTENT_CHANGED:
+            console.log("REQUEST_CONTENT_CHANGED");
+            handleContentChange(socket, request);
             break;
 
         }
