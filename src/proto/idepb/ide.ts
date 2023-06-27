@@ -15,7 +15,10 @@ export namespace idepb {
         REQUEST_DESCRIBE_RANGE = 6,
         REQUEST_GO_TO_DEFINITION = 7,
         REQUEST_RENAME = 8,
-        REQUEST_FIND_USES = 9
+        REQUEST_FIND_USES = 9,
+        REQUEST_EDITOR_STATE = 10,
+        REQUEST_CONTENT_CHANGE = 11,
+        REQUEST_EDITOR_DIAGNOSTICS = 12
     }
     export enum SymbolKind {
         SYMBOL_KIND_FILE = 0,
@@ -56,6 +59,9 @@ export namespace idepb {
         RESPONSE_GO_TO_DEFINITION = 7,
         RESPONSE_RENAME = 8,
         RESPONSE_FIND_USES = 9,
+        RESPONSE_EDITOR_STATE = 10,
+        RESPONSE_CONTENT_CHANGE = 11,
+        RESPONSE_EDITOR_DIAGNOSTICS = 12,
         RESPONSE_ERROR = 999
     }
     export class EmptyMessage extends pb_1.Message {
@@ -812,8 +818,287 @@ export namespace idepb {
             return FindUsesRequest.deserialize(bytes);
         }
     }
+    export class EditorStateRequest extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {
+            location?: Location;
+        }) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("location" in data && data.location != undefined) {
+                    this.location = data.location;
+                }
+            }
+        }
+        get location() {
+            return pb_1.Message.getWrapperField(this, Location, 1) as Location;
+        }
+        set location(value: Location) {
+            pb_1.Message.setWrapperField(this, 1, value);
+        }
+        get has_location() {
+            return pb_1.Message.getField(this, 1) != null;
+        }
+        static fromObject(data: {
+            location?: ReturnType<typeof Location.prototype.toObject>;
+        }): EditorStateRequest {
+            const message = new EditorStateRequest({});
+            if (data.location != null) {
+                message.location = Location.fromObject(data.location);
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                location?: ReturnType<typeof Location.prototype.toObject>;
+            } = {};
+            if (this.location != null) {
+                data.location = this.location.toObject();
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.has_location)
+                writer.writeMessage(1, this.location, () => this.location.serialize(writer));
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): EditorStateRequest {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new EditorStateRequest();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        reader.readMessage(message.location, () => message.location = Location.deserialize(reader));
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): EditorStateRequest {
+            return EditorStateRequest.deserialize(bytes);
+        }
+    }
+    export class ContentChangeRequest extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {
+            range?: IRange;
+            range_offset?: number;
+            range_length?: number;
+            text?: string;
+        }) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("range" in data && data.range != undefined) {
+                    this.range = data.range;
+                }
+                if ("range_offset" in data && data.range_offset != undefined) {
+                    this.range_offset = data.range_offset;
+                }
+                if ("range_length" in data && data.range_length != undefined) {
+                    this.range_length = data.range_length;
+                }
+                if ("text" in data && data.text != undefined) {
+                    this.text = data.text;
+                }
+            }
+        }
+        get range() {
+            return pb_1.Message.getWrapperField(this, IRange, 1) as IRange;
+        }
+        set range(value: IRange) {
+            pb_1.Message.setWrapperField(this, 1, value);
+        }
+        get has_range() {
+            return pb_1.Message.getField(this, 1) != null;
+        }
+        get range_offset() {
+            return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
+        }
+        set range_offset(value: number) {
+            pb_1.Message.setField(this, 2, value);
+        }
+        get range_length() {
+            return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
+        }
+        set range_length(value: number) {
+            pb_1.Message.setField(this, 3, value);
+        }
+        get text() {
+            return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+        }
+        set text(value: string) {
+            pb_1.Message.setField(this, 4, value);
+        }
+        static fromObject(data: {
+            range?: ReturnType<typeof IRange.prototype.toObject>;
+            range_offset?: number;
+            range_length?: number;
+            text?: string;
+        }): ContentChangeRequest {
+            const message = new ContentChangeRequest({});
+            if (data.range != null) {
+                message.range = IRange.fromObject(data.range);
+            }
+            if (data.range_offset != null) {
+                message.range_offset = data.range_offset;
+            }
+            if (data.range_length != null) {
+                message.range_length = data.range_length;
+            }
+            if (data.text != null) {
+                message.text = data.text;
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                range?: ReturnType<typeof IRange.prototype.toObject>;
+                range_offset?: number;
+                range_length?: number;
+                text?: string;
+            } = {};
+            if (this.range != null) {
+                data.range = this.range.toObject();
+            }
+            if (this.range_offset != null) {
+                data.range_offset = this.range_offset;
+            }
+            if (this.range_length != null) {
+                data.range_length = this.range_length;
+            }
+            if (this.text != null) {
+                data.text = this.text;
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.has_range)
+                writer.writeMessage(1, this.range, () => this.range.serialize(writer));
+            if (this.range_offset != 0)
+                writer.writeInt64(2, this.range_offset);
+            if (this.range_length != 0)
+                writer.writeInt64(3, this.range_length);
+            if (this.text.length)
+                writer.writeString(4, this.text);
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ContentChangeRequest {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ContentChangeRequest();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        reader.readMessage(message.range, () => message.range = IRange.deserialize(reader));
+                        break;
+                    case 2:
+                        message.range_offset = reader.readInt64();
+                        break;
+                    case 3:
+                        message.range_length = reader.readInt64();
+                        break;
+                    case 4:
+                        message.text = reader.readString();
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): ContentChangeRequest {
+            return ContentChangeRequest.deserialize(bytes);
+        }
+    }
+    export class EditorDiagnosticsRequest extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {
+            location?: Location;
+        }) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("location" in data && data.location != undefined) {
+                    this.location = data.location;
+                }
+            }
+        }
+        get location() {
+            return pb_1.Message.getWrapperField(this, Location, 1) as Location;
+        }
+        set location(value: Location) {
+            pb_1.Message.setWrapperField(this, 1, value);
+        }
+        get has_location() {
+            return pb_1.Message.getField(this, 1) != null;
+        }
+        static fromObject(data: {
+            location?: ReturnType<typeof Location.prototype.toObject>;
+        }): EditorDiagnosticsRequest {
+            const message = new EditorDiagnosticsRequest({});
+            if (data.location != null) {
+                message.location = Location.fromObject(data.location);
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                location?: ReturnType<typeof Location.prototype.toObject>;
+            } = {};
+            if (this.location != null) {
+                data.location = this.location.toObject();
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.has_location)
+                writer.writeMessage(1, this.location, () => this.location.serialize(writer));
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): EditorDiagnosticsRequest {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new EditorDiagnosticsRequest();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        reader.readMessage(message.location, () => message.location = Location.deserialize(reader));
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): EditorDiagnosticsRequest {
+            return EditorDiagnosticsRequest.deserialize(bytes);
+        }
+    }
     export class RequestMessage extends pb_1.Message {
-        #one_of_decls: number[][] = [[3, 4, 5, 6, 7, 8, 9, 10, 11]];
+        #one_of_decls: number[][] = [[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]];
         constructor(data?: any[] | ({
             type?: RequestType;
             command_id?: string;
@@ -827,6 +1112,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
         } | {
             list_files?: never;
             get_files?: GetFilesRequest;
@@ -837,6 +1125,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
         } | {
             list_files?: never;
             get_files?: never;
@@ -847,6 +1138,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
         } | {
             list_files?: never;
             get_files?: never;
@@ -857,6 +1151,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
         } | {
             list_files?: never;
             get_files?: never;
@@ -867,6 +1164,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
         } | {
             list_files?: never;
             get_files?: never;
@@ -877,6 +1177,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
         } | {
             list_files?: never;
             get_files?: never;
@@ -887,6 +1190,9 @@ export namespace idepb {
             go_to_definition?: GoToDefinitionRequest;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
         } | {
             list_files?: never;
             get_files?: never;
@@ -897,6 +1203,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: RenameRequest;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
         } | {
             list_files?: never;
             get_files?: never;
@@ -907,6 +1216,48 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: FindUsesRequest;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
+        } | {
+            list_files?: never;
+            get_files?: never;
+            open_files?: never;
+            find_string?: never;
+            select_range?: never;
+            describe_range?: never;
+            go_to_definition?: never;
+            rename?: never;
+            find_uses?: never;
+            editor_state?: EditorStateRequest;
+            content_change?: never;
+            editor_diagnostics?: never;
+        } | {
+            list_files?: never;
+            get_files?: never;
+            open_files?: never;
+            find_string?: never;
+            select_range?: never;
+            describe_range?: never;
+            go_to_definition?: never;
+            rename?: never;
+            find_uses?: never;
+            editor_state?: never;
+            content_change?: ContentChangeRequest;
+            editor_diagnostics?: never;
+        } | {
+            list_files?: never;
+            get_files?: never;
+            open_files?: never;
+            find_string?: never;
+            select_range?: never;
+            describe_range?: never;
+            go_to_definition?: never;
+            rename?: never;
+            find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: EditorDiagnosticsRequest;
         })))) {
             super();
             pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -943,6 +1294,15 @@ export namespace idepb {
                 }
                 if ("find_uses" in data && data.find_uses != undefined) {
                     this.find_uses = data.find_uses;
+                }
+                if ("editor_state" in data && data.editor_state != undefined) {
+                    this.editor_state = data.editor_state;
+                }
+                if ("content_change" in data && data.content_change != undefined) {
+                    this.content_change = data.content_change;
+                }
+                if ("editor_diagnostics" in data && data.editor_diagnostics != undefined) {
+                    this.editor_diagnostics = data.editor_diagnostics;
                 }
             }
         }
@@ -1039,9 +1399,36 @@ export namespace idepb {
         get has_find_uses() {
             return pb_1.Message.getField(this, 11) != null;
         }
+        get editor_state() {
+            return pb_1.Message.getWrapperField(this, EditorStateRequest, 12) as EditorStateRequest;
+        }
+        set editor_state(value: EditorStateRequest) {
+            pb_1.Message.setOneofWrapperField(this, 12, this.#one_of_decls[0], value);
+        }
+        get has_editor_state() {
+            return pb_1.Message.getField(this, 12) != null;
+        }
+        get content_change() {
+            return pb_1.Message.getWrapperField(this, ContentChangeRequest, 13) as ContentChangeRequest;
+        }
+        set content_change(value: ContentChangeRequest) {
+            pb_1.Message.setOneofWrapperField(this, 13, this.#one_of_decls[0], value);
+        }
+        get has_content_change() {
+            return pb_1.Message.getField(this, 13) != null;
+        }
+        get editor_diagnostics() {
+            return pb_1.Message.getWrapperField(this, EditorDiagnosticsRequest, 14) as EditorDiagnosticsRequest;
+        }
+        set editor_diagnostics(value: EditorDiagnosticsRequest) {
+            pb_1.Message.setOneofWrapperField(this, 14, this.#one_of_decls[0], value);
+        }
+        get has_editor_diagnostics() {
+            return pb_1.Message.getField(this, 14) != null;
+        }
         get data() {
             const cases: {
-                [index: number]: "none" | "list_files" | "get_files" | "open_files" | "find_string" | "select_range" | "describe_range" | "go_to_definition" | "rename" | "find_uses";
+                [index: number]: "none" | "list_files" | "get_files" | "open_files" | "find_string" | "select_range" | "describe_range" | "go_to_definition" | "rename" | "find_uses" | "editor_state" | "content_change" | "editor_diagnostics";
             } = {
                 0: "none",
                 3: "list_files",
@@ -1052,9 +1439,12 @@ export namespace idepb {
                 8: "describe_range",
                 9: "go_to_definition",
                 10: "rename",
-                11: "find_uses"
+                11: "find_uses",
+                12: "editor_state",
+                13: "content_change",
+                14: "editor_diagnostics"
             };
-            return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7, 8, 9, 10, 11])];
+            return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])];
         }
         static fromObject(data: {
             type?: RequestType;
@@ -1068,6 +1458,9 @@ export namespace idepb {
             go_to_definition?: ReturnType<typeof GoToDefinitionRequest.prototype.toObject>;
             rename?: ReturnType<typeof RenameRequest.prototype.toObject>;
             find_uses?: ReturnType<typeof FindUsesRequest.prototype.toObject>;
+            editor_state?: ReturnType<typeof EditorStateRequest.prototype.toObject>;
+            content_change?: ReturnType<typeof ContentChangeRequest.prototype.toObject>;
+            editor_diagnostics?: ReturnType<typeof EditorDiagnosticsRequest.prototype.toObject>;
         }): RequestMessage {
             const message = new RequestMessage({});
             if (data.type != null) {
@@ -1103,6 +1496,15 @@ export namespace idepb {
             if (data.find_uses != null) {
                 message.find_uses = FindUsesRequest.fromObject(data.find_uses);
             }
+            if (data.editor_state != null) {
+                message.editor_state = EditorStateRequest.fromObject(data.editor_state);
+            }
+            if (data.content_change != null) {
+                message.content_change = ContentChangeRequest.fromObject(data.content_change);
+            }
+            if (data.editor_diagnostics != null) {
+                message.editor_diagnostics = EditorDiagnosticsRequest.fromObject(data.editor_diagnostics);
+            }
             return message;
         }
         toObject() {
@@ -1118,6 +1520,9 @@ export namespace idepb {
                 go_to_definition?: ReturnType<typeof GoToDefinitionRequest.prototype.toObject>;
                 rename?: ReturnType<typeof RenameRequest.prototype.toObject>;
                 find_uses?: ReturnType<typeof FindUsesRequest.prototype.toObject>;
+                editor_state?: ReturnType<typeof EditorStateRequest.prototype.toObject>;
+                content_change?: ReturnType<typeof ContentChangeRequest.prototype.toObject>;
+                editor_diagnostics?: ReturnType<typeof EditorDiagnosticsRequest.prototype.toObject>;
             } = {};
             if (this.type != null) {
                 data.type = this.type;
@@ -1152,6 +1557,15 @@ export namespace idepb {
             if (this.find_uses != null) {
                 data.find_uses = this.find_uses.toObject();
             }
+            if (this.editor_state != null) {
+                data.editor_state = this.editor_state.toObject();
+            }
+            if (this.content_change != null) {
+                data.content_change = this.content_change.toObject();
+            }
+            if (this.editor_diagnostics != null) {
+                data.editor_diagnostics = this.editor_diagnostics.toObject();
+            }
             return data;
         }
         serialize(): Uint8Array;
@@ -1180,6 +1594,12 @@ export namespace idepb {
                 writer.writeMessage(10, this.rename, () => this.rename.serialize(writer));
             if (this.has_find_uses)
                 writer.writeMessage(11, this.find_uses, () => this.find_uses.serialize(writer));
+            if (this.has_editor_state)
+                writer.writeMessage(12, this.editor_state, () => this.editor_state.serialize(writer));
+            if (this.has_content_change)
+                writer.writeMessage(13, this.content_change, () => this.content_change.serialize(writer));
+            if (this.has_editor_diagnostics)
+                writer.writeMessage(14, this.editor_diagnostics, () => this.editor_diagnostics.serialize(writer));
             if (!w)
                 return writer.getResultBuffer();
         }
@@ -1221,6 +1641,15 @@ export namespace idepb {
                         break;
                     case 11:
                         reader.readMessage(message.find_uses, () => message.find_uses = FindUsesRequest.deserialize(reader));
+                        break;
+                    case 12:
+                        reader.readMessage(message.editor_state, () => message.editor_state = EditorStateRequest.deserialize(reader));
+                        break;
+                    case 13:
+                        reader.readMessage(message.content_change, () => message.content_change = ContentChangeRequest.deserialize(reader));
+                        break;
+                    case 14:
+                        reader.readMessage(message.editor_diagnostics, () => message.editor_diagnostics = EditorDiagnosticsRequest.deserialize(reader));
                         break;
                     default: reader.skipField();
                 }
@@ -1496,6 +1925,142 @@ export namespace idepb {
         }
         static deserializeBinary(bytes: Uint8Array): Position {
             return Position.deserialize(bytes);
+        }
+    }
+    export class IRange extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {
+            start_line_number?: number;
+            start_column?: number;
+            end_line_number?: number;
+            end_column?: number;
+        }) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("start_line_number" in data && data.start_line_number != undefined) {
+                    this.start_line_number = data.start_line_number;
+                }
+                if ("start_column" in data && data.start_column != undefined) {
+                    this.start_column = data.start_column;
+                }
+                if ("end_line_number" in data && data.end_line_number != undefined) {
+                    this.end_line_number = data.end_line_number;
+                }
+                if ("end_column" in data && data.end_column != undefined) {
+                    this.end_column = data.end_column;
+                }
+            }
+        }
+        get start_line_number() {
+            return pb_1.Message.getFieldWithDefault(this, 1, 0) as number;
+        }
+        set start_line_number(value: number) {
+            pb_1.Message.setField(this, 1, value);
+        }
+        get start_column() {
+            return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
+        }
+        set start_column(value: number) {
+            pb_1.Message.setField(this, 2, value);
+        }
+        get end_line_number() {
+            return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
+        }
+        set end_line_number(value: number) {
+            pb_1.Message.setField(this, 3, value);
+        }
+        get end_column() {
+            return pb_1.Message.getFieldWithDefault(this, 4, 0) as number;
+        }
+        set end_column(value: number) {
+            pb_1.Message.setField(this, 4, value);
+        }
+        static fromObject(data: {
+            start_line_number?: number;
+            start_column?: number;
+            end_line_number?: number;
+            end_column?: number;
+        }): IRange {
+            const message = new IRange({});
+            if (data.start_line_number != null) {
+                message.start_line_number = data.start_line_number;
+            }
+            if (data.start_column != null) {
+                message.start_column = data.start_column;
+            }
+            if (data.end_line_number != null) {
+                message.end_line_number = data.end_line_number;
+            }
+            if (data.end_column != null) {
+                message.end_column = data.end_column;
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                start_line_number?: number;
+                start_column?: number;
+                end_line_number?: number;
+                end_column?: number;
+            } = {};
+            if (this.start_line_number != null) {
+                data.start_line_number = this.start_line_number;
+            }
+            if (this.start_column != null) {
+                data.start_column = this.start_column;
+            }
+            if (this.end_line_number != null) {
+                data.end_line_number = this.end_line_number;
+            }
+            if (this.end_column != null) {
+                data.end_column = this.end_column;
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.start_line_number != 0)
+                writer.writeInt64(1, this.start_line_number);
+            if (this.start_column != 0)
+                writer.writeInt64(2, this.start_column);
+            if (this.end_line_number != 0)
+                writer.writeInt64(3, this.end_line_number);
+            if (this.end_column != 0)
+                writer.writeInt64(4, this.end_column);
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): IRange {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new IRange();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        message.start_line_number = reader.readInt64();
+                        break;
+                    case 2:
+                        message.start_column = reader.readInt64();
+                        break;
+                    case 3:
+                        message.end_line_number = reader.readInt64();
+                        break;
+                    case 4:
+                        message.end_column = reader.readInt64();
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): IRange {
+            return IRange.deserialize(bytes);
         }
     }
     export class Range extends pb_1.Message {
@@ -2222,6 +2787,126 @@ export namespace idepb {
             return FindUsesResponse.deserialize(bytes);
         }
     }
+    export class EditorStateResponse extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {}) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") { }
+        }
+        static fromObject(data: {}): EditorStateResponse {
+            const message = new EditorStateResponse({});
+            return message;
+        }
+        toObject() {
+            const data: {} = {};
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): EditorStateResponse {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new EditorStateResponse();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): EditorStateResponse {
+            return EditorStateResponse.deserialize(bytes);
+        }
+    }
+    export class ContentChangeResponse extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {}) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") { }
+        }
+        static fromObject(data: {}): ContentChangeResponse {
+            const message = new ContentChangeResponse({});
+            return message;
+        }
+        toObject() {
+            const data: {} = {};
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ContentChangeResponse {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ContentChangeResponse();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): ContentChangeResponse {
+            return ContentChangeResponse.deserialize(bytes);
+        }
+    }
+    export class EditorDiagnosticsResponse extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {}) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") { }
+        }
+        static fromObject(data: {}): EditorDiagnosticsResponse {
+            const message = new EditorDiagnosticsResponse({});
+            return message;
+        }
+        toObject() {
+            const data: {} = {};
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): EditorDiagnosticsResponse {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new EditorDiagnosticsResponse();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): EditorDiagnosticsResponse {
+            return EditorDiagnosticsResponse.deserialize(bytes);
+        }
+    }
     export class ErrorResponse extends pb_1.Message {
         #one_of_decls: number[][] = [];
         constructor(data?: any[] | {
@@ -2290,7 +2975,7 @@ export namespace idepb {
         }
     }
     export class ResponseMessage extends pb_1.Message {
-        #one_of_decls: number[][] = [[3, 4, 5, 6, 7, 8, 9, 10, 11, 999]];
+        #one_of_decls: number[][] = [[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 999]];
         constructor(data?: any[] | ({
             type?: ResponseType;
             command_id?: string;
@@ -2304,6 +2989,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
             error?: never;
         } | {
             list_files?: never;
@@ -2315,6 +3003,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
             error?: never;
         } | {
             list_files?: never;
@@ -2326,6 +3017,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
             error?: never;
         } | {
             list_files?: never;
@@ -2337,6 +3031,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
             error?: never;
         } | {
             list_files?: never;
@@ -2348,6 +3045,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
             error?: never;
         } | {
             list_files?: never;
@@ -2359,6 +3059,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
             error?: never;
         } | {
             list_files?: never;
@@ -2370,6 +3073,9 @@ export namespace idepb {
             go_to_definition?: GoToDefinitionResponse;
             rename?: never;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
             error?: never;
         } | {
             list_files?: never;
@@ -2381,6 +3087,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: RenameResponse;
             find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
             error?: never;
         } | {
             list_files?: never;
@@ -2392,6 +3101,9 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: FindUsesResponse;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
             error?: never;
         } | {
             list_files?: never;
@@ -2403,6 +3115,51 @@ export namespace idepb {
             go_to_definition?: never;
             rename?: never;
             find_uses?: never;
+            editor_state?: EditorStateResponse;
+            content_change?: never;
+            editor_diagnostics?: never;
+            error?: never;
+        } | {
+            list_files?: never;
+            get_files?: never;
+            open_files?: never;
+            find_string?: never;
+            select_range?: never;
+            describe_range?: never;
+            go_to_definition?: never;
+            rename?: never;
+            find_uses?: never;
+            editor_state?: never;
+            content_change?: ContentChangeResponse;
+            editor_diagnostics?: never;
+            error?: never;
+        } | {
+            list_files?: never;
+            get_files?: never;
+            open_files?: never;
+            find_string?: never;
+            select_range?: never;
+            describe_range?: never;
+            go_to_definition?: never;
+            rename?: never;
+            find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: EditorDiagnosticsResponse;
+            error?: never;
+        } | {
+            list_files?: never;
+            get_files?: never;
+            open_files?: never;
+            find_string?: never;
+            select_range?: never;
+            describe_range?: never;
+            go_to_definition?: never;
+            rename?: never;
+            find_uses?: never;
+            editor_state?: never;
+            content_change?: never;
+            editor_diagnostics?: never;
             error?: ErrorResponse;
         })))) {
             super();
@@ -2440,6 +3197,15 @@ export namespace idepb {
                 }
                 if ("find_uses" in data && data.find_uses != undefined) {
                     this.find_uses = data.find_uses;
+                }
+                if ("editor_state" in data && data.editor_state != undefined) {
+                    this.editor_state = data.editor_state;
+                }
+                if ("content_change" in data && data.content_change != undefined) {
+                    this.content_change = data.content_change;
+                }
+                if ("editor_diagnostics" in data && data.editor_diagnostics != undefined) {
+                    this.editor_diagnostics = data.editor_diagnostics;
                 }
                 if ("error" in data && data.error != undefined) {
                     this.error = data.error;
@@ -2539,6 +3305,33 @@ export namespace idepb {
         get has_find_uses() {
             return pb_1.Message.getField(this, 11) != null;
         }
+        get editor_state() {
+            return pb_1.Message.getWrapperField(this, EditorStateResponse, 12) as EditorStateResponse;
+        }
+        set editor_state(value: EditorStateResponse) {
+            pb_1.Message.setOneofWrapperField(this, 12, this.#one_of_decls[0], value);
+        }
+        get has_editor_state() {
+            return pb_1.Message.getField(this, 12) != null;
+        }
+        get content_change() {
+            return pb_1.Message.getWrapperField(this, ContentChangeResponse, 13) as ContentChangeResponse;
+        }
+        set content_change(value: ContentChangeResponse) {
+            pb_1.Message.setOneofWrapperField(this, 13, this.#one_of_decls[0], value);
+        }
+        get has_content_change() {
+            return pb_1.Message.getField(this, 13) != null;
+        }
+        get editor_diagnostics() {
+            return pb_1.Message.getWrapperField(this, EditorDiagnosticsResponse, 14) as EditorDiagnosticsResponse;
+        }
+        set editor_diagnostics(value: EditorDiagnosticsResponse) {
+            pb_1.Message.setOneofWrapperField(this, 14, this.#one_of_decls[0], value);
+        }
+        get has_editor_diagnostics() {
+            return pb_1.Message.getField(this, 14) != null;
+        }
         get error() {
             return pb_1.Message.getWrapperField(this, ErrorResponse, 999) as ErrorResponse;
         }
@@ -2550,7 +3343,7 @@ export namespace idepb {
         }
         get data() {
             const cases: {
-                [index: number]: "none" | "list_files" | "get_files" | "open_files" | "find_string" | "select_range" | "describe_range" | "go_to_definition" | "rename" | "find_uses" | "error";
+                [index: number]: "none" | "list_files" | "get_files" | "open_files" | "find_string" | "select_range" | "describe_range" | "go_to_definition" | "rename" | "find_uses" | "editor_state" | "content_change" | "editor_diagnostics" | "error";
             } = {
                 0: "none",
                 3: "list_files",
@@ -2562,9 +3355,12 @@ export namespace idepb {
                 9: "go_to_definition",
                 10: "rename",
                 11: "find_uses",
+                12: "editor_state",
+                13: "content_change",
+                14: "editor_diagnostics",
                 999: "error"
             };
-            return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7, 8, 9, 10, 11, 999])];
+            return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 999])];
         }
         static fromObject(data: {
             type?: ResponseType;
@@ -2578,6 +3374,9 @@ export namespace idepb {
             go_to_definition?: ReturnType<typeof GoToDefinitionResponse.prototype.toObject>;
             rename?: ReturnType<typeof RenameResponse.prototype.toObject>;
             find_uses?: ReturnType<typeof FindUsesResponse.prototype.toObject>;
+            editor_state?: ReturnType<typeof EditorStateResponse.prototype.toObject>;
+            content_change?: ReturnType<typeof ContentChangeResponse.prototype.toObject>;
+            editor_diagnostics?: ReturnType<typeof EditorDiagnosticsResponse.prototype.toObject>;
             error?: ReturnType<typeof ErrorResponse.prototype.toObject>;
         }): ResponseMessage {
             const message = new ResponseMessage({});
@@ -2614,6 +3413,15 @@ export namespace idepb {
             if (data.find_uses != null) {
                 message.find_uses = FindUsesResponse.fromObject(data.find_uses);
             }
+            if (data.editor_state != null) {
+                message.editor_state = EditorStateResponse.fromObject(data.editor_state);
+            }
+            if (data.content_change != null) {
+                message.content_change = ContentChangeResponse.fromObject(data.content_change);
+            }
+            if (data.editor_diagnostics != null) {
+                message.editor_diagnostics = EditorDiagnosticsResponse.fromObject(data.editor_diagnostics);
+            }
             if (data.error != null) {
                 message.error = ErrorResponse.fromObject(data.error);
             }
@@ -2632,6 +3440,9 @@ export namespace idepb {
                 go_to_definition?: ReturnType<typeof GoToDefinitionResponse.prototype.toObject>;
                 rename?: ReturnType<typeof RenameResponse.prototype.toObject>;
                 find_uses?: ReturnType<typeof FindUsesResponse.prototype.toObject>;
+                editor_state?: ReturnType<typeof EditorStateResponse.prototype.toObject>;
+                content_change?: ReturnType<typeof ContentChangeResponse.prototype.toObject>;
+                editor_diagnostics?: ReturnType<typeof EditorDiagnosticsResponse.prototype.toObject>;
                 error?: ReturnType<typeof ErrorResponse.prototype.toObject>;
             } = {};
             if (this.type != null) {
@@ -2667,6 +3478,15 @@ export namespace idepb {
             if (this.find_uses != null) {
                 data.find_uses = this.find_uses.toObject();
             }
+            if (this.editor_state != null) {
+                data.editor_state = this.editor_state.toObject();
+            }
+            if (this.content_change != null) {
+                data.content_change = this.content_change.toObject();
+            }
+            if (this.editor_diagnostics != null) {
+                data.editor_diagnostics = this.editor_diagnostics.toObject();
+            }
             if (this.error != null) {
                 data.error = this.error.toObject();
             }
@@ -2698,6 +3518,12 @@ export namespace idepb {
                 writer.writeMessage(10, this.rename, () => this.rename.serialize(writer));
             if (this.has_find_uses)
                 writer.writeMessage(11, this.find_uses, () => this.find_uses.serialize(writer));
+            if (this.has_editor_state)
+                writer.writeMessage(12, this.editor_state, () => this.editor_state.serialize(writer));
+            if (this.has_content_change)
+                writer.writeMessage(13, this.content_change, () => this.content_change.serialize(writer));
+            if (this.has_editor_diagnostics)
+                writer.writeMessage(14, this.editor_diagnostics, () => this.editor_diagnostics.serialize(writer));
             if (this.has_error)
                 writer.writeMessage(999, this.error, () => this.error.serialize(writer));
             if (!w)
@@ -2741,6 +3567,15 @@ export namespace idepb {
                         break;
                     case 11:
                         reader.readMessage(message.find_uses, () => message.find_uses = FindUsesResponse.deserialize(reader));
+                        break;
+                    case 12:
+                        reader.readMessage(message.editor_state, () => message.editor_state = EditorStateResponse.deserialize(reader));
+                        break;
+                    case 13:
+                        reader.readMessage(message.content_change, () => message.content_change = ContentChangeResponse.deserialize(reader));
+                        break;
+                    case 14:
+                        reader.readMessage(message.editor_diagnostics, () => message.editor_diagnostics = EditorDiagnosticsResponse.deserialize(reader));
                         break;
                     case 999:
                         reader.readMessage(message.error, () => message.error = ErrorResponse.deserialize(reader));
