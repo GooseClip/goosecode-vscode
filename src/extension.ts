@@ -428,19 +428,6 @@ async function handleFindUses(socket: WebSocket, request: RequestMessage) {
 }
 
 async function serveMonacoEditor() {
-  interface IRange {
-    startLineNumber: number;
-    startColumn: number;
-    endLineNumber: number;
-    endColumn: number;
-  }
-
-  interface IModelContentChange {
-    range: IRange;
-    rangeOffset: number;
-    rangeLength: number;
-    text: string;
-  }
   const readFileAsync = promisify(readFile);
   const app = express();
   const server = http.createServer(app);
@@ -640,6 +627,8 @@ export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "websocket-protobuf-example" is now active!');
 
   const websocketServer = new WebSocketServer({ port: 60053, host: "0.0.0.0", path: "/connect" }); // Set the desired WebSocket server port
+
+  // serveMonacoEditor();
 
   websocketServer.on('connection', (socket) => {
     console.log('WebSocket connection opened');
