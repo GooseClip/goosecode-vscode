@@ -2,15 +2,8 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { WebSocket, WebSocketServer } from 'ws';
-// import { RequestMessage, RequestType, ResponseMessage, SymbolKindMap, GetFilesResponse, ListFilesResponse, OpenFilesResponse, FindStringResponse, Location, Position, SelectRangeResponse, DescribeRangeResponse, GoToDefinitionResponse, RenameResponse, FindUsesResponse, ErrorResponse, DocumentSymbol, SymbolKind, Range, ContentChangeResponse, EditorDiagnosticsResponse, ContentChangeRequest } from './proto/idepb/ide'; // Import your generated protobuf TypeScript definitions
+import { RequestMessage, RequestType, ResponseType, ResponseMessage, SymbolKindMap, GetFilesResponse, ListFilesResponse, OpenFilesResponse, FindStringResponse, Location, Position, SelectRangeResponse, DescribeRangeResponse, GoToDefinitionResponse, RenameResponse, FindUsesResponse, ErrorResponse, DocumentSymbol, SymbolKind, Range, IRange, EditorStateResponse, ContentChangeResponse, EditorDiagnosticsResponse, ContentChangeRequest } from './proto/idepb/ide_pb'; // Import your generated protobuf TypeScript definitions
 import { getProjectRoot, getFileContents, listProjectFiles, findStringInProject, openFiles, selectRange, describeRange, goToDefinition, rename, findUses } from './goosecode';
-
-import { idepb } from './proto/idepb/ide';
-import ResponseType = idepb.ResponseType;
-import SymbolKind = idepb.SymbolKind;
-import RequestMessage = idepb.RequestMessage;
-import ResponseMessage = idepb.ResponseMessage;
-import RequestType = idepb.RequestType;
 
 import express = require('express');
 import expressWs = require('express-ws');
@@ -52,52 +45,39 @@ function isEntireWord(selection: vscode.Selection): boolean {
   return regex.test(selectedText);
 }
 
-function convertLocations(vsLocations: vscode.Location[]): idepb.Location[] {
-  const pblocs: idepb.Location[] = [];
+function convertLocations(vsLocations: vscode.Location[]): Location[] {
+  const pblocs: Location[] = [];
   const projectRoot = getProjectRoot();
   for (const l of vsLocations) {
-    const loc = new idepb.Location();
-    // loc.setPath(l.uri.path.replace(projectRoot, ""));
-    loc.path = l.uri.path.replace(projectRoot, "");
-    const startPos = new idepb.Position();
-    // startPos.setLine(l.range.start.line);
-    startPos.line = l.range.start.line;
-    // startPos.setCharacter(l.range.start.character);
-    startPos.character = l.range.start.character;
-    // loc.setStart(startPos);
-    loc.start = startPos;
+    const loc = new Location();
+    loc.setPath(l.uri.path.replace(projectRoot, ""));
+    const startPos = new Position();
+    startPos.setLine(l.range.start.line);
+    startPos.setCharacter(l.range.start.character);
+    loc.setStart(startPos);
 
-    const endPos = new idepb.Position();
-    // endPos.setLine(l.range.end.line);
-    endPos.line = l.range.end.line;
-    // endPos.setCharacter(l.range.end.character);
-    endPos.character = l.range.end.character;
-    // loc.setEnd(endPos);
-    loc.end = endPos;
+    const endPos = new Position();
+    endPos.setLine(l.range.end.line);
+    endPos.setCharacter(l.range.end.character);
+    loc.setEnd(endPos);
     pblocs.push(loc);
   }
   return pblocs;
 }
 
-function convertRange(vsRange: vscode.Range | vscode.Location): idepb.Range {
-  const range = new idepb.Range();
+function convertRange(vsRange: vscode.Range | vscode.Location): Range {
+  const range = new Range();
 
-  const startPos = new idepb.Position();
+  const startPos = new Position();
   const r = vsRange instanceof vscode.Range ? vsRange : (vsRange as vscode.Location).range;
-  // startPos.setLine(r.start.line);
-  startPos.line = r.start.line;
-  // startPos.setCharacter(r.start.character);
-  startPos.character = r.start.character;
-  // range.setStart(startPos);
-  range.start = startPos;
+  startPos.setLine(r.start.line);
+  startPos.setCharacter(r.start.character);
+  range.setStart(startPos);
 
-  const endPos = new idepb.Position();
-  // endPos.setLine(r.end.line);
-  endPos.line = r.end.line;
-  // endPos.setCharacter(r.end.character);
-  endPos.character = r.end.character;
-  // range.setEnd(endPos);
-  range.end = endPos;
+  const endPos = new Position();
+  endPos.setLine(r.end.line);
+  endPos.setCharacter(r.end.character);
+  range.setEnd(endPos);
   return range;
 }
 
@@ -160,34 +140,24 @@ function convertSymbolKind(symbolKind: vscode.SymbolKind): number {
   }
 }
 
-function convertSymbols(vsSymbols: Array<vscode.DocumentSymbol | vscode.SymbolInformation>): idepb.DocumentSymbol[] {
-  const pbSymbols: idepb.DocumentSymbol[] = [];
+function convertSymbols(vsSymbols: Array<vscode.DocumentSymbol | vscode.SymbolInformation>): DocumentSymbol[] {
+  const pbSymbols: DocumentSymbol[] = [];
   for (const d of vsSymbols) {
-    const symbol = new idepb.DocumentSymbol();
+    const symbol = new DocumentSymbol();
     if (d instanceof vscode.DocumentSymbol) {
-      // symbol.setName(d.name);
-      symbol.name = d.name;
-      // symbol.setDetail(d.detail);
-      symbol.detail = d.detail;
+      symbol.setName(d.name);
+      symbol.setDetail(d.detail);
       // @ts-ignore
-      // symbol.setKind(convertSymbolKind(d.kind));
-      symbol.kind = convertSymbolKind(d.kind);
-      // symbol.setRange(convertRange(d.range));
-      symbol.range = convertRange(d.range);
-      // symbol.setSelectionrange(convertRange(d.selectionRange));
-      symbol.selectionRange = convertRange(d.selectionRange);
-      // symbol.setChildrenList(convertSymbols(d.children));
-      symbol.children = convertSymbols(d.children);
+      symbol.setKind(convertSymbolKind(d.kind));
+      symbol.setRange(convertRange(d.range));
+      symbol.setSelectionrange(convertRange(d.selectionRange));
+      symbol.setChildrenList(convertSymbols(d.children));
     } else if (d instanceof vscode.SymbolInformation) {
-      // symbol.setName(d.name);
-      symbol.name = d.name;
-      // symbol.setDetail(d.containerName);
-      symbol.detail = d.containerName;
+      symbol.setName(d.name);
+      symbol.setDetail(d.containerName);
       // @ts-ignore
-      // symbol.setKind(convertSymbolKind(d.kind));
-      symbol.kind = convertSymbolKind(d.kind);
-      // symbol.setRange(convertRange(d.location));
-      symbol.range = convertRange(d.location);
+      symbol.setKind(convertSymbolKind(d.kind));
+      symbol.setRange(convertRange(d.location));
     } else {
       throw new Error("Unknown symbol type");
     }
@@ -201,87 +171,68 @@ function convertSymbols(vsSymbols: Array<vscode.DocumentSymbol | vscode.SymbolIn
 async function handleListFilesRequest(socket: WebSocket, request: RequestMessage) {
   const files = await listProjectFiles();
   const response = new ResponseMessage();
-  // response.setType(ResponseType.RESPONSE_LIST_FILES);
-  response.type = ResponseType.RESPONSE_LIST_FILES;
-  // response.setCommandId(request.getCommandId());
-  response.command_id = request.command_id;
-  const lfr = new idepb.ListFilesResponse();
-  // lfr.setFilePathsList(files);
-  lfr.file_paths = files;
-  // response.setListFiles(lfr);
-  response.list_files = lfr;
+  response.setType(ResponseType.RESPONSE_LIST_FILES);
+  response.setCommandId(request.getCommandId());
+  const lfr = new ListFilesResponse();
+  lfr.setFilePathsList(files);
+  response.setListFiles(lfr);
   socket.send(response.serializeBinary());
 }
 
 async function handleGetFilesRequest(socket: WebSocket, request: RequestMessage) {
-  const contents = await getFileContents(request.get_files!.file_paths);
+  const contents = await getFileContents(request.getGetFiles()!.getFilePathsList());
   const response = new ResponseMessage();
-  // response.setType(ResponseType.RESPONSE_GET_FILES);
-  response.type = ResponseType.RESPONSE_GET_FILES;
-  // response.setCommandId(request.getCommandId());
-  response.command_id = request.command_id;
-  const gfr = new idepb.GetFilesResponse();
-  // gfr.setFileContentsList(contents);
-  gfr.file_contents = contents;
-  // response.setGetFiles(gfr);
-  response.get_files = gfr;
+  response.setType(ResponseType.RESPONSE_GET_FILES);
+  response.setCommandId(request.getCommandId());
+  const gfr = new GetFilesResponse();
+  gfr.setFileContentsList(contents);
+  response.setGetFiles(gfr);
   socket.send(response.serializeBinary());
 }
 
 async function handleOpenFilesRequest(socket: WebSocket, request: RequestMessage) {
-  await openFiles(request.open_files!.file_paths);
+  await openFiles(request.getOpenFiles()!.getFilePathsList());
   const response = new ResponseMessage();
-  // response.setType(ResponseType.RESPONSE_OPEN_FILES);
-  response.type = ResponseType.RESPONSE_OPEN_FILES;
-  // response.setCommandId(request.getCommandId());
-  response.command_id = request.command_id;
-  const ofr = new idepb.OpenFilesResponse();
-  // response.setOpenFiles(ofr);
-  response.open_files = ofr;
+  response.setType(ResponseType.RESPONSE_OPEN_FILES);
+  response.setCommandId(request.getCommandId());
+  const ofr = new OpenFilesResponse();
+  response.setOpenFiles(ofr);
   socket.send(response.serializeBinary());
 }
 
 async function handleFindRequest(socket: WebSocket, request: RequestMessage) {
-  const find = request.find_string!;
-  const hits: vscode.Location[] = await findStringInProject(find.search_pattern, find.included_files);
+  const find = request.getFindString()!;
+  const hits: vscode.Location[] = await findStringInProject(find.getSearchPattern(), find.getIncludedFilesList());
   const response = new ResponseMessage();
-  // response.setType(ResponseType.RESPONSE_FIND_STRING);
-  response.type = ResponseType.RESPONSE_FIND_STRING;
-  // response.setCommandId(request.getCommandId());
-  response.command_id = request.command_id;
-  const fsr = new idepb.FindStringResponse();
+  response.setType(ResponseType.RESPONSE_FIND_STRING);
+  response.setCommandId(request.getCommandId());
+  const fsr = new FindStringResponse();
   const projectRoot = getProjectRoot();
-  const pblocs: idepb.Location[] = convertLocations(hits);
-  // fsr.setLocationsList(pblocs);
-  fsr.locations = pblocs;
-  // response.setFindString(fsr);
-  response.find_string = fsr;
+  const pblocs: Location[] = convertLocations(hits);
+  fsr.setLocationsList(pblocs);
+  response.setFindString(fsr);
   socket.send(response.serializeBinary());
 }
 
 // ------- WIP
 
 async function sendError(socket: WebSocket, request: RequestMessage, error: string) {
-  console.log(`[ERROR][${request.type}], error: ${error}`);
+  console.log(`[ERROR][${request.getType()}], error: ${error}`);
   const response = new ResponseMessage();
-  // response.setType(ResponseType.RESPONSE_ERROR);
-  response.type = ResponseType.RESPONSE_ERROR;
-  // response.setCommandId(request.getCommand_id());
-  response.command_id = request.command_id;
-  const err = new idepb.ErrorResponse();
-  // err.setError(error);
-  err.error = error;
-  // response.setError(err);
-  response.error = err;
+  response.setType(ResponseType.RESPONSE_ERROR);
+  response.setCommandId(request.getCommandId());
+  const err = new ErrorResponse();
+  err.setError(error);
+  response.setError(err);
   socket.send(response.serializeBinary());
 }
 
 async function handleSelectRange(socket: WebSocket, request: RequestMessage) {
-  const location = request.select_range!.location;
+  const location = request.getSelectRange()!.getLocation();
 
-  await openFiles([location!.path]);
-  const start = new vscode.Position(location!.start!.line, location!.start!.character);
-  const end = new vscode.Position(location!.end!.line, location!.end!.character);
+  await openFiles([location!.getPath()]);
+  const start = new vscode.Position(location!.getStart()!.getLine(), location!.getStart()!.getCharacter());
+  const end = new vscode.Position(location!.getEnd()!.getLine(), location!.getEnd()!.getCharacter());
 
   const selection = selectRange(start, end);
   if (!selection) {
@@ -290,19 +241,19 @@ async function handleSelectRange(socket: WebSocket, request: RequestMessage) {
   }
 
   const response = new ResponseMessage();
-  response.type = ResponseType.RESPONSE_SELECT_RANGE;
-  response.command_id = request.command_id;
-  const srr = new idepb.SelectRangeResponse();
-  response.select_range = srr;
+  response.setType(ResponseType.RESPONSE_SELECT_RANGE);
+  response.setCommandId(request.getCommandId());
+  const srr = new SelectRangeResponse();
+  response.setSelectRange(srr);
   socket.send(response.serializeBinary());
 }
 
 async function handleDescribeRange(socket: WebSocket, request: RequestMessage) {
-  const location = request.describe_range!.location;
+  const location = request.getDescribeRange()!.getLocation();
 
-  await openFiles([location!.path]);
-  const start = new vscode.Position(location!.start!.line, location!.start!.character);
-  const end = new vscode.Position(location!.end!.line, location!.end!.character);
+  await openFiles([location!.getPath()]);
+  const start = new vscode.Position(location!.getStart()!.getLine(), location!.getStart()!.getCharacter());
+  const end = new vscode.Position(location!.getEnd()!.getLine(), location!.getEnd()!.getCharacter());
 
   const selection = selectRange(start, end);
   if (!selection) {
@@ -320,21 +271,21 @@ async function handleDescribeRange(socket: WebSocket, request: RequestMessage) {
   const pbSymbols = convertSymbols(symbols);
 
   const response = new ResponseMessage();
-  response.type = ResponseType.RESPONSE_DESCRIBE_RANGE;
-  response.command_id = request.command_id;
-  const drr = new idepb.DescribeRangeResponse();
+  response.setType(ResponseType.RESPONSE_DESCRIBE_RANGE);
+  response.setCommandId(request.getCommandId());
+  const drr = new DescribeRangeResponse();
   console.log("Set pbSymbols:", pbSymbols.length);
-  drr.symbols = pbSymbols;
-  response.describe_range = drr;
+  drr.setSymbolsList(pbSymbols);
+  response.setDescribeRange(drr);
   socket.send(response.serializeBinary());
 }
 
 async function handleGoToDefinition(socket: WebSocket, request: RequestMessage) {
-  const location = request.go_to_definition!.location;
+  const location = request.getGoToDefinition()!.getLocation();
 
-  await openFiles([location!.path]);
-  const start = new vscode.Position(location!.start!.line, location!.start!.character);
-  const end = new vscode.Position(location!.end!.line, location!.end!.character);
+  await openFiles([location!.getPath()]);
+  const start = new vscode.Position(location!.getStart()!.getLine(), location!.getStart()!.getCharacter());
+  const end = new vscode.Position(location!.getEnd()!.getLine(), location!.getEnd()!.getCharacter());
 
   const selection = selectRange(start, end);
   if (!selection) {
@@ -353,19 +304,19 @@ async function handleGoToDefinition(socket: WebSocket, request: RequestMessage) 
   }
 
   const response = new ResponseMessage();
-  response.type = ResponseType.RESPONSE_GO_TO_DEFINITION;
-  response.command_id = request.command_id;
-  const gtdr = new idepb.GoToDefinitionResponse();
-  response.go_to_definition = gtdr;
+  response.setType(ResponseType.RESPONSE_GO_TO_DEFINITION);
+  response.setCommandId(request.getCommandId());
+  const gtdr = new GoToDefinitionResponse();
+  response.setGoToDefinition(gtdr);
   socket.send(response.serializeBinary());
 }
 
 async function handleRename(socket: WebSocket, request: RequestMessage) {
-  const location = request.rename!.location;
+  const location = request.getRename()!.getLocation();
 
-  await openFiles([location!.path]);
-  const start = new vscode.Position(location!.start!.line, location!.start!.character);
-  const end = new vscode.Position(location!.end!.line, location!.end!.character);
+  await openFiles([location!.getPath()]);
+  const start = new vscode.Position(location!.getStart()!.getLine(), location!.getStart()!.getCharacter());
+  const end = new vscode.Position(location!.getEnd()!.getLine(), location!.getEnd()!.getCharacter());
 
   const selection = selectRange(start, end);
   if (!selection) {
@@ -378,25 +329,25 @@ async function handleRename(socket: WebSocket, request: RequestMessage) {
     return;
   }
 
-  if (!await rename(request.rename!.new_name)) {
+  if (!await rename(request.getRename()!.getNewName())) {
     sendError(socket, request, "Failed to rename;");
     return;
   }
 
   const response = new ResponseMessage();
-  response.type = ResponseType.RESPONSE_RENAME;
-  response.command_id = request.command_id;
-  const rr = new idepb.RenameResponse();
-  response.rename = rr;
+  response.setType(ResponseType.RESPONSE_RENAME);
+  response.setCommandId(request.getCommandId());
+  const rr = new RenameResponse();
+  response.setRename(rr);
   socket.send(response.serializeBinary());
 }
 
 async function handleFindUses(socket: WebSocket, request: RequestMessage) {
-  const location = request.find_uses!.location;
+  const location = request.getFindUses()!.getLocation();
 
-  await openFiles([location!.path]);
-  const start = new vscode.Position(location!.start!.line, location!.start!.character);
-  const end = new vscode.Position(location!.end!.line, location!.end!.character);
+  await openFiles([location!.getPath()]);
+  const start = new vscode.Position(location!.getStart()!.getLine(), location!.getStart()!.getCharacter());
+  const end = new vscode.Position(location!.getEnd()!.getLine(), location!.getEnd()!.getCharacter());
 
 
   const selection = selectRange(start, end);
@@ -417,13 +368,13 @@ async function handleFindUses(socket: WebSocket, request: RequestMessage) {
   }
 
   const response = new ResponseMessage();
-  response.type = ResponseType.RESPONSE_FIND_USES;
-  response.command_id = request.command_id;
-  const fur = new idepb.FindUsesResponse();
-  const pblocs: idepb.Location[] = convertLocations(uses);
-  fur.locations = pblocs;
+  response.setType(ResponseType.RESPONSE_FIND_USES);
+  response.setCommandId(request.getCommandId());
+  const fur = new FindUsesResponse();
+  const pblocs: Location[] = convertLocations(uses);
+  fur.setLocationsList(pblocs);
   console.log("setting uses:", pblocs.length);
-  response.find_uses = fur;
+  response.setFindUses(fur);
   socket.send(response.serializeBinary());
 }
 
@@ -521,15 +472,15 @@ async function handleGetEditorState(socket: WebSocket, request: RequestMessage) 
   const documentText = activeEditor.document.getText();
 
   const response = new ResponseMessage();
-  response.type = ResponseType.RESPONSE_EDITOR_STATE;
-  response.command_id = request.command_id;
-  const es = new idepb.EditorStateResponse();
-  response.editor_state = es;
+  response.setType(ResponseType.RESPONSE_EDITOR_STATE);
+  response.setCommandId(request.getCommandId());
+  const es = new EditorStateResponse();
+  response.setEditorState(es);
   socket.send(response.serializeBinary());
 }
 
 async function handleContentChange(socket: WebSocket, request: RequestMessage) {
-  const change = request.content_change!;
+  const change = request.getContentChange()!;
 
   const activeEditor = vscode.window.activeTextEditor;
 
@@ -538,29 +489,28 @@ async function handleContentChange(socket: WebSocket, request: RequestMessage) {
     return;
   }
 
-  // TODO change this such that it leverages protobuf if possible?
   // Convert the Monaco IRange to a VSCode Range
   // Note that VSCode lines and columns start at 0, so we subtract 1 from the Monaco values
   const range = new vscode.Range(
-    change.range.start_line_number - 1,
-    change.range.start_column - 1,
-    change.range.end_line_number - 1,
-    change.range.end_column - 1,
+    change.getRange()?.getStartLineNumber()! - 1,
+    change.getRange()?.getStartColumn()! - 1,
+    change.getRange()?.getEndLineNumber()! - 1,
+    change.getRange()?.getEndColumn()! - 1,
   );
 
   // Apply the change to the active editor
   activeEditor.edit((editBuilder) => {
-    editBuilder.replace(range, change.text);
+    editBuilder.replace(range, change.getText());
   }).then(() => {
     // TODO prevent infinite loop by reassigning a var here
   });
 
   // respond with equivalent of 200 OK
   const response = new ResponseMessage();
-  response.type = ResponseType.RESPONSE_CONTENT_CHANGE;
-  response.command_id = request.command_id;
-  const cc = new idepb.ContentChangeResponse();
-  response.content_change = cc;
+  response.setType(ResponseType.RESPONSE_CONTENT_CHANGE);
+  response.setCommandId(request.getCommandId());
+  const cc = new ContentChangeResponse();
+  response.setContentChange(cc);
   socket.send(response.serializeBinary());
 }
 
@@ -583,20 +533,20 @@ async function streamContentChanges(socket: WebSocket) {
       // TODO handle infinite loop
       for (const change of event.contentChanges) {
         const request = new RequestMessage();
-        request.type = idepb.RequestType.REQUEST_CONTENT_CHANGE;
-        request.command_id = getRandomString(6);
+        request.setType(RequestType.REQUEST_CONTENT_CHANGE);
+        request.setCommandId(getRandomString(6));
 
-        let range = idepb.IRange.fromObject({
-          start_line_number: change.range.start.line + 1,
-          start_column: change.range.start.character + 1,
-          end_line_number: change.range.end.line + 1,
-          end_column: change.range.end.character + 1,
-        });
+        const contentChange = new ContentChangeRequest();
+        contentChange.setRange(new IRange());
+        contentChange.getRange()?.setStartLineNumber(change.range.start.line + 1);
+        contentChange.getRange()?.setStartColumn(change.range.start.character + 1);
+        contentChange.getRange()?.setEndLineNumber(change.range.end.line + 1);
+        contentChange.getRange()?.setEndColumn(change.range.end.character + 1);
+        contentChange.setRangeOffset(change.rangeOffset);
+        contentChange.setRangeLength(change.rangeLength);
+        contentChange.setText(change.text);
 
-        request.content_change.range = range;
-        request.content_change.range_offset = change.rangeOffset;
-        request.content_change.range_length = change.rangeLength;
-        request.content_change.text = change.text;
+        request.setContentChange(contentChange);
 
         socket.send(request.serializeBinary());
         // TODO retrieve and handle response from websocket somehow
@@ -615,10 +565,10 @@ async function handleGetEditorDiagnostics(socket: WebSocket, request: RequestMes
     let diagnostics = vscode.languages.getDiagnostics(document.uri);
 
     const response = new ResponseMessage();
-    response.type = ResponseType.RESPONSE_EDITOR_DIAGNOSTICS;
-    response.command_id = request.command_id;
-    const ged = new idepb.EditorDiagnosticsResponse();
-    response.editor_diagnostics = ged;
+    response.setType(ResponseType.RESPONSE_EDITOR_DIAGNOSTICS);
+    response.setCommandId(request.getCommandId());
+    const ged = new EditorDiagnosticsResponse();
+    response.setEditorDiagnostics(ged);
     socket.send(response.serializeBinary());
   }
 }
@@ -628,7 +578,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const websocketServer = new WebSocketServer({ port: 60053, host: "0.0.0.0", path: "/connect" }); // Set the desired WebSocket server port
 
-  // serveMonacoEditor();
+  serveMonacoEditor();
 
   websocketServer.on('connection', (socket) => {
     console.log('WebSocket connection opened');
@@ -646,7 +596,7 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
       try {
-        switch (request.type) {
+        switch (request.getType()) {
           case RequestType.REQUEST_LIST_FILES:
             console.log("REQUEST_LIST_FILES");
             handleListFilesRequest(socket, request);
