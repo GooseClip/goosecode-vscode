@@ -378,93 +378,6 @@ async function handleFindUses(socket: WebSocket, request: RequestMessage) {
   socket.send(response.serializeBinary());
 }
 
-let websocket: WebSocket | null = null;
-
-async function serveMonacoEditor() {
-  const readFileAsync = promisify(readFile);
-  const app = express();
-  const server = http.createServer(app);
-  const wsApp = expressWs(app as any, server);
-
-  var changeSource = 'user';
-
-  app.use('/vs', express.static(path.join(__dirname, '../node_modules/monaco-editor/min/vs')));
-
-  app.get('/', async (_: express.Request, res: express.Response) => {
-    const html = await readFileAsync(path.join(__dirname, '../src/monaco_webview.html'), 'utf-8');
-    res.send(html);
-  });
-
-  // registers websocket
-  console.log("Extension: registering '/' endpoint of websocket");
-  wsApp.app.ws('/', (ws, req) => {
-    console.log("Extension: incoming hit '/' endpoint of websocket");
-    websocket = ws;
-
-    const activeEditor = vscode.window.activeTextEditor;
-    if (activeEditor) {
-      const documentText = activeEditor.document.getText();
-
-      console.log("Extension: sending initial text via websocket");
-      ws.send(JSON.stringify({ initialText: documentText, source: "vscode" }));
-    }
-
-    // receives from Monaco Client
-    ws.on('message', (msg: RawData) => {
-      console.log("Extension: Received message on websocket...");
-      if (typeof (msg) === 'string') {
-        const change = JSON.parse(msg);
-
-        changeSource = change.source;
-
-        const activeEditor = vscode.window.activeTextEditor;
-        if (!activeEditor) {
-          console.log("No active editor");
-          return;
-        }
-
-        // Convert the Monaco IRange to a VSCode Range
-        // Note that VSCode lines and columns start at 0, so we subtract 1 from the Monaco values
-        const range = new vscode.Range(
-          change.range.startLineNumber - 1,
-          change.range.startColumn - 1,
-          change.range.endLineNumber - 1,
-          change.range.endColumn - 1,
-        );
-
-        // Apply the change to the active editor
-        activeEditor.edit((editBuilder) => {
-          editBuilder.replace(range, change.text);
-        }).then(() => {
-          changeSource = "user";
-        });
-
-      } else {
-        console.error('Received non-string message data', msg); // TODO handle appropriately
-      }
-    });
-  });
-
-  server.listen(3000, 'localhost', () => {
-    console.log('Listening on localhost:3000');
-  });
-
-  // sends to Monaco Client
-  vscode.workspace.onDidChangeTextDocument((event) => {
-    if (event.document === vscode.window.activeTextEditor?.document) {
-      // console.log("(pre check)" + changeSource);
-      if (changeSource === "user") {
-        for (const change of event.contentChanges) {
-          if (websocket && websocket.readyState === websocket.OPEN) {
-            console.log("Extension: sending changes to Monaco via websocket...");
-            websocket.send(JSON.stringify({ ...change, source: 'vscode' }));
-          }
-        }
-      }
-    }
-  });
-}
-
 async function handleGetEditorState(socket: WebSocket, request: RequestMessage) {
   // TODO change to the editor relevant to the requested file
   const activeEditor = vscode.window.activeTextEditor;
@@ -600,24 +513,81 @@ function registerPushDiagnosticsExampleCommand(context: vscode.ExtensionContext)
   context.subscriptions.push(disposable);
 }
 
+let websocket: WebSocket | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "websocket-protobuf-example" is now active!');
 
-  serveMonacoEditor();
 
-  registerPushDiagnosticsExampleCommand(context);
+  // const websocketServer = new WebSocketServer({ port: 60053, host: "0.0.0.0", path: "/connect" }); // Set the desired WebSocket server port
 
-  const websocketServer = new WebSocketServer({ port: 60053, host: "0.0.0.0", path: "/connect" }); // Set the desired WebSocket server port
+  // Establish server and websocket connection
+  const readFileAsync = promisify(readFile);
+  const app = express();
+  const server = http.createServer(app);
+  const wsApp = expressWs(app as any, server);
 
-  websocketServer.on('connection', (socket) => {
+  var changeSource = 'user';
+
+  app.use('/vs', express.static(path.join(__dirname, '../node_modules/monaco-editor/min/vs')));
+
+  app.get('/', async (_: express.Request, res: express.Response) => {
+    const html = await readFileAsync(path.join(__dirname, '../src/monaco_webview.html'), 'utf-8');
+    res.send(html);
+  });
+
+  // registers websocket
+  wsApp.app.ws('/', (socket, req) => {
     console.log('Extension: WebSocket connection opened');
+    websocket = socket;
 
+    registerPushDiagnosticsExampleCommand(context);
 
-    streamContentChanges(socket);
+    // sends initial text to Monaco as JSON
+    const activeEditor = vscode.window.activeTextEditor;
+    if (activeEditor) {
+      const documentText = activeEditor.document.getText();
+      socket.send(JSON.stringify({ initialText: documentText, source: "vscode" }));
+    }
 
-    socket.on('message', async (message) => {
-      console.log("Extension: Received message from monaco: " + message);
+    // if using protobuf rather than JSON, should stream editor changes
+    // streamContentChanges(socket);
+
+    // receives from Monaco as JSON
+    socket.on('message', (message: RawData) => {
+      console.log("Extension: Received message on websocket...");
+      if (typeof (message) === 'string') {
+        const change = JSON.parse(message);
+
+        changeSource = change.source;
+
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor) {
+          console.log("No active editor");
+          return;
+        }
+
+        // Convert the Monaco IRange to a VSCode Range
+        // Note that VSCode lines and columns start at 0, so we subtract 1 from the Monaco values
+        const range = new vscode.Range(
+          change.range.startLineNumber - 1,
+          change.range.startColumn - 1,
+          change.range.endLineNumber - 1,
+          change.range.endColumn - 1,
+        );
+
+        // Apply the change to the active editor
+        activeEditor.edit((editBuilder) => {
+          editBuilder.replace(range, change.text);
+        }).then(() => {
+          changeSource = "user";
+        });
+
+      } else {
+        console.error('Received non-string message data', message); // TODO handle appropriately
+      }
+
+/*       console.log("Extension: Received message from monaco: " + message);
       var request: RequestMessage;
       try {
         request = RequestMessage.deserializeBinary(new Uint8Array(message as ArrayBuffer));
@@ -681,6 +651,7 @@ export function activate(context: vscode.ExtensionContext) {
         sendError(socket, request, "Caught an exception while handling message");
         console.error('Error processing message:', error);
       }
+ */
     });
 
     socket.on('close', (code, reason) => {
@@ -692,9 +663,106 @@ export function activate(context: vscode.ExtensionContext) {
     });
   });
 
+  // Serve the Monaco Editor
+  server.listen(3000, 'localhost', () => {
+    console.log('Listening on localhost:3000');
+  });
+
+  // Sends to Monaco Editor as JSON
+  vscode.workspace.onDidChangeTextDocument((event) => {
+    if (event.document === vscode.window.activeTextEditor?.document) {
+      // console.log("(pre check)" + changeSource);
+      if (changeSource === "user") {
+        for (const change of event.contentChanges) {
+          if (websocket && websocket.readyState === websocket.OPEN) {
+            console.log("Extension: sending changes to Monaco via websocket...");
+            websocket.send(JSON.stringify({ ...change, source: 'vscode' }));
+          }
+        }
+      }
+    }
+  });
+
+  /*   websocketServer.on('connection', (socket) => {
+      socket.on('message', async (message) => {
+        console.log("Extension: Received message from monaco: " + message);
+        var request: RequestMessage;
+        try {
+          request = RequestMessage.deserializeBinary(new Uint8Array(message as ArrayBuffer));
+          console.log('Received ProtoBuf message:', JSON.stringify(request.toObject()));
+  
+        } catch (e) {
+          console.log("[ERROR] failed to unmarshal");
+          return;
+        }
+        try {
+          switch (request.getType()) {
+            case RequestType.REQUEST_LIST_FILES:
+              console.log("REQUEST_LIST_FILES");
+              handleListFilesRequest(socket, request);
+              break;
+            case RequestType.REQUEST_GET_FILES:
+              console.log("REQUEST_GET_FILES");
+              handleGetFilesRequest(socket, request);
+              break;
+            case RequestType.REQUEST_OPEN_FILES:
+              console.log("REQUEST_OPEN_FILES");
+              handleOpenFilesRequest(socket, request);
+              break;
+            case RequestType.REQUEST_FIND_STRING:
+              console.log("REQUEST_FIND_STRING");
+              handleFindRequest(socket, request);
+              break;
+            case RequestType.REQUEST_SELECT_RANGE:
+              console.log("REQUEST_SELECT_RANGE");
+              handleSelectRange(socket, request);
+              break;
+            case RequestType.REQUEST_DESCRIBE_RANGE:
+              console.log("REQUEST_DESCRIBE_RANGE");
+              handleDescribeRange(socket, request);
+              break;
+            case RequestType.REQUEST_GO_TO_DEFINITION:
+              console.log("REQUEST_GO_TO_DEFINITION");
+              handleGoToDefinition(socket, request);
+              break;
+            case RequestType.REQUEST_RENAME:
+              console.log("REQUEST_RENAME");
+              handleRename(socket, request);
+              break;
+            case RequestType.REQUEST_FIND_USES:
+              console.log("REQUEST_FIND_USES");
+              handleFindUses(socket, request);
+              break;
+            case RequestType.REQUEST_EDITOR_STATE:
+              console.log("REQUEST_GET_EDITOR_STATE");
+              handleGetEditorState(socket, request);
+              break;
+            case RequestType.REQUEST_CONTENT_CHANGE:
+              console.log("REQUEST_CONTENT_CHANGED");
+              handleContentChange(socket, request);
+              break;
+  
+          }
+          // Process your ProtoBuf message here
+  
+        } catch (error) {
+          sendError(socket, request, "Caught an exception while handling message");
+          console.error('Error processing message:', error);
+        }
+      });
+  
+      socket.on('close', (code, reason) => {
+        console.log('WebSocket connection closed, code:', code, 'reason:', reason);
+      });
+  
+      socket.on('error', (error) => {
+        console.error('WebSocket error:', error);
+      });
+    });
+   */
   context.subscriptions.push({
     dispose: () => {
-      websocketServer.close();
+      // websocketServer.close();
       console.log('WebSocket server stopped');
     },
   });
