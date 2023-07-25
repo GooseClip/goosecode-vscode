@@ -378,6 +378,8 @@ async function handleFindUses(socket: WebSocket, request: RequestMessage) {
   socket.send(response.serializeBinary());
 }
 
+let websocket: WebSocket | null = null;
+
 async function serveMonacoEditor() {
   const readFileAsync = promisify(readFile);
   const app = express();
@@ -393,21 +395,23 @@ async function serveMonacoEditor() {
     res.send(html);
   });
 
-  let websocket: WebSocket | null = null;
-
   // registers websocket
+  console.log("Extension: registering '/' endpoint of websocket");
   wsApp.app.ws('/', (ws, req) => {
+    console.log("Extension: incoming hit '/' endpoint of websocket");
     websocket = ws;
 
     const activeEditor = vscode.window.activeTextEditor;
     if (activeEditor) {
       const documentText = activeEditor.document.getText();
 
+      console.log("Extension: sending initial text via websocket");
       ws.send(JSON.stringify({ initialText: documentText, source: "vscode" }));
     }
 
     // receives from Monaco Client
     ws.on('message', (msg: RawData) => {
+      console.log("Extension: Received message on websocket...");
       if (typeof (msg) === 'string') {
         const change = JSON.parse(msg);
 
@@ -452,6 +456,7 @@ async function serveMonacoEditor() {
       if (changeSource === "user") {
         for (const change of event.contentChanges) {
           if (websocket && websocket.readyState === websocket.OPEN) {
+            console.log("Extension: sending changes to Monaco via websocket...");
             websocket.send(JSON.stringify({ ...change, source: 'vscode' }));
           }
         }
@@ -514,7 +519,6 @@ async function handleContentChange(socket: WebSocket, request: RequestMessage) {
   socket.send(response.serializeBinary());
 }
 
-
 function getRandomString(length: number): string {
   const _chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
 
@@ -528,6 +532,7 @@ function getRandomString(length: number): string {
 async function streamContentChanges(socket: WebSocket) {
   // sends to Monaco Client
   vscode.workspace.onDidChangeTextDocument((event) => {
+    console.log('extension: onDidChangeTextDocument');
     // TODO change to the editor relevant to the requested file
     if (event.document === vscode.window.activeTextEditor?.document) {
       // TODO handle infinite loop
@@ -548,6 +553,7 @@ async function streamContentChanges(socket: WebSocket) {
 
         request.setContentChange(contentChange);
 
+        console.log('extension: sending changes to Monaco via websocket...');
         socket.send(request.serializeBinary());
         // TODO retrieve and handle response from websocket somehow
       }
@@ -555,7 +561,7 @@ async function streamContentChanges(socket: WebSocket) {
   });
 }
 
-async function handleGetEditorDiagnostics(socket: WebSocket, request: RequestMessage) {
+async function handleGetEditorDiagnostics(socket: WebSocket) {
   // TODO change from activeTextEditor to relevant file
   let editor = vscode.window.activeTextEditor;
   if (editor) {
@@ -566,26 +572,52 @@ async function handleGetEditorDiagnostics(socket: WebSocket, request: RequestMes
 
     const response = new ResponseMessage();
     response.setType(ResponseType.RESPONSE_EDITOR_DIAGNOSTICS);
-    response.setCommandId(request.getCommandId());
+    // response.setCommandId(request.getCommandId());
     const ged = new EditorDiagnosticsResponse();
     response.setEditorDiagnostics(ged);
     socket.send(response.serializeBinary());
   }
 }
 
+// registerPushDiagnosticsExampleCommand registers an extension command that retrieves any diagnostic linting information from the current active editor file and transfers those messages as JSON to the Monaco Editor being served in the html file, which will apply them to the text that should be mirrored in the editor
+function registerPushDiagnosticsExampleCommand(context: vscode.ExtensionContext) {
+  let disposable = vscode.commands.registerCommand('goosecode.pushDiagnosticsExample', () => {
+    vscode.window.showInformationMessage('Pushing Diagnostics to the Monaco Editor!');
+
+    let editor = vscode.window.activeTextEditor;
+    if (editor) {
+      let document = editor.document;
+
+      // Get all diagnostics for the current document
+      let diagnostics = vscode.languages.getDiagnostics(document.uri);
+
+      if (websocket && websocket.readyState === websocket.OPEN) {
+        websocket.send(JSON.stringify({ msgType: "diagnostics", data: diagnostics }));
+      }
+    }
+  });
+
+  context.subscriptions.push(disposable);
+}
+
+
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "websocket-protobuf-example" is now active!');
 
-  const websocketServer = new WebSocketServer({ port: 60053, host: "0.0.0.0", path: "/connect" }); // Set the desired WebSocket server port
-
   serveMonacoEditor();
 
+  registerPushDiagnosticsExampleCommand(context);
+
+  const websocketServer = new WebSocketServer({ port: 60053, host: "0.0.0.0", path: "/connect" }); // Set the desired WebSocket server port
+
   websocketServer.on('connection', (socket) => {
-    console.log('WebSocket connection opened');
+    console.log('Extension: WebSocket connection opened');
+
 
     streamContentChanges(socket);
 
     socket.on('message', async (message) => {
+      console.log("Extension: Received message from monaco: " + message);
       var request: RequestMessage;
       try {
         request = RequestMessage.deserializeBinary(new Uint8Array(message as ArrayBuffer));
