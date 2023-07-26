@@ -1,6 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as bodyParser from 'body-parser';
+
 import { WebSocket, WebSocketServer } from 'ws';
 import { RequestMessage, RequestType, ResponseType, ResponseMessage, SymbolKindMap, GetFilesResponse, ListFilesResponse, OpenFilesResponse, FindStringResponse, Location, Position, SelectRangeResponse, DescribeRangeResponse, GoToDefinitionResponse, RenameResponse, FindUsesResponse, ErrorResponse, DocumentSymbol, SymbolKind, Range, IRange, EditorStateResponse, ContentChangeResponse, EditorDiagnosticsResponse, ContentChangeRequest } from './proto/idepb/ide_pb'; // Import your generated protobuf TypeScript definitions
 import { getProjectRoot, getFileContents, listProjectFiles, findStringInProject, openFiles, selectRange, describeRange, goToDefinition, rename, findUses } from './goosecode';
@@ -492,6 +494,23 @@ async function handleGetEditorDiagnostics(socket: WebSocket) {
   }
 }
 
+async function handleGetEditorDiagnosticsJSON(filename: string) {
+  return new Promise((resolve, reject) => {
+      vscode.workspace.openTextDocument(vscode.Uri.file(filename)).then(document => {
+          let diagnostics = vscode.languages.getDiagnostics(document.uri);
+
+          if (websocket && websocket.readyState === websocket.OPEN) {
+              const diagnosticData = { msgType: "diagnostics", data: diagnostics };
+              websocket.send(JSON.stringify(diagnosticData));
+              resolve(diagnosticData);
+          } else {
+              reject("Websocket is not open");
+          }
+      });
+  });
+}
+
+
 // registerPushDiagnosticsExampleCommand registers an extension command that retrieves any diagnostic linting information from the current active editor file and transfers those messages as JSON to the Monaco Editor being served in the html file, which will apply them to the text that should be mirrored in the editor
 function registerPushDiagnosticsExampleCommand(context: vscode.ExtensionContext) {
   let disposable = vscode.commands.registerCommand('goosecode.pushDiagnosticsExample', () => {
@@ -535,6 +554,18 @@ export function activate(context: vscode.ExtensionContext) {
     const html = await readFileAsync(path.join(__dirname, '../src/monaco_webview.html'), 'utf-8');
     res.send(html);
   });
+
+  app.use(bodyParser.json());
+  app.post('/diagnostics', async (req: express.Request, res: express.Response) => {
+    const path = req.body.absoluteFilepath;  // retrieve 'absoluteFilepath' property from request body
+
+    try {
+        const diagnostics = await handleGetEditorDiagnosticsJSON(path);
+        res.sendStatus(200);
+    } catch {
+        res.sendStatus(500);
+    }
+});
 
   // registers websocket
   wsApp.app.ws('/', (socket, req) => {
@@ -587,71 +618,71 @@ export function activate(context: vscode.ExtensionContext) {
         console.error('Received non-string message data', message); // TODO handle appropriately
       }
 
-/*       console.log("Extension: Received message from monaco: " + message);
-      var request: RequestMessage;
-      try {
-        request = RequestMessage.deserializeBinary(new Uint8Array(message as ArrayBuffer));
-        console.log('Received ProtoBuf message:', JSON.stringify(request.toObject()));
-
-      } catch (e) {
-        console.log("[ERROR] failed to unmarshal");
-        return;
-      }
-      try {
-        switch (request.getType()) {
-          case RequestType.REQUEST_LIST_FILES:
-            console.log("REQUEST_LIST_FILES");
-            handleListFilesRequest(socket, request);
-            break;
-          case RequestType.REQUEST_GET_FILES:
-            console.log("REQUEST_GET_FILES");
-            handleGetFilesRequest(socket, request);
-            break;
-          case RequestType.REQUEST_OPEN_FILES:
-            console.log("REQUEST_OPEN_FILES");
-            handleOpenFilesRequest(socket, request);
-            break;
-          case RequestType.REQUEST_FIND_STRING:
-            console.log("REQUEST_FIND_STRING");
-            handleFindRequest(socket, request);
-            break;
-          case RequestType.REQUEST_SELECT_RANGE:
-            console.log("REQUEST_SELECT_RANGE");
-            handleSelectRange(socket, request);
-            break;
-          case RequestType.REQUEST_DESCRIBE_RANGE:
-            console.log("REQUEST_DESCRIBE_RANGE");
-            handleDescribeRange(socket, request);
-            break;
-          case RequestType.REQUEST_GO_TO_DEFINITION:
-            console.log("REQUEST_GO_TO_DEFINITION");
-            handleGoToDefinition(socket, request);
-            break;
-          case RequestType.REQUEST_RENAME:
-            console.log("REQUEST_RENAME");
-            handleRename(socket, request);
-            break;
-          case RequestType.REQUEST_FIND_USES:
-            console.log("REQUEST_FIND_USES");
-            handleFindUses(socket, request);
-            break;
-          case RequestType.REQUEST_EDITOR_STATE:
-            console.log("REQUEST_GET_EDITOR_STATE");
-            handleGetEditorState(socket, request);
-            break;
-          case RequestType.REQUEST_CONTENT_CHANGE:
-            console.log("REQUEST_CONTENT_CHANGED");
-            handleContentChange(socket, request);
-            break;
-
-        }
-        // Process your ProtoBuf message here
-
-      } catch (error) {
-        sendError(socket, request, "Caught an exception while handling message");
-        console.error('Error processing message:', error);
-      }
- */
+      /*       console.log("Extension: Received message from monaco: " + message);
+            var request: RequestMessage;
+            try {
+              request = RequestMessage.deserializeBinary(new Uint8Array(message as ArrayBuffer));
+              console.log('Received ProtoBuf message:', JSON.stringify(request.toObject()));
+      
+            } catch (e) {
+              console.log("[ERROR] failed to unmarshal");
+              return;
+            }
+            try {
+              switch (request.getType()) {
+                case RequestType.REQUEST_LIST_FILES:
+                  console.log("REQUEST_LIST_FILES");
+                  handleListFilesRequest(socket, request);
+                  break;
+                case RequestType.REQUEST_GET_FILES:
+                  console.log("REQUEST_GET_FILES");
+                  handleGetFilesRequest(socket, request);
+                  break;
+                case RequestType.REQUEST_OPEN_FILES:
+                  console.log("REQUEST_OPEN_FILES");
+                  handleOpenFilesRequest(socket, request);
+                  break;
+                case RequestType.REQUEST_FIND_STRING:
+                  console.log("REQUEST_FIND_STRING");
+                  handleFindRequest(socket, request);
+                  break;
+                case RequestType.REQUEST_SELECT_RANGE:
+                  console.log("REQUEST_SELECT_RANGE");
+                  handleSelectRange(socket, request);
+                  break;
+                case RequestType.REQUEST_DESCRIBE_RANGE:
+                  console.log("REQUEST_DESCRIBE_RANGE");
+                  handleDescribeRange(socket, request);
+                  break;
+                case RequestType.REQUEST_GO_TO_DEFINITION:
+                  console.log("REQUEST_GO_TO_DEFINITION");
+                  handleGoToDefinition(socket, request);
+                  break;
+                case RequestType.REQUEST_RENAME:
+                  console.log("REQUEST_RENAME");
+                  handleRename(socket, request);
+                  break;
+                case RequestType.REQUEST_FIND_USES:
+                  console.log("REQUEST_FIND_USES");
+                  handleFindUses(socket, request);
+                  break;
+                case RequestType.REQUEST_EDITOR_STATE:
+                  console.log("REQUEST_GET_EDITOR_STATE");
+                  handleGetEditorState(socket, request);
+                  break;
+                case RequestType.REQUEST_CONTENT_CHANGE:
+                  console.log("REQUEST_CONTENT_CHANGED");
+                  handleContentChange(socket, request);
+                  break;
+      
+              }
+              // Process your ProtoBuf message here
+      
+            } catch (error) {
+              sendError(socket, request, "Caught an exception while handling message");
+              console.error('Error processing message:', error);
+            }
+       */
     });
 
     socket.on('close', (code, reason) => {
