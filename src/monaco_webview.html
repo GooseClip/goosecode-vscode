@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Monaco Editor</title>
+</head>
+
+<body>
+    <div id="container" style="width:800px;height:600px;border:5px solid grey"></div>
+    <script src="/vs/loader.js"></script>
+    <script>
+        require.config({
+            paths: {
+                'vs': '/vs'
+            }
+        });
+        require(['vs/editor/editor.main'], function () {
+            var editor = monaco.editor.create(document.getElementById('container'), {
+                // allows setting the starting text of the monaco editor.
+                // value: 'This is starting text!',
+
+                // Monaco supports syntax highlighting for some languages out of the box using "language:", but we ought not to rely on this and should instead retrieve language specific diagnostics from the VSCode API.
+                // language: 'javascript', 
+                wordWrap: 'on',
+            });
+
+            var ws = new WebSocket('ws://localhost:3000/');
+            // var ws = new WebSocket('ws://localhost:60053/connect');
+
+            var changeSource = 'user';
+
+            ws.onopen = function () {
+                console.log('Monaco: Connected to server');
+            };
+
+            ws.onmessage = function (event) {
+                console.log('Monaco: received message via websocket...');
+                const data = JSON.parse(event.data);
+
+                if (data.msgType === "diagnostics") {
+                    console.log("Monaco: diagnostics in: " + JSON.stringify(data));
+
+                    let markers = []
+
+                    data.data.forEach(diagnostic => {
+
+                        console.log(diagnostic.severity);
+
+                        let severity = "Info";
+                        switch (diagnostic.severity) {
+                            case "Error":
+                                severity = 8;
+                                break;
+                            case "Warning":
+                                severity = 4;
+                                break;
+                            case "Info":
+                                severity = 2;
+                                break;
+                            case "Hint":
+                                severity = 1;
+                                break;
+                        }
+
+                        const marker = {
+                            severity: severity,
+                            startLineNumber: diagnostic.range[0].line + 1,
+                            startColumn: diagnostic.range[0].character + 1,
+                            endLineNumber: diagnostic.range[1].line + 1,
+                            endColumn: diagnostic.range[1].character + 1,
+                            message: diagnostic.message
+                        };
+
+                        markers.push(marker);
+
+                    });
+
+                    monaco.editor.setModelMarkers(editor.getModel(), 'owner', markers);
+                    console.log("markers out: " + JSON.stringify(monaco.editor.getModelMarkers()));
+
+                    return;
+                }
+
+                if (data.initialText !== null && data.initialText !== undefined) {
+                    console.log("Monaco: setting initial editor text to data received from websocket...");
+                    console.log("Data: " + data.initialText);
+                    changeSource = data.source;
+                    editor.setValue(data.initialText);
+
+                    changeSource = "user"
+                    return;
+                }
+
+                const change = data;
+
+                const model = editor.getModel();
+
+                const range = new monaco.Range(
+                    change.range[0].line + 1,
+                    change.range[0].character + 1,
+                    change.range[1].line + 1,
+                    change.range[1].character + 1,
+                );
+
+                const op = { range: range, text: change.text, forceMoveMarkers: true };
+
+                changeSource = data.source;
+                model.pushEditOperations([], [op], null);
+
+                changeSource = "user";
+            };
+
+            editor.onDidChangeModelContent(function (event) {
+                console.log("Monaco: onDidChangeModelContent");
+                if (changeSource === "user") {
+                    for (const change of event.changes) {
+                        console.log("Monaco: sending change via websocket...");
+                        ws.send(JSON.stringify({ ...change, source: 'monaco' }));
+                    }
+                }
+            });
+        });
+    </script>
+
+</body>
+
+</html>

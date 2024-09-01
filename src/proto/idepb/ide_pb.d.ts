@@ -235,6 +235,84 @@ export namespace FindUsesRequest {
   }
 }
 
+export class EditorStateRequest extends jspb.Message {
+  hasLocation(): boolean;
+  clearLocation(): void;
+  getLocation(): Location | undefined;
+  setLocation(value?: Location): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): EditorStateRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: EditorStateRequest): EditorStateRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: EditorStateRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): EditorStateRequest;
+  static deserializeBinaryFromReader(message: EditorStateRequest, reader: jspb.BinaryReader): EditorStateRequest;
+}
+
+export namespace EditorStateRequest {
+  export type AsObject = {
+    location?: Location.AsObject,
+  }
+}
+
+export class ContentChangeRequest extends jspb.Message {
+  hasRange(): boolean;
+  clearRange(): void;
+  getRange(): IRange | undefined;
+  setRange(value?: IRange): void;
+
+  getRangeOffset(): number;
+  setRangeOffset(value: number): void;
+
+  getRangeLength(): number;
+  setRangeLength(value: number): void;
+
+  getText(): string;
+  setText(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ContentChangeRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: ContentChangeRequest): ContentChangeRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: ContentChangeRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ContentChangeRequest;
+  static deserializeBinaryFromReader(message: ContentChangeRequest, reader: jspb.BinaryReader): ContentChangeRequest;
+}
+
+export namespace ContentChangeRequest {
+  export type AsObject = {
+    range?: IRange.AsObject,
+    rangeOffset: number,
+    rangeLength: number,
+    text: string,
+  }
+}
+
+export class EditorDiagnosticsRequest extends jspb.Message {
+  hasLocation(): boolean;
+  clearLocation(): void;
+  getLocation(): Location | undefined;
+  setLocation(value?: Location): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): EditorDiagnosticsRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: EditorDiagnosticsRequest): EditorDiagnosticsRequest.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: EditorDiagnosticsRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): EditorDiagnosticsRequest;
+  static deserializeBinaryFromReader(message: EditorDiagnosticsRequest, reader: jspb.BinaryReader): EditorDiagnosticsRequest;
+}
+
+export namespace EditorDiagnosticsRequest {
+  export type AsObject = {
+    location?: Location.AsObject,
+  }
+}
+
 export class RequestMessage extends jspb.Message {
   getType(): RequestTypeMap[keyof RequestTypeMap];
   setType(value: RequestTypeMap[keyof RequestTypeMap]): void;
@@ -287,6 +365,21 @@ export class RequestMessage extends jspb.Message {
   getFindUses(): FindUsesRequest | undefined;
   setFindUses(value?: FindUsesRequest): void;
 
+  hasEditorState(): boolean;
+  clearEditorState(): void;
+  getEditorState(): EditorStateRequest | undefined;
+  setEditorState(value?: EditorStateRequest): void;
+
+  hasContentChange(): boolean;
+  clearContentChange(): void;
+  getContentChange(): ContentChangeRequest | undefined;
+  setContentChange(value?: ContentChangeRequest): void;
+
+  hasEditorDiagnostics(): boolean;
+  clearEditorDiagnostics(): void;
+  getEditorDiagnostics(): EditorDiagnosticsRequest | undefined;
+  setEditorDiagnostics(value?: EditorDiagnosticsRequest): void;
+
   getDataCase(): RequestMessage.DataCase;
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): RequestMessage.AsObject;
@@ -311,6 +404,9 @@ export namespace RequestMessage {
     goToDefinition?: GoToDefinitionRequest.AsObject,
     rename?: RenameRequest.AsObject,
     findUses?: FindUsesRequest.AsObject,
+    editorState?: EditorStateRequest.AsObject,
+    contentChange?: ContentChangeRequest.AsObject,
+    editorDiagnostics?: EditorDiagnosticsRequest.AsObject,
   }
 
   export enum DataCase {
@@ -324,6 +420,9 @@ export namespace RequestMessage {
     GO_TO_DEFINITION = 9,
     RENAME = 10,
     FIND_USES = 11,
+    EDITOR_STATE = 12,
+    CONTENT_CHANGE = 13,
+    EDITOR_DIAGNOSTICS = 14,
   }
 }
 
@@ -408,6 +507,38 @@ export namespace Position {
   export type AsObject = {
     line: number,
     character: number,
+  }
+}
+
+export class IRange extends jspb.Message {
+  getStartLineNumber(): number;
+  setStartLineNumber(value: number): void;
+
+  getStartColumn(): number;
+  setStartColumn(value: number): void;
+
+  getEndLineNumber(): number;
+  setEndLineNumber(value: number): void;
+
+  getEndColumn(): number;
+  setEndColumn(value: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): IRange.AsObject;
+  static toObject(includeInstance: boolean, msg: IRange): IRange.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: IRange, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): IRange;
+  static deserializeBinaryFromReader(message: IRange, reader: jspb.BinaryReader): IRange;
+}
+
+export namespace IRange {
+  export type AsObject = {
+    startLineNumber: number,
+    startColumn: number,
+    endLineNumber: number,
+    endColumn: number,
   }
 }
 
@@ -631,6 +762,54 @@ export namespace FindUsesResponse {
   }
 }
 
+export class EditorStateResponse extends jspb.Message {
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): EditorStateResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: EditorStateResponse): EditorStateResponse.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: EditorStateResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): EditorStateResponse;
+  static deserializeBinaryFromReader(message: EditorStateResponse, reader: jspb.BinaryReader): EditorStateResponse;
+}
+
+export namespace EditorStateResponse {
+  export type AsObject = {
+  }
+}
+
+export class ContentChangeResponse extends jspb.Message {
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ContentChangeResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: ContentChangeResponse): ContentChangeResponse.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: ContentChangeResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ContentChangeResponse;
+  static deserializeBinaryFromReader(message: ContentChangeResponse, reader: jspb.BinaryReader): ContentChangeResponse;
+}
+
+export namespace ContentChangeResponse {
+  export type AsObject = {
+  }
+}
+
+export class EditorDiagnosticsResponse extends jspb.Message {
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): EditorDiagnosticsResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: EditorDiagnosticsResponse): EditorDiagnosticsResponse.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: EditorDiagnosticsResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): EditorDiagnosticsResponse;
+  static deserializeBinaryFromReader(message: EditorDiagnosticsResponse, reader: jspb.BinaryReader): EditorDiagnosticsResponse;
+}
+
+export namespace EditorDiagnosticsResponse {
+  export type AsObject = {
+  }
+}
+
 export class ErrorResponse extends jspb.Message {
   getError(): string;
   setError(value: string): void;
@@ -703,6 +882,21 @@ export class ResponseMessage extends jspb.Message {
   getFindUses(): FindUsesResponse | undefined;
   setFindUses(value?: FindUsesResponse): void;
 
+  hasEditorState(): boolean;
+  clearEditorState(): void;
+  getEditorState(): EditorStateResponse | undefined;
+  setEditorState(value?: EditorStateResponse): void;
+
+  hasContentChange(): boolean;
+  clearContentChange(): void;
+  getContentChange(): ContentChangeResponse | undefined;
+  setContentChange(value?: ContentChangeResponse): void;
+
+  hasEditorDiagnostics(): boolean;
+  clearEditorDiagnostics(): void;
+  getEditorDiagnostics(): EditorDiagnosticsResponse | undefined;
+  setEditorDiagnostics(value?: EditorDiagnosticsResponse): void;
+
   hasError(): boolean;
   clearError(): void;
   getError(): ErrorResponse | undefined;
@@ -732,6 +926,9 @@ export namespace ResponseMessage {
     goToDefinition?: GoToDefinitionResponse.AsObject,
     rename?: RenameResponse.AsObject,
     findUses?: FindUsesResponse.AsObject,
+    editorState?: EditorStateResponse.AsObject,
+    contentChange?: ContentChangeResponse.AsObject,
+    editorDiagnostics?: EditorDiagnosticsResponse.AsObject,
     error?: ErrorResponse.AsObject,
   }
 
@@ -746,6 +943,9 @@ export namespace ResponseMessage {
     GO_TO_DEFINITION = 9,
     RENAME = 10,
     FIND_USES = 11,
+    EDITOR_STATE = 12,
+    CONTENT_CHANGE = 13,
+    EDITOR_DIAGNOSTICS = 14,
     ERROR = 999,
   }
 }
@@ -761,6 +961,9 @@ export interface RequestTypeMap {
   REQUEST_GO_TO_DEFINITION: 7;
   REQUEST_RENAME: 8;
   REQUEST_FIND_USES: 9;
+  REQUEST_EDITOR_STATE: 10;
+  REQUEST_CONTENT_CHANGE: 11;
+  REQUEST_EDITOR_DIAGNOSTICS: 12;
 }
 
 export const RequestType: RequestTypeMap;
@@ -807,6 +1010,9 @@ export interface ResponseTypeMap {
   RESPONSE_GO_TO_DEFINITION: 7;
   RESPONSE_RENAME: 8;
   RESPONSE_FIND_USES: 9;
+  RESPONSE_EDITOR_STATE: 10;
+  RESPONSE_CONTENT_CHANGE: 11;
+  RESPONSE_EDITOR_DIAGNOSTICS: 12;
   RESPONSE_ERROR: 999;
 }
 

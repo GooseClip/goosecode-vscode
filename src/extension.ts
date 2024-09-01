@@ -1,10 +1,19 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as bodyParser from 'body-parser';
+
 import { WebSocket, WebSocketServer } from 'ws';
-import { RequestMessage, RequestType, ResponseMessage, SymbolKindMap, GetFilesResponse, ListFilesResponse, OpenFilesResponse, FindStringResponse, Location, Position, SelectRangeResponse, DescribeRangeResponse, GoToDefinitionResponse, RenameResponse, FindUsesResponse, ErrorResponse, DocumentSymbol, SymbolKind, Range } from './proto/idepb/ide_pb'; // Import your generated protobuf TypeScript definitions
+import { RequestMessage, RequestType, ResponseType, ResponseMessage, SymbolKindMap, GetFilesResponse, ListFilesResponse, OpenFilesResponse, FindStringResponse, Location, Position, SelectRangeResponse, DescribeRangeResponse, GoToDefinitionResponse, RenameResponse, FindUsesResponse, ErrorResponse, DocumentSymbol, SymbolKind, Range, IRange, EditorStateResponse, ContentChangeResponse, EditorDiagnosticsResponse, ContentChangeRequest } from './proto/idepb/ide_pb'; // Import your generated protobuf TypeScript definitions
 import { getProjectRoot, getFileContents, listProjectFiles, findStringInProject, openFiles, selectRange, describeRange, goToDefinition, rename, findUses } from './goosecode';
-import { ResponseType } from './proto/idepb/ide_pb';
+
+import express = require('express');
+import expressWs = require('express-ws');
+import { RawData } from 'ws';
+import * as http from 'http';
+import * as path from 'path';
+import { promisify } from 'util';
+import { readFile } from 'fs';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -62,15 +71,15 @@ function convertRange(vsRange: vscode.Range | vscode.Location): Range {
   const range = new Range();
 
   const startPos = new Position();
-  const r = vsRange instanceof vscode.Range ? vsRange : (vsRange as vscode.Location).range; 
-    startPos.setLine(r.start.line);
-    startPos.setCharacter(r.start.character);
-    range.setStart(startPos);
+  const r = vsRange instanceof vscode.Range ? vsRange : (vsRange as vscode.Location).range;
+  startPos.setLine(r.start.line);
+  startPos.setCharacter(r.start.character);
+  range.setStart(startPos);
 
-    const endPos = new Position();
-    endPos.setLine(r.end.line);
-    endPos.setCharacter(r.end.character);
-    range.setEnd(endPos);
+  const endPos = new Position();
+  endPos.setLine(r.end.line);
+  endPos.setCharacter(r.end.character);
+  range.setEnd(endPos);
   return range;
 }
 
@@ -151,7 +160,7 @@ function convertSymbols(vsSymbols: Array<vscode.DocumentSymbol | vscode.SymbolIn
       // @ts-ignore
       symbol.setKind(convertSymbolKind(d.kind));
       symbol.setRange(convertRange(d.location));
-    }else{
+    } else {
       throw new Error("Unknown symbol type");
     }
     pbSymbols.push(symbol);
@@ -161,7 +170,7 @@ function convertSymbols(vsSymbols: Array<vscode.DocumentSymbol | vscode.SymbolIn
 }
 
 
-async function handleListFilesRequest(socket: WebSocket, request: RequestMessage) {
+async function handleListFilesRequest(res: express.Response, request: RequestMessage) {
   const files = await listProjectFiles();
   const response = new ResponseMessage();
   response.setType(ResponseType.RESPONSE_LIST_FILES);
@@ -169,10 +178,10 @@ async function handleListFilesRequest(socket: WebSocket, request: RequestMessage
   const lfr = new ListFilesResponse();
   lfr.setFilePathsList(files);
   response.setListFiles(lfr);
-  socket.send(response.serializeBinary());
+  res.send(response.serializeBinary());
 }
 
-async function handleGetFilesRequest(socket: WebSocket, request: RequestMessage) {
+async function handleGetFilesRequest(res: express.Response, request: RequestMessage) {
   const contents = await getFileContents(request.getGetFiles()!.getFilePathsList());
   const response = new ResponseMessage();
   response.setType(ResponseType.RESPONSE_GET_FILES);
@@ -180,20 +189,20 @@ async function handleGetFilesRequest(socket: WebSocket, request: RequestMessage)
   const gfr = new GetFilesResponse();
   gfr.setFileContentsList(contents);
   response.setGetFiles(gfr);
-  socket.send(response.serializeBinary());
+  res.send(response.serializeBinary());
 }
 
-async function handleOpenFilesRequest(socket: WebSocket, request: RequestMessage) {
+async function handleOpenFilesRequest(res: express.Response, request: RequestMessage) {
   await openFiles(request.getOpenFiles()!.getFilePathsList());
   const response = new ResponseMessage();
   response.setType(ResponseType.RESPONSE_OPEN_FILES);
   response.setCommandId(request.getCommandId());
   const ofr = new OpenFilesResponse();
   response.setOpenFiles(ofr);
-  socket.send(response.serializeBinary());
+  res.send(response.serializeBinary());
 }
 
-async function handleFindRequest(socket: WebSocket, request: RequestMessage) {
+async function handleFindRequest(res: express.Response, request: RequestMessage) {
   const find = request.getFindString()!;
   const hits: vscode.Location[] = await findStringInProject(find.getSearchPattern(), find.getIncludedFilesList());
   const response = new ResponseMessage();
@@ -204,12 +213,12 @@ async function handleFindRequest(socket: WebSocket, request: RequestMessage) {
   const pblocs: Location[] = convertLocations(hits);
   fsr.setLocationsList(pblocs);
   response.setFindString(fsr);
-  socket.send(response.serializeBinary());
+  res.send(response.serializeBinary());
 }
 
 // ------- WIP
 
-async function sendError(socket: WebSocket, request: RequestMessage, error: string) {
+async function sendError(res: express.Response, request: RequestMessage, error: string) {
   console.log(`[ERROR][${request.getType()}], error: ${error}`);
   const response = new ResponseMessage();
   response.setType(ResponseType.RESPONSE_ERROR);
@@ -217,10 +226,10 @@ async function sendError(socket: WebSocket, request: RequestMessage, error: stri
   const err = new ErrorResponse();
   err.setError(error);
   response.setError(err);
-  socket.send(response.serializeBinary());
+  res.send(response.serializeBinary());
 }
 
-async function handleSelectRange(socket: WebSocket, request: RequestMessage) {
+async function handleSelectRange(res: express.Response, request: RequestMessage) {
   const location = request.getSelectRange()!.getLocation();
 
   await openFiles([location!.getPath()]);
@@ -229,7 +238,7 @@ async function handleSelectRange(socket: WebSocket, request: RequestMessage) {
 
   const selection = selectRange(start, end);
   if (!selection) {
-    sendError(socket, request, "Failed to select range");
+    sendError(res, request, "Failed to select range");
     return;
   }
 
@@ -238,10 +247,10 @@ async function handleSelectRange(socket: WebSocket, request: RequestMessage) {
   response.setCommandId(request.getCommandId());
   const srr = new SelectRangeResponse();
   response.setSelectRange(srr);
-  socket.send(response.serializeBinary());
+  res.send(response.serializeBinary());
 }
 
-async function handleDescribeRange(socket: WebSocket, request: RequestMessage) {
+async function handleDescribeRange(res: express.Response, request: RequestMessage) {
   const location = request.getDescribeRange()!.getLocation();
 
   await openFiles([location!.getPath()]);
@@ -250,13 +259,13 @@ async function handleDescribeRange(socket: WebSocket, request: RequestMessage) {
 
   const selection = selectRange(start, end);
   if (!selection) {
-    sendError(socket, request, "Failed to select range");
+    sendError(res, request, "Failed to select range");
     return;
   }
 
   const symbols = await describeRange(start, end);
   if (!symbols) {
-    sendError(socket, request, "Failed to get descriptions");
+    sendError(res, request, "Failed to get descriptions");
     return;
   }
 
@@ -270,10 +279,10 @@ async function handleDescribeRange(socket: WebSocket, request: RequestMessage) {
   console.log("Set pbSymbols:", pbSymbols.length);
   drr.setSymbolsList(pbSymbols);
   response.setDescribeRange(drr);
-  socket.send(response.serializeBinary());
+  res.send(response.serializeBinary());
 }
 
-async function handleGoToDefinition(socket: WebSocket, request: RequestMessage) {
+async function handleGoToDefinition(res: express.Response, request: RequestMessage) {
   const location = request.getGoToDefinition()!.getLocation();
 
   await openFiles([location!.getPath()]);
@@ -282,17 +291,17 @@ async function handleGoToDefinition(socket: WebSocket, request: RequestMessage) 
 
   const selection = selectRange(start, end);
   if (!selection) {
-    sendError(socket, request, "Failed to select range");
+    sendError(res, request, "Failed to select range");
     return;
   }
 
   if (!isEntireWord(selection!)) {
-    sendError(socket, request, "Selection is not word");
+    sendError(res, request, "Selection is not word");
     return;
   }
 
   if (!await goToDefinition()) {
-    sendError(socket, request, "Failed to go to definition");
+    sendError(res, request, "Failed to go to definition");
     return;
   }
 
@@ -301,10 +310,10 @@ async function handleGoToDefinition(socket: WebSocket, request: RequestMessage) 
   response.setCommandId(request.getCommandId());
   const gtdr = new GoToDefinitionResponse();
   response.setGoToDefinition(gtdr);
-  socket.send(response.serializeBinary());
+  res.send(response.serializeBinary());
 }
 
-async function handleRename(socket: WebSocket, request: RequestMessage) {
+async function handleRename(res: express.Response, request: RequestMessage) {
   const location = request.getRename()!.getLocation();
 
   await openFiles([location!.getPath()]);
@@ -313,17 +322,17 @@ async function handleRename(socket: WebSocket, request: RequestMessage) {
 
   const selection = selectRange(start, end);
   if (!selection) {
-    sendError(socket, request, "Failed to select range");
+    sendError(res, request, "Failed to select range");
     return;
   }
 
   if (!isEntireWord(selection!)) {
-    sendError(socket, request, "Selection is not word");
+    sendError(res, request, "Selection is not word");
     return;
   }
 
   if (!await rename(request.getRename()!.getNewName())) {
-    sendError(socket, request, "Failed to rename;");
+    sendError(res, request, "Failed to rename;");
     return;
   }
 
@@ -332,10 +341,10 @@ async function handleRename(socket: WebSocket, request: RequestMessage) {
   response.setCommandId(request.getCommandId());
   const rr = new RenameResponse();
   response.setRename(rr);
-  socket.send(response.serializeBinary());
+  res.send(response.serializeBinary());
 }
 
-async function handleFindUses(socket: WebSocket, request: RequestMessage) {
+async function handleFindUses(res: express.Response, request: RequestMessage) {
   const location = request.getFindUses()!.getLocation();
 
   await openFiles([location!.getPath()]);
@@ -345,18 +354,18 @@ async function handleFindUses(socket: WebSocket, request: RequestMessage) {
 
   const selection = selectRange(start, end);
   if (!selection) {
-    sendError(socket, request, "Failed to select range");
+    sendError(res, request, "Failed to select range");
     return;
   }
 
   if (!isEntireWord(selection!)) {
-    sendError(socket, request, "Selection is not word");
+    sendError(res, request, "Selection is not word");
     return;
   }
 
   const uses = await findUses();
   if (!uses) {
-    sendError(socket, request, "Failed to find uses");
+    sendError(res, request, "Failed to find uses");
     return;
   }
 
@@ -368,72 +377,410 @@ async function handleFindUses(socket: WebSocket, request: RequestMessage) {
   fur.setLocationsList(pblocs);
   console.log("setting uses:", pblocs.length);
   response.setFindUses(fur);
-  socket.send(response.serializeBinary());
+  res.send(response.serializeBinary());
 }
+
+async function handleGetEditorState(res: express.Response, request: RequestMessage) {
+  // TODO change to the editor relevant to the requested file
+  const activeEditor = vscode.window.activeTextEditor;
+
+  if (!activeEditor) {
+    sendError(res, request, "Failed to get editor state");
+    return;
+  }
+
+  const documentText = activeEditor.document.getText();
+
+  const response = new ResponseMessage();
+  response.setType(ResponseType.RESPONSE_EDITOR_STATE);
+  response.setCommandId(request.getCommandId());
+  const es = new EditorStateResponse();
+  response.setEditorState(es);
+  res.send(response.serializeBinary());
+}
+
+async function handleContentChange(res: express.Response, request: RequestMessage) {
+  const change = request.getContentChange()!;
+
+  const activeEditor = vscode.window.activeTextEditor;
+
+  if (!activeEditor) {
+    sendError(res, request, "Failed to handle content change");
+    return;
+  }
+
+  // Convert the Monaco IRange to a VSCode Range
+  // Note that VSCode lines and columns start at 0, so we subtract 1 from the Monaco values
+  const range = new vscode.Range(
+    change.getRange()?.getStartLineNumber()! - 1,
+    change.getRange()?.getStartColumn()! - 1,
+    change.getRange()?.getEndLineNumber()! - 1,
+    change.getRange()?.getEndColumn()! - 1,
+  );
+
+  // Apply the change to the active editor
+  activeEditor.edit((editBuilder) => {
+    editBuilder.replace(range, change.getText());
+  }).then(() => {
+    // TODO prevent infinite loop by reassigning a var here
+  });
+
+  // respond with equivalent of 200 OK
+  const response = new ResponseMessage();
+  response.setType(ResponseType.RESPONSE_CONTENT_CHANGE);
+  response.setCommandId(request.getCommandId());
+  const cc = new ContentChangeResponse();
+  response.setContentChange(cc);
+  res.send(response.serializeBinary());
+}
+
+function getRandomString(length: number): string {
+  const _chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
+
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += _chars.charAt(Math.floor(Math.random() * _chars.length));
+  }
+  return result;
+}
+
+async function streamContentChanges(socket: WebSocket) {
+  // sends to Monaco Client
+  vscode.workspace.onDidChangeTextDocument((event) => {
+    console.log('extension: onDidChangeTextDocument');
+    // TODO change to the editor relevant to the requested file
+    if (event.document === vscode.window.activeTextEditor?.document) {
+      // TODO handle infinite loop
+      for (const change of event.contentChanges) {
+        const request = new RequestMessage();
+        request.setType(RequestType.REQUEST_CONTENT_CHANGE);
+        request.setCommandId(getRandomString(6));
+
+        const contentChange = new ContentChangeRequest();
+        contentChange.setRange(new IRange());
+        contentChange.getRange()?.setStartLineNumber(change.range.start.line + 1);
+        contentChange.getRange()?.setStartColumn(change.range.start.character + 1);
+        contentChange.getRange()?.setEndLineNumber(change.range.end.line + 1);
+        contentChange.getRange()?.setEndColumn(change.range.end.character + 1);
+        contentChange.setRangeOffset(change.rangeOffset);
+        contentChange.setRangeLength(change.rangeLength);
+        contentChange.setText(change.text);
+
+        request.setContentChange(contentChange);
+
+        console.log('extension: sending changes to Monaco via websocket...');
+        socket.send(request.serializeBinary());
+        // TODO retrieve and handle response from websocket somehow
+      }
+    }
+  });
+}
+
+async function handleGetEditorDiagnostics(socket: WebSocket) {
+  // TODO change from activeTextEditor to relevant file
+  let editor = vscode.window.activeTextEditor;
+  if (editor) {
+    let document = editor.document;
+
+    // Get all diagnostics for the current document
+    let diagnostics = vscode.languages.getDiagnostics(document.uri);
+
+    const response = new ResponseMessage();
+    response.setType(ResponseType.RESPONSE_EDITOR_DIAGNOSTICS);
+    // response.setCommandId(request.getCommandId());
+    const ged = new EditorDiagnosticsResponse();
+    response.setEditorDiagnostics(ged);
+    socket.send(response.serializeBinary());
+  }
+}
+
+async function handleGetEditorDiagnosticsJSON(filename: string) {
+  return new Promise((resolve, reject) => {
+    vscode.workspace.openTextDocument(vscode.Uri.file(filename)).then(document => {
+      let diagnostics = vscode.languages.getDiagnostics(document.uri);
+
+      if (websocket && websocket.readyState === websocket.OPEN) {
+        const diagnosticData = { msgType: "diagnostics", data: diagnostics };
+        websocket.send(JSON.stringify(diagnosticData));
+        resolve(diagnosticData);
+      } else {
+        reject("Websocket is not open");
+      }
+    });
+  });
+}
+
+// registerPushDiagnosticsExampleCommand registers an extension command that retrieves any diagnostic linting information from the current active editor file and transfers those messages as JSON to the Monaco Editor being served in the html file, which will apply them to the text that should be mirrored in the editor
+function registerPushDiagnosticsExampleCommand(context: vscode.ExtensionContext) {
+  let disposable = vscode.commands.registerCommand('goosecode.pushDiagnosticsExample', () => {
+    vscode.window.showInformationMessage('Pushing Diagnostics to the Monaco Editor!');
+
+    let editor = vscode.window.activeTextEditor;
+    if (editor) {
+      let document = editor.document;
+
+      // Get all diagnostics for the current document
+      let diagnostics = vscode.languages.getDiagnostics(document.uri);
+
+      if (websocket && websocket.readyState === websocket.OPEN) {
+        websocket.send(JSON.stringify({ msgType: "diagnostics", data: diagnostics }));
+      }
+    }
+  });
+
+  context.subscriptions.push(disposable);
+}
+
+let websocket: WebSocket | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "websocket-protobuf-example" is now active!');
 
-  const websocketServer = new WebSocketServer({ port: 60053, host: "0.0.0.0", path: "/connect" }); // Set the desired WebSocket server port
 
-  websocketServer.on('connection', (socket) => {
-    console.log('WebSocket connection opened');
+  // const websocketServer = new WebSocketServer({ port: 60053, host: "0.0.0.0", path: "/connect" }); // Set the desired WebSocket server port
 
-    socket.on('message', async (message) => {
-      var request: RequestMessage;
-      try {
-        request = RequestMessage.deserializeBinary(new Uint8Array(message as ArrayBuffer));
-        console.log('Received ProtoBuf message:', JSON.stringify(request.toObject()));
+  // Establish server and websocket connection
+  const readFileAsync = promisify(readFile);
+  const app = express();
+  const server = http.createServer(app);
+  const wsApp = expressWs(app as any, server);
 
-      } catch (e) {
-        console.log("[ERROR] failed to unmarshal");
-        return;
-      }
-      try {
-        switch (request.getType()) {
-          case RequestType.REQUEST_LIST_FILES:
-            console.log("REQUEST_LIST_FILES");
-            handleListFilesRequest(socket, request);
-            break;
-          case RequestType.REQUEST_GET_FILES:
-            console.log("REQUEST_GET_FILES");
-            handleGetFilesRequest(socket, request);
-            break;
-          case RequestType.REQUEST_OPEN_FILES:
-            console.log("REQUEST_OPEN_FILES");
-            handleOpenFilesRequest(socket, request);
-            break;
-          case RequestType.REQUEST_FIND_STRING:
-            console.log("REQUEST_FIND_STRING");
-            handleFindRequest(socket, request);
-            break;
-          case RequestType.REQUEST_SELECT_RANGE:
-            console.log("REQUEST_SELECT_RANGE");
-            handleSelectRange(socket, request);
-            break;
-          case RequestType.REQUEST_DESCRIBE_RANGE:
-            console.log("REQUEST_DESCRIBE_RANGE");
-            handleDescribeRange(socket, request);
-            break;
-          case RequestType.REQUEST_GO_TO_DEFINITION:
-            console.log("REQUEST_GO_TO_DEFINITION");
-            handleGoToDefinition(socket, request);
-            break;
-          case RequestType.REQUEST_RENAME:
-            console.log("REQUEST_RENAME");
-            handleRename(socket, request);
-            break;
-          case RequestType.REQUEST_FIND_USES:
-            console.log("REQUEST_FIND_USES");
-            handleFindUses(socket, request);
-            break;
+  var changeSource = 'user';
 
+  app.use('/vs', express.static(path.join(__dirname, '../node_modules/monaco-editor/min/vs')));
+
+  app.get('/', async (_: express.Request, res: express.Response) => {
+    const html = await readFileAsync(path.join(__dirname, '../src/monaco_webview.html'), 'utf-8');
+    res.send(html);
+  });
+
+  app.use(bodyParser.json());
+
+  app.post('/diagnostics', async (req: express.Request, res: express.Response) => {
+    const path = req.body.absoluteFilepath;  // retrieve 'absoluteFilepath' property from request body
+
+    try {
+      const diagnostics = await handleGetEditorDiagnosticsJSON(path);
+      res.sendStatus(200);
+    } catch {
+      res.sendStatus(500);
+    }
+  });
+
+  app.post('/files-list', async (req: express.Request, res: express.Response) => {
+    const request = deserializeBinary(req.body);
+    if (request === null) {
+      res.status(500);
+      return;
+    }
+
+    try {
+      handleListFilesRequest(res, request!);
+    } catch (e) {
+      res.status(500).send("Caught an exception while handling message");
+      console.error('Error processing message:', e);
+    }
+  });
+
+  app.post('/files-get', async (req: express.Request, res: express.Response) => {
+    const request = deserializeBinary(req.body);
+    if (request === null) {
+      res.status(500);
+      return;
+    }
+
+    try {
+      handleGetFilesRequest(res, request!);
+    } catch (e) {
+      res.status(500).send("Caught an exception while handling message");
+      console.error('Error processing message:', e);
+    }
+  });
+
+  app.post('/files-open', async (req: express.Request, res: express.Response) => {
+    const request = deserializeBinary(req.body);
+    if (request === null) {
+      res.status(500);
+      return;
+    }
+
+    try {
+      handleOpenFilesRequest(res, request!);
+    } catch (e) {
+      res.status(500).send("Caught an exception while handling message");
+      console.error('Error processing message:', e);
+    }
+  });
+
+  app.post('/findstring', async (req: express.Request, res: express.Response) => {
+    const request = deserializeBinary(req.body);
+    if (request === null) {
+      res.status(500);
+      return;
+    }
+
+    try {
+      handleFindRequest(res, request!);
+    } catch (e) {
+      res.status(500).send("Caught an exception while handling message");
+      console.error('Error processing message:', e);
+    }
+  });
+
+  app.post('/range-select', async (req: express.Request, res: express.Response) => {
+    const request = deserializeBinary(req.body);
+    if (request === null) {
+      res.status(500);
+      return;
+    }
+
+    try {
+      handleSelectRange(res, request!);
+    } catch (e) {
+      res.status(500).send("Caught an exception while handling message");
+      console.error('Error processing message:', e);
+    }
+  });
+
+  app.post('/range-describe', async (req: express.Request, res: express.Response) => {
+    const request = deserializeBinary(req.body);
+    if (request === null) {
+      res.status(500);
+      return;
+    }
+
+    try {
+      handleDescribeRange(res, request!);
+    } catch (e) {
+      res.status(500).send("Caught an exception while handling message");
+      console.error('Error processing message:', e);
+    }
+  });
+
+  app.post('/go-to-definition', async (req: express.Request, res: express.Response) => {
+    const request = deserializeBinary(req.body);
+    if (request === null) {
+      res.status(500);
+      return;
+    }
+
+    try {
+      handleGoToDefinition(res, request!);
+    } catch (e) {
+      res.status(500).send("Caught an exception while handling message");
+      console.error('Error processing message:', e);
+    }
+  });
+
+  app.post('/rename', async (req: express.Request, res: express.Response) => {
+    const request = deserializeBinary(req.body);
+    if (request === null) {
+      res.status(500);
+      return;
+    }
+
+    try {
+      handleRename(res, request!);
+    } catch (e) {
+      res.status(500).send("Caught an exception while handling message");
+      console.error('Error processing message:', e);
+    }
+  });
+
+  app.post('/find-uses', async (req: express.Request, res: express.Response) => {
+    const request = deserializeBinary(req.body);
+    if (request === null) {
+      res.status(500);
+      return;
+    }
+
+    try {
+      handleFindUses(res, request!);
+    } catch (e) {
+      res.status(500).send("Caught an exception while handling message");
+      console.error('Error processing message:', e);
+    }
+  });
+
+  app.post('/editor-state', async (req: express.Request, res: express.Response) => {
+    const request = deserializeBinary(req.body);
+    if (request === null) {
+      res.status(500);
+      return;
+    }
+
+    try {
+      handleGetEditorState(res, request!);
+    } catch (e) {
+      res.status(500).send("Caught an exception while handling message");
+      console.error('Error processing message:', e);
+    }
+  });
+
+  app.post('/content-change', async (req: express.Request, res: express.Response) => {
+    const request = deserializeBinary(req.body);
+    if (request === null) {
+      res.status(500);
+      return;
+    }
+
+    try {
+      handleContentChange(res, request!);
+    } catch (e) {
+      res.status(500).send("Caught an exception while handling message");
+      console.error('Error processing message:', e);
+    }
+  });
+
+  // registers websocket
+  wsApp.app.ws('/', (socket, req) => {
+    console.log('Extension: WebSocket connection opened');
+    websocket = socket;
+
+    registerPushDiagnosticsExampleCommand(context);
+
+    // sends initial text to Monaco as JSON
+    const activeEditor = vscode.window.activeTextEditor;
+    if (activeEditor) {
+      const documentText = activeEditor.document.getText();
+      socket.send(JSON.stringify({ initialText: documentText, source: "vscode" }));
+    }
+
+    // if using protobuf rather than JSON, should stream editor changes
+    // streamContentChanges(socket);
+
+    // receives from Monaco as JSON
+    socket.on('message', (message: RawData) => {
+      console.log("Extension: Received message on websocket...");
+      if (typeof (message) === 'string') {
+        const change = JSON.parse(message);
+
+        changeSource = change.source;
+
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor) {
+          console.log("No active editor");
+          return;
         }
-        // Process your ProtoBuf message here
 
-      } catch (error) {
-        sendError(socket, request, "Caught an exception while handling message");
-        console.error('Error processing message:', error);
+        // Convert the Monaco IRange to a VSCode Range
+        // Note that VSCode lines and columns start at 0, so we subtract 1 from the Monaco values
+        const range = new vscode.Range(
+          change.range.startLineNumber - 1,
+          change.range.startColumn - 1,
+          change.range.endLineNumber - 1,
+          change.range.endColumn - 1,
+        );
+
+        // Apply the change to the active editor
+        activeEditor.edit((editBuilder) => {
+          editBuilder.replace(range, change.text);
+        }).then(() => {
+          changeSource = "user";
+        });
+
+      } else {
+        console.error('Received non-string message data', message); // TODO handle appropriately
       }
     });
 
@@ -446,14 +793,47 @@ export function activate(context: vscode.ExtensionContext) {
     });
   });
 
+  // Serve the Monaco Editor
+  server.listen(3000, 'localhost', () => {
+    console.log('Listening on localhost:3000');
+  });
+
+  // Sends to Monaco Editor as JSON
+  vscode.workspace.onDidChangeTextDocument((event) => {
+    if (event.document === vscode.window.activeTextEditor?.document) {
+      // console.log("(pre check)" + changeSource);
+      if (changeSource === "user") {
+        for (const change of event.contentChanges) {
+          if (websocket && websocket.readyState === websocket.OPEN) {
+            console.log("Extension: sending changes to Monaco via websocket...");
+            websocket.send(JSON.stringify({ ...change, source: 'vscode' }));
+          }
+        }
+      }
+    }
+  });
+
   context.subscriptions.push({
     dispose: () => {
-      websocketServer.close();
+      // websocketServer.close();
       console.log('WebSocket server stopped');
     },
   });
-}
 
+  // deserializeBinary takes a protobuf message and unmarshals it
+  function deserializeBinary(message: RawData) {
+    var request: RequestMessage;
+    try {
+      request = RequestMessage.deserializeBinary(new Uint8Array(message as ArrayBuffer));
+      console.log('Received ProtoBuf message:', JSON.stringify(request.toObject()));
+    } catch (e) {
+      console.log("[ERROR] failed to unmarshal");
+      return null;
+    }
+
+    return request;
+  }
+}
 
 // This method is called when your extension is deactivated
 export function deactivate() { }
