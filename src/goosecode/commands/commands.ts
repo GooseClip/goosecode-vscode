@@ -214,7 +214,11 @@ export async function describeRange(start: vscode.Position, end: vscode.Position
 
     console.log("[DESCRIBE]", symbols.length);
     for (const symbol of symbols) {
-        console.log(typeof symbol);
+        if(symbol instanceof vscode.SymbolInformation) {
+            console.log("[SYMBOL]", typeof symbol, JSON.stringify(symbol));
+        }else{
+            console.log("[DOCUMENT]", typeof symbol, JSON.stringify(symbol));
+        }
         const symbolRange = symbol instanceof vscode.DocumentSymbol ? symbol.range : symbol.location.range;
         if (range.intersection(symbolRange)) {
             symbolsInRange.push(symbol);
@@ -222,6 +226,98 @@ export async function describeRange(start: vscode.Position, end: vscode.Position
     }
 
     return symbolsInRange;
+}
+
+// export async function isDeclaration(): Promise<boolean> {
+//     const activeEditor = vscode.window.activeTextEditor;
+//
+//     if (activeEditor) {
+//         const position = activeEditor.selection.active;
+//         const declarationLocations = await vscode.commands.executeCommand<vscode.LocationLink[]>(
+//             'vscode.executeDeclarationProvider',
+//             activeEditor.document.uri,
+//             position
+//         );
+//
+//         if (declarationLocations && declarationLocations.length > 0) {
+//             console.log("[DECLARATION]", declarationLocations);
+//             return true;
+//         } else {
+//             console.log("[WARN][DECLARATION]", 'No declaration found for the symbol under the cursor.');
+//         }
+//     } else {
+//         console.log("[WARN][DECLARATION]", 'No active text editor found.');
+//     }
+//     return false;
+// }
+
+export async function getTypeDefinitions(): Promise<vscode.LocationLink[]> {
+    const activeEditor = vscode.window.activeTextEditor;
+
+    if (activeEditor) {
+        const position = activeEditor.selection.active;
+        const links = await vscode.commands.executeCommand<vscode.LocationLink[]>(
+            'vscode.executeTypeDefinitionProvider',
+            activeEditor.document.uri,
+            position
+        );
+
+        if (links && links.length > 0) {
+            return links;
+        } else {
+            console.log("[WARN][TYPE DEFINITIONS]", 'No declaration found for the symbol under the cursor.');
+        }
+    } else {
+        console.log("[WARN][TYPE DEFINITIONS]", 'No active text editor found.');
+    }
+    return [];
+}
+
+export async function getDefinitions(): Promise<vscode.LocationLink[]> {
+    const activeEditor = vscode.window.activeTextEditor;
+
+    if (activeEditor) {
+        const position = activeEditor.selection.active;
+        const links = await vscode.commands.executeCommand<vscode.LocationLink[]>(
+            'vscode.executeDefinitionProvider',
+            activeEditor.document.uri,
+            position
+        );
+
+        if (links && links.length > 0) {
+            return links;
+        } else {
+            console.log("[WARN][DEFINITIONS]", 'No definition found for the symbol under the cursor.');
+        }
+    } else {
+        console.log("[WARN][DEFINITIONS]", 'No active text editor found.');
+    }
+    return [];
+}
+
+
+export async function getReferences(): Promise<vscode.Location[]> {
+    const activeEditor = vscode.window.activeTextEditor;
+
+    if (activeEditor) {
+        const position = activeEditor.selection.active;
+
+        // Find all references of the symbol at the cursor position
+        const references = await vscode.commands.executeCommand<vscode.Location[]>(
+            'vscode.executeReferenceProvider',
+            activeEditor.document.uri,
+            position
+        );
+
+        if (references && references.length > 0) {
+            return references;
+        } else {
+            console.log("[WARN][FIND USES]", 'No references found for the symbol at the cursor position.');
+        }
+    } else {
+        console.log("[WARN][FIND USES]", 'No active text editor found.');
+    }
+    return [];
 }
 
 export async function goToDefinition(): Promise<boolean> {
@@ -256,6 +352,7 @@ export async function goToDefinition(): Promise<boolean> {
     return false;
 }
 
+
 export async function rename(newName: string): Promise<boolean> {
     const activeEditor = vscode.window.activeTextEditor;
 
@@ -282,28 +379,4 @@ export async function rename(newName: string): Promise<boolean> {
         console.log("[WARN][RENAME]", 'No active text editor found.');
     }
     return false;
-}
-
-export async function findUses(): Promise<vscode.Location[] | undefined> {
-    const activeEditor = vscode.window.activeTextEditor;
-
-    if (activeEditor) {
-        const position = activeEditor.selection.active;
-
-        // Find all references of the symbol at the cursor position
-        const references = await vscode.commands.executeCommand<vscode.Location[]>(
-            'vscode.executeReferenceProvider',
-            activeEditor.document.uri,
-            position
-        );
-
-        if (references && references.length > 0) {
-            console.log("[USES]", references);
-            return references;
-        } else {
-            console.log("[WARN][FIND USES]", 'No references found for the symbol at the cursor position.');
-        }
-    } else {
-        console.log("[WARN][FIND USES]", 'No active text editor found.');
-    }
 }

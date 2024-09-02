@@ -60,10 +60,7 @@ export namespace idepb {
         RESPONSE_GO_TO_DEFINITION = 7,
         RESPONSE_RENAME = 8,
         RESPONSE_FIND_USES = 9,
-        RESPONSE_EDITOR_STATE = 10,
-        RESPONSE_CONTENT_CHANGE = 11,
-        RESPONSE_EDITOR_DIAGNOSTICS = 12,
-        RESPONSE_PROJECT_ROOT = 13,
+        RESPONSE_PROJECT_ROOT = 10,
         RESPONSE_ERROR = 999
     }
     export enum PushType {
@@ -71,7 +68,13 @@ export namespace idepb {
         PUSH_OPEN_FILE = 1,
         PUSH_CREATE_SNIPPET = 2,
         PUSH_PIN_FILE = 3,
-        PUSH_HIGHLIGHT = 4
+        PUSH_HIGHLIGHT = 4,
+        PUSH_FOLLOW = 5
+    }
+    export enum FollowType {
+        FOLLOW_INVALID = 0,
+        FOLLOW_DEFINITION = 1,
+        FOLLOW_REFERENCE = 2
     }
     export class EmptyRequest extends pb_1.Message {
         #one_of_decls: number[][] = [];
@@ -800,423 +803,8 @@ export namespace idepb {
             return FindUsesRequest.deserialize(bytes);
         }
     }
-    export class EditorStateRequest extends pb_1.Message {
-        #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            location?: Location;
-        }) {
-            super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("location" in data && data.location != undefined) {
-                    this.location = data.location;
-                }
-            }
-        }
-        get location() {
-            return pb_1.Message.getWrapperField(this, Location, 1) as Location;
-        }
-        set location(value: Location) {
-            pb_1.Message.setWrapperField(this, 1, value);
-        }
-        get has_location() {
-            return pb_1.Message.getField(this, 1) != null;
-        }
-        static fromObject(data: {
-            location?: ReturnType<typeof Location.prototype.toObject>;
-        }): EditorStateRequest {
-            const message = new EditorStateRequest({});
-            if (data.location != null) {
-                message.location = Location.fromObject(data.location);
-            }
-            return message;
-        }
-        toObject() {
-            const data: {
-                location?: ReturnType<typeof Location.prototype.toObject>;
-            } = {};
-            if (this.location != null) {
-                data.location = this.location.toObject();
-            }
-            return data;
-        }
-        serialize(): Uint8Array;
-        serialize(w: pb_1.BinaryWriter): void;
-        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-            const writer = w || new pb_1.BinaryWriter();
-            if (this.has_location)
-                writer.writeMessage(1, this.location, () => this.location.serialize(writer));
-            if (!w)
-                return writer.getResultBuffer();
-        }
-        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): EditorStateRequest {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new EditorStateRequest();
-            while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
-                switch (reader.getFieldNumber()) {
-                    case 1:
-                        reader.readMessage(message.location, () => message.location = Location.deserialize(reader));
-                        break;
-                    default: reader.skipField();
-                }
-            }
-            return message;
-        }
-        serializeBinary(): Uint8Array {
-            return this.serialize();
-        }
-        static deserializeBinary(bytes: Uint8Array): EditorStateRequest {
-            return EditorStateRequest.deserialize(bytes);
-        }
-    }
-    export class IRange extends pb_1.Message {
-        #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            start_line_number?: number;
-            start_column?: number;
-            end_line_number?: number;
-            end_column?: number;
-        }) {
-            super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("start_line_number" in data && data.start_line_number != undefined) {
-                    this.start_line_number = data.start_line_number;
-                }
-                if ("start_column" in data && data.start_column != undefined) {
-                    this.start_column = data.start_column;
-                }
-                if ("end_line_number" in data && data.end_line_number != undefined) {
-                    this.end_line_number = data.end_line_number;
-                }
-                if ("end_column" in data && data.end_column != undefined) {
-                    this.end_column = data.end_column;
-                }
-            }
-        }
-        get start_line_number() {
-            return pb_1.Message.getFieldWithDefault(this, 1, 0) as number;
-        }
-        set start_line_number(value: number) {
-            pb_1.Message.setField(this, 1, value);
-        }
-        get start_column() {
-            return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
-        }
-        set start_column(value: number) {
-            pb_1.Message.setField(this, 2, value);
-        }
-        get end_line_number() {
-            return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
-        }
-        set end_line_number(value: number) {
-            pb_1.Message.setField(this, 3, value);
-        }
-        get end_column() {
-            return pb_1.Message.getFieldWithDefault(this, 4, 0) as number;
-        }
-        set end_column(value: number) {
-            pb_1.Message.setField(this, 4, value);
-        }
-        static fromObject(data: {
-            start_line_number?: number;
-            start_column?: number;
-            end_line_number?: number;
-            end_column?: number;
-        }): IRange {
-            const message = new IRange({});
-            if (data.start_line_number != null) {
-                message.start_line_number = data.start_line_number;
-            }
-            if (data.start_column != null) {
-                message.start_column = data.start_column;
-            }
-            if (data.end_line_number != null) {
-                message.end_line_number = data.end_line_number;
-            }
-            if (data.end_column != null) {
-                message.end_column = data.end_column;
-            }
-            return message;
-        }
-        toObject() {
-            const data: {
-                start_line_number?: number;
-                start_column?: number;
-                end_line_number?: number;
-                end_column?: number;
-            } = {};
-            if (this.start_line_number != null) {
-                data.start_line_number = this.start_line_number;
-            }
-            if (this.start_column != null) {
-                data.start_column = this.start_column;
-            }
-            if (this.end_line_number != null) {
-                data.end_line_number = this.end_line_number;
-            }
-            if (this.end_column != null) {
-                data.end_column = this.end_column;
-            }
-            return data;
-        }
-        serialize(): Uint8Array;
-        serialize(w: pb_1.BinaryWriter): void;
-        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-            const writer = w || new pb_1.BinaryWriter();
-            if (this.start_line_number != 0)
-                writer.writeInt64(1, this.start_line_number);
-            if (this.start_column != 0)
-                writer.writeInt64(2, this.start_column);
-            if (this.end_line_number != 0)
-                writer.writeInt64(3, this.end_line_number);
-            if (this.end_column != 0)
-                writer.writeInt64(4, this.end_column);
-            if (!w)
-                return writer.getResultBuffer();
-        }
-        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): IRange {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new IRange();
-            while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
-                switch (reader.getFieldNumber()) {
-                    case 1:
-                        message.start_line_number = reader.readInt64();
-                        break;
-                    case 2:
-                        message.start_column = reader.readInt64();
-                        break;
-                    case 3:
-                        message.end_line_number = reader.readInt64();
-                        break;
-                    case 4:
-                        message.end_column = reader.readInt64();
-                        break;
-                    default: reader.skipField();
-                }
-            }
-            return message;
-        }
-        serializeBinary(): Uint8Array {
-            return this.serialize();
-        }
-        static deserializeBinary(bytes: Uint8Array): IRange {
-            return IRange.deserialize(bytes);
-        }
-    }
-    export class ContentChangeRequest extends pb_1.Message {
-        #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            range?: IRange;
-            range_offset?: number;
-            range_length?: number;
-            text?: string;
-        }) {
-            super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("range" in data && data.range != undefined) {
-                    this.range = data.range;
-                }
-                if ("range_offset" in data && data.range_offset != undefined) {
-                    this.range_offset = data.range_offset;
-                }
-                if ("range_length" in data && data.range_length != undefined) {
-                    this.range_length = data.range_length;
-                }
-                if ("text" in data && data.text != undefined) {
-                    this.text = data.text;
-                }
-            }
-        }
-        get range() {
-            return pb_1.Message.getWrapperField(this, IRange, 1) as IRange;
-        }
-        set range(value: IRange) {
-            pb_1.Message.setWrapperField(this, 1, value);
-        }
-        get has_range() {
-            return pb_1.Message.getField(this, 1) != null;
-        }
-        get range_offset() {
-            return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
-        }
-        set range_offset(value: number) {
-            pb_1.Message.setField(this, 2, value);
-        }
-        get range_length() {
-            return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
-        }
-        set range_length(value: number) {
-            pb_1.Message.setField(this, 3, value);
-        }
-        get text() {
-            return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
-        }
-        set text(value: string) {
-            pb_1.Message.setField(this, 4, value);
-        }
-        static fromObject(data: {
-            range?: ReturnType<typeof IRange.prototype.toObject>;
-            range_offset?: number;
-            range_length?: number;
-            text?: string;
-        }): ContentChangeRequest {
-            const message = new ContentChangeRequest({});
-            if (data.range != null) {
-                message.range = IRange.fromObject(data.range);
-            }
-            if (data.range_offset != null) {
-                message.range_offset = data.range_offset;
-            }
-            if (data.range_length != null) {
-                message.range_length = data.range_length;
-            }
-            if (data.text != null) {
-                message.text = data.text;
-            }
-            return message;
-        }
-        toObject() {
-            const data: {
-                range?: ReturnType<typeof IRange.prototype.toObject>;
-                range_offset?: number;
-                range_length?: number;
-                text?: string;
-            } = {};
-            if (this.range != null) {
-                data.range = this.range.toObject();
-            }
-            if (this.range_offset != null) {
-                data.range_offset = this.range_offset;
-            }
-            if (this.range_length != null) {
-                data.range_length = this.range_length;
-            }
-            if (this.text != null) {
-                data.text = this.text;
-            }
-            return data;
-        }
-        serialize(): Uint8Array;
-        serialize(w: pb_1.BinaryWriter): void;
-        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-            const writer = w || new pb_1.BinaryWriter();
-            if (this.has_range)
-                writer.writeMessage(1, this.range, () => this.range.serialize(writer));
-            if (this.range_offset != 0)
-                writer.writeInt64(2, this.range_offset);
-            if (this.range_length != 0)
-                writer.writeInt64(3, this.range_length);
-            if (this.text.length)
-                writer.writeString(4, this.text);
-            if (!w)
-                return writer.getResultBuffer();
-        }
-        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ContentChangeRequest {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ContentChangeRequest();
-            while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
-                switch (reader.getFieldNumber()) {
-                    case 1:
-                        reader.readMessage(message.range, () => message.range = IRange.deserialize(reader));
-                        break;
-                    case 2:
-                        message.range_offset = reader.readInt64();
-                        break;
-                    case 3:
-                        message.range_length = reader.readInt64();
-                        break;
-                    case 4:
-                        message.text = reader.readString();
-                        break;
-                    default: reader.skipField();
-                }
-            }
-            return message;
-        }
-        serializeBinary(): Uint8Array {
-            return this.serialize();
-        }
-        static deserializeBinary(bytes: Uint8Array): ContentChangeRequest {
-            return ContentChangeRequest.deserialize(bytes);
-        }
-    }
-    export class EditorDiagnosticsRequest extends pb_1.Message {
-        #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            location?: Location;
-        }) {
-            super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("location" in data && data.location != undefined) {
-                    this.location = data.location;
-                }
-            }
-        }
-        get location() {
-            return pb_1.Message.getWrapperField(this, Location, 1) as Location;
-        }
-        set location(value: Location) {
-            pb_1.Message.setWrapperField(this, 1, value);
-        }
-        get has_location() {
-            return pb_1.Message.getField(this, 1) != null;
-        }
-        static fromObject(data: {
-            location?: ReturnType<typeof Location.prototype.toObject>;
-        }): EditorDiagnosticsRequest {
-            const message = new EditorDiagnosticsRequest({});
-            if (data.location != null) {
-                message.location = Location.fromObject(data.location);
-            }
-            return message;
-        }
-        toObject() {
-            const data: {
-                location?: ReturnType<typeof Location.prototype.toObject>;
-            } = {};
-            if (this.location != null) {
-                data.location = this.location.toObject();
-            }
-            return data;
-        }
-        serialize(): Uint8Array;
-        serialize(w: pb_1.BinaryWriter): void;
-        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-            const writer = w || new pb_1.BinaryWriter();
-            if (this.has_location)
-                writer.writeMessage(1, this.location, () => this.location.serialize(writer));
-            if (!w)
-                return writer.getResultBuffer();
-        }
-        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): EditorDiagnosticsRequest {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new EditorDiagnosticsRequest();
-            while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
-                switch (reader.getFieldNumber()) {
-                    case 1:
-                        reader.readMessage(message.location, () => message.location = Location.deserialize(reader));
-                        break;
-                    default: reader.skipField();
-                }
-            }
-            return message;
-        }
-        serializeBinary(): Uint8Array {
-            return this.serialize();
-        }
-        static deserializeBinary(bytes: Uint8Array): EditorDiagnosticsRequest {
-            return EditorDiagnosticsRequest.deserialize(bytes);
-        }
-    }
     export class RequestMessage extends pb_1.Message {
-        #one_of_decls: number[][] = [[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]];
+        #one_of_decls: number[][] = [[3, 4, 5, 6, 7, 8, 9, 10, 11, 12]];
         constructor(data?: any[] | ({
             type?: RequestType;
             command_id?: string;
@@ -1230,9 +818,6 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            editor_state_request?: never;
-            content_change_request?: never;
-            editor_diagnostics_request?: never;
             project_root_request?: never;
         } | {
             list_files_request?: never;
@@ -1244,9 +829,6 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            editor_state_request?: never;
-            content_change_request?: never;
-            editor_diagnostics_request?: never;
             project_root_request?: never;
         } | {
             list_files_request?: never;
@@ -1258,9 +840,6 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            editor_state_request?: never;
-            content_change_request?: never;
-            editor_diagnostics_request?: never;
             project_root_request?: never;
         } | {
             list_files_request?: never;
@@ -1272,9 +851,6 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            editor_state_request?: never;
-            content_change_request?: never;
-            editor_diagnostics_request?: never;
             project_root_request?: never;
         } | {
             list_files_request?: never;
@@ -1286,9 +862,6 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            editor_state_request?: never;
-            content_change_request?: never;
-            editor_diagnostics_request?: never;
             project_root_request?: never;
         } | {
             list_files_request?: never;
@@ -1300,9 +873,6 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            editor_state_request?: never;
-            content_change_request?: never;
-            editor_diagnostics_request?: never;
             project_root_request?: never;
         } | {
             list_files_request?: never;
@@ -1314,9 +884,6 @@ export namespace idepb {
             go_to_definition_request?: GoToDefinitionRequest;
             rename_request?: never;
             find_uses_request?: never;
-            editor_state_request?: never;
-            content_change_request?: never;
-            editor_diagnostics_request?: never;
             project_root_request?: never;
         } | {
             list_files_request?: never;
@@ -1328,9 +895,6 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: RenameRequest;
             find_uses_request?: never;
-            editor_state_request?: never;
-            content_change_request?: never;
-            editor_diagnostics_request?: never;
             project_root_request?: never;
         } | {
             list_files_request?: never;
@@ -1342,9 +906,6 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: FindUsesRequest;
-            editor_state_request?: never;
-            content_change_request?: never;
-            editor_diagnostics_request?: never;
             project_root_request?: never;
         } | {
             list_files_request?: never;
@@ -1356,51 +917,6 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            editor_state_request?: EditorStateRequest;
-            content_change_request?: never;
-            editor_diagnostics_request?: never;
-            project_root_request?: never;
-        } | {
-            list_files_request?: never;
-            get_files_request?: never;
-            open_files_request?: never;
-            find_string_request?: never;
-            select_range_request?: never;
-            describe_range_request?: never;
-            go_to_definition_request?: never;
-            rename_request?: never;
-            find_uses_request?: never;
-            editor_state_request?: never;
-            content_change_request?: ContentChangeRequest;
-            editor_diagnostics_request?: never;
-            project_root_request?: never;
-        } | {
-            list_files_request?: never;
-            get_files_request?: never;
-            open_files_request?: never;
-            find_string_request?: never;
-            select_range_request?: never;
-            describe_range_request?: never;
-            go_to_definition_request?: never;
-            rename_request?: never;
-            find_uses_request?: never;
-            editor_state_request?: never;
-            content_change_request?: never;
-            editor_diagnostics_request?: EditorDiagnosticsRequest;
-            project_root_request?: never;
-        } | {
-            list_files_request?: never;
-            get_files_request?: never;
-            open_files_request?: never;
-            find_string_request?: never;
-            select_range_request?: never;
-            describe_range_request?: never;
-            go_to_definition_request?: never;
-            rename_request?: never;
-            find_uses_request?: never;
-            editor_state_request?: never;
-            content_change_request?: never;
-            editor_diagnostics_request?: never;
             project_root_request?: EmptyRequest;
         })))) {
             super();
@@ -1438,15 +954,6 @@ export namespace idepb {
                 }
                 if ("find_uses_request" in data && data.find_uses_request != undefined) {
                     this.find_uses_request = data.find_uses_request;
-                }
-                if ("editor_state_request" in data && data.editor_state_request != undefined) {
-                    this.editor_state_request = data.editor_state_request;
-                }
-                if ("content_change_request" in data && data.content_change_request != undefined) {
-                    this.content_change_request = data.content_change_request;
-                }
-                if ("editor_diagnostics_request" in data && data.editor_diagnostics_request != undefined) {
-                    this.editor_diagnostics_request = data.editor_diagnostics_request;
                 }
                 if ("project_root_request" in data && data.project_root_request != undefined) {
                     this.project_root_request = data.project_root_request;
@@ -1546,45 +1053,18 @@ export namespace idepb {
         get has_find_uses_request() {
             return pb_1.Message.getField(this, 11) != null;
         }
-        get editor_state_request() {
-            return pb_1.Message.getWrapperField(this, EditorStateRequest, 12) as EditorStateRequest;
-        }
-        set editor_state_request(value: EditorStateRequest) {
-            pb_1.Message.setOneofWrapperField(this, 12, this.#one_of_decls[0], value);
-        }
-        get has_editor_state_request() {
-            return pb_1.Message.getField(this, 12) != null;
-        }
-        get content_change_request() {
-            return pb_1.Message.getWrapperField(this, ContentChangeRequest, 13) as ContentChangeRequest;
-        }
-        set content_change_request(value: ContentChangeRequest) {
-            pb_1.Message.setOneofWrapperField(this, 13, this.#one_of_decls[0], value);
-        }
-        get has_content_change_request() {
-            return pb_1.Message.getField(this, 13) != null;
-        }
-        get editor_diagnostics_request() {
-            return pb_1.Message.getWrapperField(this, EditorDiagnosticsRequest, 14) as EditorDiagnosticsRequest;
-        }
-        set editor_diagnostics_request(value: EditorDiagnosticsRequest) {
-            pb_1.Message.setOneofWrapperField(this, 14, this.#one_of_decls[0], value);
-        }
-        get has_editor_diagnostics_request() {
-            return pb_1.Message.getField(this, 14) != null;
-        }
         get project_root_request() {
-            return pb_1.Message.getWrapperField(this, EmptyRequest, 15) as EmptyRequest;
+            return pb_1.Message.getWrapperField(this, EmptyRequest, 12) as EmptyRequest;
         }
         set project_root_request(value: EmptyRequest) {
-            pb_1.Message.setOneofWrapperField(this, 15, this.#one_of_decls[0], value);
+            pb_1.Message.setOneofWrapperField(this, 12, this.#one_of_decls[0], value);
         }
         get has_project_root_request() {
-            return pb_1.Message.getField(this, 15) != null;
+            return pb_1.Message.getField(this, 12) != null;
         }
         get data() {
             const cases: {
-                [index: number]: "none" | "list_files_request" | "get_files_request" | "open_files_request" | "find_string_request" | "select_range_request" | "describe_range_request" | "go_to_definition_request" | "rename_request" | "find_uses_request" | "editor_state_request" | "content_change_request" | "editor_diagnostics_request" | "project_root_request";
+                [index: number]: "none" | "list_files_request" | "get_files_request" | "open_files_request" | "find_string_request" | "select_range_request" | "describe_range_request" | "go_to_definition_request" | "rename_request" | "find_uses_request" | "project_root_request";
             } = {
                 0: "none",
                 3: "list_files_request",
@@ -1596,12 +1076,9 @@ export namespace idepb {
                 9: "go_to_definition_request",
                 10: "rename_request",
                 11: "find_uses_request",
-                12: "editor_state_request",
-                13: "content_change_request",
-                14: "editor_diagnostics_request",
-                15: "project_root_request"
+                12: "project_root_request"
             };
-            return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])];
+            return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12])];
         }
         static fromObject(data: {
             type?: RequestType;
@@ -1615,9 +1092,6 @@ export namespace idepb {
             go_to_definition_request?: ReturnType<typeof GoToDefinitionRequest.prototype.toObject>;
             rename_request?: ReturnType<typeof RenameRequest.prototype.toObject>;
             find_uses_request?: ReturnType<typeof FindUsesRequest.prototype.toObject>;
-            editor_state_request?: ReturnType<typeof EditorStateRequest.prototype.toObject>;
-            content_change_request?: ReturnType<typeof ContentChangeRequest.prototype.toObject>;
-            editor_diagnostics_request?: ReturnType<typeof EditorDiagnosticsRequest.prototype.toObject>;
             project_root_request?: ReturnType<typeof EmptyRequest.prototype.toObject>;
         }): RequestMessage {
             const message = new RequestMessage({});
@@ -1654,15 +1128,6 @@ export namespace idepb {
             if (data.find_uses_request != null) {
                 message.find_uses_request = FindUsesRequest.fromObject(data.find_uses_request);
             }
-            if (data.editor_state_request != null) {
-                message.editor_state_request = EditorStateRequest.fromObject(data.editor_state_request);
-            }
-            if (data.content_change_request != null) {
-                message.content_change_request = ContentChangeRequest.fromObject(data.content_change_request);
-            }
-            if (data.editor_diagnostics_request != null) {
-                message.editor_diagnostics_request = EditorDiagnosticsRequest.fromObject(data.editor_diagnostics_request);
-            }
             if (data.project_root_request != null) {
                 message.project_root_request = EmptyRequest.fromObject(data.project_root_request);
             }
@@ -1681,9 +1146,6 @@ export namespace idepb {
                 go_to_definition_request?: ReturnType<typeof GoToDefinitionRequest.prototype.toObject>;
                 rename_request?: ReturnType<typeof RenameRequest.prototype.toObject>;
                 find_uses_request?: ReturnType<typeof FindUsesRequest.prototype.toObject>;
-                editor_state_request?: ReturnType<typeof EditorStateRequest.prototype.toObject>;
-                content_change_request?: ReturnType<typeof ContentChangeRequest.prototype.toObject>;
-                editor_diagnostics_request?: ReturnType<typeof EditorDiagnosticsRequest.prototype.toObject>;
                 project_root_request?: ReturnType<typeof EmptyRequest.prototype.toObject>;
             } = {};
             if (this.type != null) {
@@ -1719,15 +1181,6 @@ export namespace idepb {
             if (this.find_uses_request != null) {
                 data.find_uses_request = this.find_uses_request.toObject();
             }
-            if (this.editor_state_request != null) {
-                data.editor_state_request = this.editor_state_request.toObject();
-            }
-            if (this.content_change_request != null) {
-                data.content_change_request = this.content_change_request.toObject();
-            }
-            if (this.editor_diagnostics_request != null) {
-                data.editor_diagnostics_request = this.editor_diagnostics_request.toObject();
-            }
             if (this.project_root_request != null) {
                 data.project_root_request = this.project_root_request.toObject();
             }
@@ -1759,14 +1212,8 @@ export namespace idepb {
                 writer.writeMessage(10, this.rename_request, () => this.rename_request.serialize(writer));
             if (this.has_find_uses_request)
                 writer.writeMessage(11, this.find_uses_request, () => this.find_uses_request.serialize(writer));
-            if (this.has_editor_state_request)
-                writer.writeMessage(12, this.editor_state_request, () => this.editor_state_request.serialize(writer));
-            if (this.has_content_change_request)
-                writer.writeMessage(13, this.content_change_request, () => this.content_change_request.serialize(writer));
-            if (this.has_editor_diagnostics_request)
-                writer.writeMessage(14, this.editor_diagnostics_request, () => this.editor_diagnostics_request.serialize(writer));
             if (this.has_project_root_request)
-                writer.writeMessage(15, this.project_root_request, () => this.project_root_request.serialize(writer));
+                writer.writeMessage(12, this.project_root_request, () => this.project_root_request.serialize(writer));
             if (!w)
                 return writer.getResultBuffer();
         }
@@ -1810,15 +1257,6 @@ export namespace idepb {
                         reader.readMessage(message.find_uses_request, () => message.find_uses_request = FindUsesRequest.deserialize(reader));
                         break;
                     case 12:
-                        reader.readMessage(message.editor_state_request, () => message.editor_state_request = EditorStateRequest.deserialize(reader));
-                        break;
-                    case 13:
-                        reader.readMessage(message.content_change_request, () => message.content_change_request = ContentChangeRequest.deserialize(reader));
-                        break;
-                    case 14:
-                        reader.readMessage(message.editor_diagnostics_request, () => message.editor_diagnostics_request = EditorDiagnosticsRequest.deserialize(reader));
-                        break;
-                    case 15:
                         reader.readMessage(message.project_root_request, () => message.project_root_request = EmptyRequest.deserialize(reader));
                         break;
                     default: reader.skipField();
@@ -2220,8 +1658,7 @@ export namespace idepb {
         #one_of_decls: number[][] = [];
         constructor(data?: any[] | {
             path?: string;
-            start?: Position;
-            end?: Position;
+            range?: Range;
         }) {
             super();
             pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -2229,11 +1666,8 @@ export namespace idepb {
                 if ("path" in data && data.path != undefined) {
                     this.path = data.path;
                 }
-                if ("start" in data && data.start != undefined) {
-                    this.start = data.start;
-                }
-                if ("end" in data && data.end != undefined) {
-                    this.end = data.end;
+                if ("range" in data && data.range != undefined) {
+                    this.range = data.range;
                 }
             }
         }
@@ -2243,55 +1677,38 @@ export namespace idepb {
         set path(value: string) {
             pb_1.Message.setField(this, 1, value);
         }
-        get start() {
-            return pb_1.Message.getWrapperField(this, Position, 2) as Position;
+        get range() {
+            return pb_1.Message.getWrapperField(this, Range, 2) as Range;
         }
-        set start(value: Position) {
+        set range(value: Range) {
             pb_1.Message.setWrapperField(this, 2, value);
         }
-        get has_start() {
+        get has_range() {
             return pb_1.Message.getField(this, 2) != null;
-        }
-        get end() {
-            return pb_1.Message.getWrapperField(this, Position, 3) as Position;
-        }
-        set end(value: Position) {
-            pb_1.Message.setWrapperField(this, 3, value);
-        }
-        get has_end() {
-            return pb_1.Message.getField(this, 3) != null;
         }
         static fromObject(data: {
             path?: string;
-            start?: ReturnType<typeof Position.prototype.toObject>;
-            end?: ReturnType<typeof Position.prototype.toObject>;
+            range?: ReturnType<typeof Range.prototype.toObject>;
         }): Location {
             const message = new Location({});
             if (data.path != null) {
                 message.path = data.path;
             }
-            if (data.start != null) {
-                message.start = Position.fromObject(data.start);
-            }
-            if (data.end != null) {
-                message.end = Position.fromObject(data.end);
+            if (data.range != null) {
+                message.range = Range.fromObject(data.range);
             }
             return message;
         }
         toObject() {
             const data: {
                 path?: string;
-                start?: ReturnType<typeof Position.prototype.toObject>;
-                end?: ReturnType<typeof Position.prototype.toObject>;
+                range?: ReturnType<typeof Range.prototype.toObject>;
             } = {};
             if (this.path != null) {
                 data.path = this.path;
             }
-            if (this.start != null) {
-                data.start = this.start.toObject();
-            }
-            if (this.end != null) {
-                data.end = this.end.toObject();
+            if (this.range != null) {
+                data.range = this.range.toObject();
             }
             return data;
         }
@@ -2301,10 +1718,8 @@ export namespace idepb {
             const writer = w || new pb_1.BinaryWriter();
             if (this.path.length)
                 writer.writeString(1, this.path);
-            if (this.has_start)
-                writer.writeMessage(2, this.start, () => this.start.serialize(writer));
-            if (this.has_end)
-                writer.writeMessage(3, this.end, () => this.end.serialize(writer));
+            if (this.has_range)
+                writer.writeMessage(2, this.range, () => this.range.serialize(writer));
             if (!w)
                 return writer.getResultBuffer();
         }
@@ -2318,10 +1733,7 @@ export namespace idepb {
                         message.path = reader.readString();
                         break;
                     case 2:
-                        reader.readMessage(message.start, () => message.start = Position.deserialize(reader));
-                        break;
-                    case 3:
-                        reader.readMessage(message.end, () => message.end = Position.deserialize(reader));
+                        reader.readMessage(message.range, () => message.range = Range.deserialize(reader));
                         break;
                     default: reader.skipField();
                 }
@@ -3099,7 +2511,7 @@ export namespace idepb {
         }
     }
     export class ResponseMessage extends pb_1.Message {
-        #one_of_decls: number[][] = [[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 999]];
+        #one_of_decls: number[][] = [[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 999]];
         constructor(data?: any[] | ({
             type?: ResponseType;
             command_id?: string;
@@ -3113,9 +2525,6 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
             project_root_response?: never;
             error_response?: never;
         } | {
@@ -3128,9 +2537,6 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
             project_root_response?: never;
             error_response?: never;
         } | {
@@ -3143,9 +2549,6 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
             project_root_response?: never;
             error_response?: never;
         } | {
@@ -3158,9 +2561,6 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
             project_root_response?: never;
             error_response?: never;
         } | {
@@ -3173,9 +2573,6 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
             project_root_response?: never;
             error_response?: never;
         } | {
@@ -3188,9 +2585,6 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
             project_root_response?: never;
             error_response?: never;
         } | {
@@ -3203,9 +2597,6 @@ export namespace idepb {
             go_to_definition_response?: GoToDefinitionResponse;
             rename_response?: never;
             find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
             project_root_response?: never;
             error_response?: never;
         } | {
@@ -3218,9 +2609,6 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: RenameResponse;
             find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
             project_root_response?: never;
             error_response?: never;
         } | {
@@ -3233,9 +2621,6 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: FindUsesResponse;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
             project_root_response?: never;
             error_response?: never;
         } | {
@@ -3248,54 +2633,6 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            editor_state_response?: EditorStateResponse;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
-            project_root_response?: never;
-            error_response?: never;
-        } | {
-            list_files_response?: never;
-            get_files_response?: never;
-            open_files_response?: never;
-            find_string_response?: never;
-            select_range_response?: never;
-            describe_range_response?: never;
-            go_to_definition_response?: never;
-            rename_response?: never;
-            find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: ContentChangeResponse;
-            editor_diagnostics_response?: never;
-            project_root_response?: never;
-            error_response?: never;
-        } | {
-            list_files_response?: never;
-            get_files_response?: never;
-            open_files_response?: never;
-            find_string_response?: never;
-            select_range_response?: never;
-            describe_range_response?: never;
-            go_to_definition_response?: never;
-            rename_response?: never;
-            find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: EditorDiagnosticsResponse;
-            project_root_response?: never;
-            error_response?: never;
-        } | {
-            list_files_response?: never;
-            get_files_response?: never;
-            open_files_response?: never;
-            find_string_response?: never;
-            select_range_response?: never;
-            describe_range_response?: never;
-            go_to_definition_response?: never;
-            rename_response?: never;
-            find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
             project_root_response?: ProjectRootResponse;
             error_response?: never;
         } | {
@@ -3308,9 +2645,6 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            editor_state_response?: never;
-            content_change_response?: never;
-            editor_diagnostics_response?: never;
             project_root_response?: never;
             error_response?: ErrorResponse;
         })))) {
@@ -3349,15 +2683,6 @@ export namespace idepb {
                 }
                 if ("find_uses_response" in data && data.find_uses_response != undefined) {
                     this.find_uses_response = data.find_uses_response;
-                }
-                if ("editor_state_response" in data && data.editor_state_response != undefined) {
-                    this.editor_state_response = data.editor_state_response;
-                }
-                if ("content_change_response" in data && data.content_change_response != undefined) {
-                    this.content_change_response = data.content_change_response;
-                }
-                if ("editor_diagnostics_response" in data && data.editor_diagnostics_response != undefined) {
-                    this.editor_diagnostics_response = data.editor_diagnostics_response;
                 }
                 if ("project_root_response" in data && data.project_root_response != undefined) {
                     this.project_root_response = data.project_root_response;
@@ -3460,41 +2785,14 @@ export namespace idepb {
         get has_find_uses_response() {
             return pb_1.Message.getField(this, 11) != null;
         }
-        get editor_state_response() {
-            return pb_1.Message.getWrapperField(this, EditorStateResponse, 12) as EditorStateResponse;
-        }
-        set editor_state_response(value: EditorStateResponse) {
-            pb_1.Message.setOneofWrapperField(this, 12, this.#one_of_decls[0], value);
-        }
-        get has_editor_state_response() {
-            return pb_1.Message.getField(this, 12) != null;
-        }
-        get content_change_response() {
-            return pb_1.Message.getWrapperField(this, ContentChangeResponse, 13) as ContentChangeResponse;
-        }
-        set content_change_response(value: ContentChangeResponse) {
-            pb_1.Message.setOneofWrapperField(this, 13, this.#one_of_decls[0], value);
-        }
-        get has_content_change_response() {
-            return pb_1.Message.getField(this, 13) != null;
-        }
-        get editor_diagnostics_response() {
-            return pb_1.Message.getWrapperField(this, EditorDiagnosticsResponse, 14) as EditorDiagnosticsResponse;
-        }
-        set editor_diagnostics_response(value: EditorDiagnosticsResponse) {
-            pb_1.Message.setOneofWrapperField(this, 14, this.#one_of_decls[0], value);
-        }
-        get has_editor_diagnostics_response() {
-            return pb_1.Message.getField(this, 14) != null;
-        }
         get project_root_response() {
-            return pb_1.Message.getWrapperField(this, ProjectRootResponse, 15) as ProjectRootResponse;
+            return pb_1.Message.getWrapperField(this, ProjectRootResponse, 12) as ProjectRootResponse;
         }
         set project_root_response(value: ProjectRootResponse) {
-            pb_1.Message.setOneofWrapperField(this, 15, this.#one_of_decls[0], value);
+            pb_1.Message.setOneofWrapperField(this, 12, this.#one_of_decls[0], value);
         }
         get has_project_root_response() {
-            return pb_1.Message.getField(this, 15) != null;
+            return pb_1.Message.getField(this, 12) != null;
         }
         get error_response() {
             return pb_1.Message.getWrapperField(this, ErrorResponse, 999) as ErrorResponse;
@@ -3507,7 +2805,7 @@ export namespace idepb {
         }
         get data() {
             const cases: {
-                [index: number]: "none" | "list_files_response" | "get_files_response" | "open_files_response" | "find_string_response" | "select_range_response" | "describe_range_response" | "go_to_definition_response" | "rename_response" | "find_uses_response" | "editor_state_response" | "content_change_response" | "editor_diagnostics_response" | "project_root_response" | "error_response";
+                [index: number]: "none" | "list_files_response" | "get_files_response" | "open_files_response" | "find_string_response" | "select_range_response" | "describe_range_response" | "go_to_definition_response" | "rename_response" | "find_uses_response" | "project_root_response" | "error_response";
             } = {
                 0: "none",
                 3: "list_files_response",
@@ -3519,13 +2817,10 @@ export namespace idepb {
                 9: "go_to_definition_response",
                 10: "rename_response",
                 11: "find_uses_response",
-                12: "editor_state_response",
-                13: "content_change_response",
-                14: "editor_diagnostics_response",
-                15: "project_root_response",
+                12: "project_root_response",
                 999: "error_response"
             };
-            return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 999])];
+            return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 999])];
         }
         static fromObject(data: {
             type?: ResponseType;
@@ -3539,9 +2834,6 @@ export namespace idepb {
             go_to_definition_response?: ReturnType<typeof GoToDefinitionResponse.prototype.toObject>;
             rename_response?: ReturnType<typeof RenameResponse.prototype.toObject>;
             find_uses_response?: ReturnType<typeof FindUsesResponse.prototype.toObject>;
-            editor_state_response?: ReturnType<typeof EditorStateResponse.prototype.toObject>;
-            content_change_response?: ReturnType<typeof ContentChangeResponse.prototype.toObject>;
-            editor_diagnostics_response?: ReturnType<typeof EditorDiagnosticsResponse.prototype.toObject>;
             project_root_response?: ReturnType<typeof ProjectRootResponse.prototype.toObject>;
             error_response?: ReturnType<typeof ErrorResponse.prototype.toObject>;
         }): ResponseMessage {
@@ -3579,15 +2871,6 @@ export namespace idepb {
             if (data.find_uses_response != null) {
                 message.find_uses_response = FindUsesResponse.fromObject(data.find_uses_response);
             }
-            if (data.editor_state_response != null) {
-                message.editor_state_response = EditorStateResponse.fromObject(data.editor_state_response);
-            }
-            if (data.content_change_response != null) {
-                message.content_change_response = ContentChangeResponse.fromObject(data.content_change_response);
-            }
-            if (data.editor_diagnostics_response != null) {
-                message.editor_diagnostics_response = EditorDiagnosticsResponse.fromObject(data.editor_diagnostics_response);
-            }
             if (data.project_root_response != null) {
                 message.project_root_response = ProjectRootResponse.fromObject(data.project_root_response);
             }
@@ -3609,9 +2892,6 @@ export namespace idepb {
                 go_to_definition_response?: ReturnType<typeof GoToDefinitionResponse.prototype.toObject>;
                 rename_response?: ReturnType<typeof RenameResponse.prototype.toObject>;
                 find_uses_response?: ReturnType<typeof FindUsesResponse.prototype.toObject>;
-                editor_state_response?: ReturnType<typeof EditorStateResponse.prototype.toObject>;
-                content_change_response?: ReturnType<typeof ContentChangeResponse.prototype.toObject>;
-                editor_diagnostics_response?: ReturnType<typeof EditorDiagnosticsResponse.prototype.toObject>;
                 project_root_response?: ReturnType<typeof ProjectRootResponse.prototype.toObject>;
                 error_response?: ReturnType<typeof ErrorResponse.prototype.toObject>;
             } = {};
@@ -3648,15 +2928,6 @@ export namespace idepb {
             if (this.find_uses_response != null) {
                 data.find_uses_response = this.find_uses_response.toObject();
             }
-            if (this.editor_state_response != null) {
-                data.editor_state_response = this.editor_state_response.toObject();
-            }
-            if (this.content_change_response != null) {
-                data.content_change_response = this.content_change_response.toObject();
-            }
-            if (this.editor_diagnostics_response != null) {
-                data.editor_diagnostics_response = this.editor_diagnostics_response.toObject();
-            }
             if (this.project_root_response != null) {
                 data.project_root_response = this.project_root_response.toObject();
             }
@@ -3691,14 +2962,8 @@ export namespace idepb {
                 writer.writeMessage(10, this.rename_response, () => this.rename_response.serialize(writer));
             if (this.has_find_uses_response)
                 writer.writeMessage(11, this.find_uses_response, () => this.find_uses_response.serialize(writer));
-            if (this.has_editor_state_response)
-                writer.writeMessage(12, this.editor_state_response, () => this.editor_state_response.serialize(writer));
-            if (this.has_content_change_response)
-                writer.writeMessage(13, this.content_change_response, () => this.content_change_response.serialize(writer));
-            if (this.has_editor_diagnostics_response)
-                writer.writeMessage(14, this.editor_diagnostics_response, () => this.editor_diagnostics_response.serialize(writer));
             if (this.has_project_root_response)
-                writer.writeMessage(15, this.project_root_response, () => this.project_root_response.serialize(writer));
+                writer.writeMessage(12, this.project_root_response, () => this.project_root_response.serialize(writer));
             if (this.has_error_response)
                 writer.writeMessage(999, this.error_response, () => this.error_response.serialize(writer));
             if (!w)
@@ -3744,15 +3009,6 @@ export namespace idepb {
                         reader.readMessage(message.find_uses_response, () => message.find_uses_response = FindUsesResponse.deserialize(reader));
                         break;
                     case 12:
-                        reader.readMessage(message.editor_state_response, () => message.editor_state_response = EditorStateResponse.deserialize(reader));
-                        break;
-                    case 13:
-                        reader.readMessage(message.content_change_response, () => message.content_change_response = ContentChangeResponse.deserialize(reader));
-                        break;
-                    case 14:
-                        reader.readMessage(message.editor_diagnostics_response, () => message.editor_diagnostics_response = EditorDiagnosticsResponse.deserialize(reader));
-                        break;
-                    case 15:
                         reader.readMessage(message.project_root_response, () => message.project_root_response = ProjectRootResponse.deserialize(reader));
                         break;
                     case 999:
@@ -3886,97 +3142,114 @@ export namespace idepb {
             return OpenFilePush.deserialize(bytes);
         }
     }
-    export class CreateSnippetPush extends pb_1.Message {
-        #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            path?: string;
-            range?: Range;
+    export class SnippetContext extends pb_1.Message {
+        #one_of_decls: number[][] = [[1], [2], [3]];
+        constructor(data?: any[] | ({} & (({
             before?: number;
+        }) | ({
             after?: number;
-        }) {
+        }) | ({
+            full_range?: Range;
+        })))) {
             super();
             pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
             if (!Array.isArray(data) && typeof data == "object") {
-                if ("path" in data && data.path != undefined) {
-                    this.path = data.path;
-                }
-                if ("range" in data && data.range != undefined) {
-                    this.range = data.range;
-                }
                 if ("before" in data && data.before != undefined) {
                     this.before = data.before;
                 }
                 if ("after" in data && data.after != undefined) {
                     this.after = data.after;
                 }
+                if ("full_range" in data && data.full_range != undefined) {
+                    this.full_range = data.full_range;
+                }
             }
-        }
-        get path() {
-            return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-        }
-        set path(value: string) {
-            pb_1.Message.setField(this, 1, value);
-        }
-        get range() {
-            return pb_1.Message.getWrapperField(this, Range, 2) as Range;
-        }
-        set range(value: Range) {
-            pb_1.Message.setWrapperField(this, 2, value);
-        }
-        get has_range() {
-            return pb_1.Message.getField(this, 2) != null;
         }
         get before() {
-            return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
+            return pb_1.Message.getFieldWithDefault(this, 1, 0) as number;
         }
         set before(value: number) {
-            pb_1.Message.setField(this, 3, value);
+            pb_1.Message.setOneofField(this, 1, this.#one_of_decls[0], value);
+        }
+        get has_before() {
+            return pb_1.Message.getField(this, 1) != null;
         }
         get after() {
-            return pb_1.Message.getFieldWithDefault(this, 4, 0) as number;
+            return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
         }
         set after(value: number) {
-            pb_1.Message.setField(this, 4, value);
+            pb_1.Message.setOneofField(this, 2, this.#one_of_decls[1], value);
+        }
+        get has_after() {
+            return pb_1.Message.getField(this, 2) != null;
+        }
+        get full_range() {
+            return pb_1.Message.getWrapperField(this, Range, 3) as Range;
+        }
+        set full_range(value: Range) {
+            pb_1.Message.setOneofWrapperField(this, 3, this.#one_of_decls[2], value);
+        }
+        get has_full_range() {
+            return pb_1.Message.getField(this, 3) != null;
+        }
+        get _before() {
+            const cases: {
+                [index: number]: "none" | "before";
+            } = {
+                0: "none",
+                1: "before"
+            };
+            return cases[pb_1.Message.computeOneofCase(this, [1])];
+        }
+        get _after() {
+            const cases: {
+                [index: number]: "none" | "after";
+            } = {
+                0: "none",
+                2: "after"
+            };
+            return cases[pb_1.Message.computeOneofCase(this, [2])];
+        }
+        get _full_range() {
+            const cases: {
+                [index: number]: "none" | "full_range";
+            } = {
+                0: "none",
+                3: "full_range"
+            };
+            return cases[pb_1.Message.computeOneofCase(this, [3])];
         }
         static fromObject(data: {
-            path?: string;
-            range?: ReturnType<typeof Range.prototype.toObject>;
             before?: number;
             after?: number;
-        }): CreateSnippetPush {
-            const message = new CreateSnippetPush({});
-            if (data.path != null) {
-                message.path = data.path;
-            }
-            if (data.range != null) {
-                message.range = Range.fromObject(data.range);
-            }
+            full_range?: ReturnType<typeof Range.prototype.toObject>;
+        }): SnippetContext {
+            const message = new SnippetContext({});
             if (data.before != null) {
                 message.before = data.before;
             }
             if (data.after != null) {
                 message.after = data.after;
             }
+            if (data.full_range != null) {
+                message.full_range = Range.fromObject(data.full_range);
+            }
             return message;
         }
         toObject() {
             const data: {
-                path?: string;
-                range?: ReturnType<typeof Range.prototype.toObject>;
                 before?: number;
                 after?: number;
+                full_range?: ReturnType<typeof Range.prototype.toObject>;
             } = {};
-            if (this.path != null) {
-                data.path = this.path;
-            }
-            if (this.range != null) {
-                data.range = this.range.toObject();
-            }
             if (this.before != null) {
                 data.before = this.before;
             }
             if (this.after != null) {
                 data.after = this.after;
+            }
+            if (this.full_range != null) {
+                data.full_range = this.full_range.toObject();
             }
             return data;
         }
@@ -3984,14 +3257,111 @@ export namespace idepb {
         serialize(w: pb_1.BinaryWriter): void;
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
-            if (this.path.length)
-                writer.writeString(1, this.path);
-            if (this.has_range)
-                writer.writeMessage(2, this.range, () => this.range.serialize(writer));
-            if (this.before != 0)
-                writer.writeInt32(3, this.before);
-            if (this.after != 0)
-                writer.writeInt32(4, this.after);
+            if (this.has_before)
+                writer.writeInt32(1, this.before);
+            if (this.has_after)
+                writer.writeInt32(2, this.after);
+            if (this.has_full_range)
+                writer.writeMessage(3, this.full_range, () => this.full_range.serialize(writer));
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): SnippetContext {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new SnippetContext();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        message.before = reader.readInt32();
+                        break;
+                    case 2:
+                        message.after = reader.readInt32();
+                        break;
+                    case 3:
+                        reader.readMessage(message.full_range, () => message.full_range = Range.deserialize(reader));
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): SnippetContext {
+            return SnippetContext.deserialize(bytes);
+        }
+    }
+    export class CreateSnippetPush extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {
+            location?: Location;
+            context?: SnippetContext;
+        }) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("location" in data && data.location != undefined) {
+                    this.location = data.location;
+                }
+                if ("context" in data && data.context != undefined) {
+                    this.context = data.context;
+                }
+            }
+        }
+        get location() {
+            return pb_1.Message.getWrapperField(this, Location, 1) as Location;
+        }
+        set location(value: Location) {
+            pb_1.Message.setWrapperField(this, 1, value);
+        }
+        get has_location() {
+            return pb_1.Message.getField(this, 1) != null;
+        }
+        get context() {
+            return pb_1.Message.getWrapperField(this, SnippetContext, 2) as SnippetContext;
+        }
+        set context(value: SnippetContext) {
+            pb_1.Message.setWrapperField(this, 2, value);
+        }
+        get has_context() {
+            return pb_1.Message.getField(this, 2) != null;
+        }
+        static fromObject(data: {
+            location?: ReturnType<typeof Location.prototype.toObject>;
+            context?: ReturnType<typeof SnippetContext.prototype.toObject>;
+        }): CreateSnippetPush {
+            const message = new CreateSnippetPush({});
+            if (data.location != null) {
+                message.location = Location.fromObject(data.location);
+            }
+            if (data.context != null) {
+                message.context = SnippetContext.fromObject(data.context);
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                location?: ReturnType<typeof Location.prototype.toObject>;
+                context?: ReturnType<typeof SnippetContext.prototype.toObject>;
+            } = {};
+            if (this.location != null) {
+                data.location = this.location.toObject();
+            }
+            if (this.context != null) {
+                data.context = this.context.toObject();
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.has_location)
+                writer.writeMessage(1, this.location, () => this.location.serialize(writer));
+            if (this.has_context)
+                writer.writeMessage(2, this.context, () => this.context.serialize(writer));
             if (!w)
                 return writer.getResultBuffer();
         }
@@ -4002,16 +3372,10 @@ export namespace idepb {
                     break;
                 switch (reader.getFieldNumber()) {
                     case 1:
-                        message.path = reader.readString();
+                        reader.readMessage(message.location, () => message.location = Location.deserialize(reader));
                         break;
                     case 2:
-                        reader.readMessage(message.range, () => message.range = Range.deserialize(reader));
-                        break;
-                    case 3:
-                        message.before = reader.readInt32();
-                        break;
-                    case 4:
-                        message.after = reader.readInt32();
+                        reader.readMessage(message.context, () => message.context = SnippetContext.deserialize(reader));
                         break;
                     default: reader.skipField();
                 }
@@ -4208,8 +3572,426 @@ export namespace idepb {
             return HighlightPush.deserialize(bytes);
         }
     }
+    export class LocationWithContext extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {
+            location?: Location;
+            context?: SnippetContext;
+        }) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("location" in data && data.location != undefined) {
+                    this.location = data.location;
+                }
+                if ("context" in data && data.context != undefined) {
+                    this.context = data.context;
+                }
+            }
+        }
+        get location() {
+            return pb_1.Message.getWrapperField(this, Location, 1) as Location;
+        }
+        set location(value: Location) {
+            pb_1.Message.setWrapperField(this, 1, value);
+        }
+        get has_location() {
+            return pb_1.Message.getField(this, 1) != null;
+        }
+        get context() {
+            return pb_1.Message.getWrapperField(this, SnippetContext, 2) as SnippetContext;
+        }
+        set context(value: SnippetContext) {
+            pb_1.Message.setWrapperField(this, 2, value);
+        }
+        get has_context() {
+            return pb_1.Message.getField(this, 2) != null;
+        }
+        static fromObject(data: {
+            location?: ReturnType<typeof Location.prototype.toObject>;
+            context?: ReturnType<typeof SnippetContext.prototype.toObject>;
+        }): LocationWithContext {
+            const message = new LocationWithContext({});
+            if (data.location != null) {
+                message.location = Location.fromObject(data.location);
+            }
+            if (data.context != null) {
+                message.context = SnippetContext.fromObject(data.context);
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                location?: ReturnType<typeof Location.prototype.toObject>;
+                context?: ReturnType<typeof SnippetContext.prototype.toObject>;
+            } = {};
+            if (this.location != null) {
+                data.location = this.location.toObject();
+            }
+            if (this.context != null) {
+                data.context = this.context.toObject();
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.has_location)
+                writer.writeMessage(1, this.location, () => this.location.serialize(writer));
+            if (this.has_context)
+                writer.writeMessage(2, this.context, () => this.context.serialize(writer));
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): LocationWithContext {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new LocationWithContext();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        reader.readMessage(message.location, () => message.location = Location.deserialize(reader));
+                        break;
+                    case 2:
+                        reader.readMessage(message.context, () => message.context = SnippetContext.deserialize(reader));
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): LocationWithContext {
+            return LocationWithContext.deserialize(bytes);
+        }
+    }
+    export class DefinitionFollow extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {
+            from?: LocationWithContext;
+            to?: LocationWithContext;
+        }) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("from" in data && data.from != undefined) {
+                    this.from = data.from;
+                }
+                if ("to" in data && data.to != undefined) {
+                    this.to = data.to;
+                }
+            }
+        }
+        get from() {
+            return pb_1.Message.getWrapperField(this, LocationWithContext, 1) as LocationWithContext;
+        }
+        set from(value: LocationWithContext) {
+            pb_1.Message.setWrapperField(this, 1, value);
+        }
+        get has_from() {
+            return pb_1.Message.getField(this, 1) != null;
+        }
+        get to() {
+            return pb_1.Message.getWrapperField(this, LocationWithContext, 2) as LocationWithContext;
+        }
+        set to(value: LocationWithContext) {
+            pb_1.Message.setWrapperField(this, 2, value);
+        }
+        get has_to() {
+            return pb_1.Message.getField(this, 2) != null;
+        }
+        static fromObject(data: {
+            from?: ReturnType<typeof LocationWithContext.prototype.toObject>;
+            to?: ReturnType<typeof LocationWithContext.prototype.toObject>;
+        }): DefinitionFollow {
+            const message = new DefinitionFollow({});
+            if (data.from != null) {
+                message.from = LocationWithContext.fromObject(data.from);
+            }
+            if (data.to != null) {
+                message.to = LocationWithContext.fromObject(data.to);
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                from?: ReturnType<typeof LocationWithContext.prototype.toObject>;
+                to?: ReturnType<typeof LocationWithContext.prototype.toObject>;
+            } = {};
+            if (this.from != null) {
+                data.from = this.from.toObject();
+            }
+            if (this.to != null) {
+                data.to = this.to.toObject();
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.has_from)
+                writer.writeMessage(1, this.from, () => this.from.serialize(writer));
+            if (this.has_to)
+                writer.writeMessage(2, this.to, () => this.to.serialize(writer));
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): DefinitionFollow {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new DefinitionFollow();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        reader.readMessage(message.from, () => message.from = LocationWithContext.deserialize(reader));
+                        break;
+                    case 2:
+                        reader.readMessage(message.to, () => message.to = LocationWithContext.deserialize(reader));
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): DefinitionFollow {
+            return DefinitionFollow.deserialize(bytes);
+        }
+    }
+    export class ReferenceFollow extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {
+            from?: LocationWithContext;
+            to?: LocationWithContext[];
+        }) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [2], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("from" in data && data.from != undefined) {
+                    this.from = data.from;
+                }
+                if ("to" in data && data.to != undefined) {
+                    this.to = data.to;
+                }
+            }
+        }
+        get from() {
+            return pb_1.Message.getWrapperField(this, LocationWithContext, 1) as LocationWithContext;
+        }
+        set from(value: LocationWithContext) {
+            pb_1.Message.setWrapperField(this, 1, value);
+        }
+        get has_from() {
+            return pb_1.Message.getField(this, 1) != null;
+        }
+        get to() {
+            return pb_1.Message.getRepeatedWrapperField(this, LocationWithContext, 2) as LocationWithContext[];
+        }
+        set to(value: LocationWithContext[]) {
+            pb_1.Message.setRepeatedWrapperField(this, 2, value);
+        }
+        static fromObject(data: {
+            from?: ReturnType<typeof LocationWithContext.prototype.toObject>;
+            to?: ReturnType<typeof LocationWithContext.prototype.toObject>[];
+        }): ReferenceFollow {
+            const message = new ReferenceFollow({});
+            if (data.from != null) {
+                message.from = LocationWithContext.fromObject(data.from);
+            }
+            if (data.to != null) {
+                message.to = data.to.map(item => LocationWithContext.fromObject(item));
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                from?: ReturnType<typeof LocationWithContext.prototype.toObject>;
+                to?: ReturnType<typeof LocationWithContext.prototype.toObject>[];
+            } = {};
+            if (this.from != null) {
+                data.from = this.from.toObject();
+            }
+            if (this.to != null) {
+                data.to = this.to.map((item: LocationWithContext) => item.toObject());
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.has_from)
+                writer.writeMessage(1, this.from, () => this.from.serialize(writer));
+            if (this.to.length)
+                writer.writeRepeatedMessage(2, this.to, (item: LocationWithContext) => item.serialize(writer));
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ReferenceFollow {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ReferenceFollow();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        reader.readMessage(message.from, () => message.from = LocationWithContext.deserialize(reader));
+                        break;
+                    case 2:
+                        reader.readMessage(message.to, () => pb_1.Message.addToRepeatedWrapperField(message, 2, LocationWithContext.deserialize(reader), LocationWithContext));
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): ReferenceFollow {
+            return ReferenceFollow.deserialize(bytes);
+        }
+    }
+    export class FollowPush extends pb_1.Message {
+        #one_of_decls: number[][] = [[2, 3]];
+        constructor(data?: any[] | ({
+            type?: FollowType;
+        } & (({
+            definition?: DefinitionFollow;
+            reference?: never;
+        } | {
+            definition?: never;
+            reference?: ReferenceFollow;
+        })))) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("type" in data && data.type != undefined) {
+                    this.type = data.type;
+                }
+                if ("definition" in data && data.definition != undefined) {
+                    this.definition = data.definition;
+                }
+                if ("reference" in data && data.reference != undefined) {
+                    this.reference = data.reference;
+                }
+            }
+        }
+        get type() {
+            return pb_1.Message.getFieldWithDefault(this, 1, FollowType.FOLLOW_INVALID) as FollowType;
+        }
+        set type(value: FollowType) {
+            pb_1.Message.setField(this, 1, value);
+        }
+        get definition() {
+            return pb_1.Message.getWrapperField(this, DefinitionFollow, 2) as DefinitionFollow;
+        }
+        set definition(value: DefinitionFollow) {
+            pb_1.Message.setOneofWrapperField(this, 2, this.#one_of_decls[0], value);
+        }
+        get has_definition() {
+            return pb_1.Message.getField(this, 2) != null;
+        }
+        get reference() {
+            return pb_1.Message.getWrapperField(this, ReferenceFollow, 3) as ReferenceFollow;
+        }
+        set reference(value: ReferenceFollow) {
+            pb_1.Message.setOneofWrapperField(this, 3, this.#one_of_decls[0], value);
+        }
+        get has_reference() {
+            return pb_1.Message.getField(this, 3) != null;
+        }
+        get data() {
+            const cases: {
+                [index: number]: "none" | "definition" | "reference";
+            } = {
+                0: "none",
+                2: "definition",
+                3: "reference"
+            };
+            return cases[pb_1.Message.computeOneofCase(this, [2, 3])];
+        }
+        static fromObject(data: {
+            type?: FollowType;
+            definition?: ReturnType<typeof DefinitionFollow.prototype.toObject>;
+            reference?: ReturnType<typeof ReferenceFollow.prototype.toObject>;
+        }): FollowPush {
+            const message = new FollowPush({});
+            if (data.type != null) {
+                message.type = data.type;
+            }
+            if (data.definition != null) {
+                message.definition = DefinitionFollow.fromObject(data.definition);
+            }
+            if (data.reference != null) {
+                message.reference = ReferenceFollow.fromObject(data.reference);
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                type?: FollowType;
+                definition?: ReturnType<typeof DefinitionFollow.prototype.toObject>;
+                reference?: ReturnType<typeof ReferenceFollow.prototype.toObject>;
+            } = {};
+            if (this.type != null) {
+                data.type = this.type;
+            }
+            if (this.definition != null) {
+                data.definition = this.definition.toObject();
+            }
+            if (this.reference != null) {
+                data.reference = this.reference.toObject();
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.type != FollowType.FOLLOW_INVALID)
+                writer.writeEnum(1, this.type);
+            if (this.has_definition)
+                writer.writeMessage(2, this.definition, () => this.definition.serialize(writer));
+            if (this.has_reference)
+                writer.writeMessage(3, this.reference, () => this.reference.serialize(writer));
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): FollowPush {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new FollowPush();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        message.type = reader.readEnum();
+                        break;
+                    case 2:
+                        reader.readMessage(message.definition, () => message.definition = DefinitionFollow.deserialize(reader));
+                        break;
+                    case 3:
+                        reader.readMessage(message.reference, () => message.reference = ReferenceFollow.deserialize(reader));
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): FollowPush {
+            return FollowPush.deserialize(bytes);
+        }
+    }
     export class PushMessage extends pb_1.Message {
-        #one_of_decls: number[][] = [[2, 3, 4, 5]];
+        #one_of_decls: number[][] = [[2, 3, 4, 5, 6]];
         constructor(data?: any[] | ({
             type?: PushType;
         } & (({
@@ -4217,21 +3999,31 @@ export namespace idepb {
             create_snippet?: never;
             pin_file?: never;
             highlight?: never;
+            follow?: never;
         } | {
             open_file?: never;
             create_snippet?: CreateSnippetPush;
             pin_file?: never;
             highlight?: never;
+            follow?: never;
         } | {
             open_file?: never;
             create_snippet?: never;
             pin_file?: PinFilePush;
             highlight?: never;
+            follow?: never;
         } | {
             open_file?: never;
             create_snippet?: never;
             pin_file?: never;
             highlight?: HighlightPush;
+            follow?: never;
+        } | {
+            open_file?: never;
+            create_snippet?: never;
+            pin_file?: never;
+            highlight?: never;
+            follow?: FollowPush;
         })))) {
             super();
             pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -4250,6 +4042,9 @@ export namespace idepb {
                 }
                 if ("highlight" in data && data.highlight != undefined) {
                     this.highlight = data.highlight;
+                }
+                if ("follow" in data && data.follow != undefined) {
+                    this.follow = data.follow;
                 }
             }
         }
@@ -4295,17 +4090,27 @@ export namespace idepb {
         get has_highlight() {
             return pb_1.Message.getField(this, 5) != null;
         }
+        get follow() {
+            return pb_1.Message.getWrapperField(this, FollowPush, 6) as FollowPush;
+        }
+        set follow(value: FollowPush) {
+            pb_1.Message.setOneofWrapperField(this, 6, this.#one_of_decls[0], value);
+        }
+        get has_follow() {
+            return pb_1.Message.getField(this, 6) != null;
+        }
         get data() {
             const cases: {
-                [index: number]: "none" | "open_file" | "create_snippet" | "pin_file" | "highlight";
+                [index: number]: "none" | "open_file" | "create_snippet" | "pin_file" | "highlight" | "follow";
             } = {
                 0: "none",
                 2: "open_file",
                 3: "create_snippet",
                 4: "pin_file",
-                5: "highlight"
+                5: "highlight",
+                6: "follow"
             };
-            return cases[pb_1.Message.computeOneofCase(this, [2, 3, 4, 5])];
+            return cases[pb_1.Message.computeOneofCase(this, [2, 3, 4, 5, 6])];
         }
         static fromObject(data: {
             type?: PushType;
@@ -4313,6 +4118,7 @@ export namespace idepb {
             create_snippet?: ReturnType<typeof CreateSnippetPush.prototype.toObject>;
             pin_file?: ReturnType<typeof PinFilePush.prototype.toObject>;
             highlight?: ReturnType<typeof HighlightPush.prototype.toObject>;
+            follow?: ReturnType<typeof FollowPush.prototype.toObject>;
         }): PushMessage {
             const message = new PushMessage({});
             if (data.type != null) {
@@ -4330,6 +4136,9 @@ export namespace idepb {
             if (data.highlight != null) {
                 message.highlight = HighlightPush.fromObject(data.highlight);
             }
+            if (data.follow != null) {
+                message.follow = FollowPush.fromObject(data.follow);
+            }
             return message;
         }
         toObject() {
@@ -4339,6 +4148,7 @@ export namespace idepb {
                 create_snippet?: ReturnType<typeof CreateSnippetPush.prototype.toObject>;
                 pin_file?: ReturnType<typeof PinFilePush.prototype.toObject>;
                 highlight?: ReturnType<typeof HighlightPush.prototype.toObject>;
+                follow?: ReturnType<typeof FollowPush.prototype.toObject>;
             } = {};
             if (this.type != null) {
                 data.type = this.type;
@@ -4354,6 +4164,9 @@ export namespace idepb {
             }
             if (this.highlight != null) {
                 data.highlight = this.highlight.toObject();
+            }
+            if (this.follow != null) {
+                data.follow = this.follow.toObject();
             }
             return data;
         }
@@ -4371,6 +4184,8 @@ export namespace idepb {
                 writer.writeMessage(4, this.pin_file, () => this.pin_file.serialize(writer));
             if (this.has_highlight)
                 writer.writeMessage(5, this.highlight, () => this.highlight.serialize(writer));
+            if (this.has_follow)
+                writer.writeMessage(6, this.follow, () => this.follow.serialize(writer));
             if (!w)
                 return writer.getResultBuffer();
         }
@@ -4394,6 +4209,9 @@ export namespace idepb {
                         break;
                     case 5:
                         reader.readMessage(message.highlight, () => message.highlight = HighlightPush.deserialize(reader));
+                        break;
+                    case 6:
+                        reader.readMessage(message.follow, () => message.follow = FollowPush.deserialize(reader));
                         break;
                     default: reader.skipField();
                 }

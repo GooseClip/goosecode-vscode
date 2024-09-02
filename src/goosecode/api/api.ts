@@ -17,7 +17,6 @@ import { handleDescribeRange } from "./handlers/describe-range";
 import { handleGoToDefinition } from "./handlers/go-to";
 import { handleRename } from "./handlers/rename";
 import { handleFindUses } from "./handlers/find-uses";
-import { handleGetEditorState } from "./handlers/get-editor-state";
 import { deserializeBinaryMiddleware } from "../deserializeBinaryMiddleware";
 import { getProjectRoot } from "../commands/commands";
 import { idepb } from "../../proto/idepb/ide";
@@ -185,18 +184,18 @@ export class GooseCodeServer {
       },
     );
 
-    app.post(
-      "/editor-state",
-      async (
-        req: express.Request,
-        res: express.Response,
-        next: express.NextFunction,
-      ) => {
-        await handleGetEditorState(req.body, (m) => this.send(res, m)).catch(
-          (e) => next(e),
-        );
-      },
-    );
+    // app.post(
+    //   "/editor-state",
+    //   async (
+    //     req: express.Request,
+    //     res: express.Response,
+    //     next: express.NextFunction,
+    //   ) => {
+    //     await handleGetEditorState(req.body, (m) => this.send(res, m)).catch(
+    //       (e) => next(e),
+    //     );
+    //   },
+    // );
 
     // Start a websocket server
     wsApp.app.ws("/connect", (socket, req) => {

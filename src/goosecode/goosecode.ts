@@ -9,7 +9,23 @@ import Position = idepb.Position;
 import CreateSnippetPush = idepb.CreateSnippetPush;
 import PinFilePush = idepb.PinFilePush;
 import HighlightPush = idepb.HighlightPush;
-import { getProjectRoot } from "./commands/commands";
+import {
+  describeRange,
+  getReferences,
+  getDefinitions,
+  getProjectRoot,
+  getTypeDefinitions,
+  goToDefinition,
+  selectRange,
+} from "./commands/commands";
+import FollowPush = idepb.FollowPush;
+import DefinitionFollow = idepb.DefinitionFollow;
+import Location = idepb.Location;
+import { convertRange } from "../util";
+import { raw } from "express";
+import ReferenceFollow = idepb.ReferenceFollow;
+import SnippetContext = idepb.SnippetContext;
+import LocationWithContext = idepb.LocationWithContext;
 
 export function registerGooseCodeCommands(
   gooseCodeServer: GooseCodeServer,
@@ -62,10 +78,14 @@ export function registerGooseCodeCommands(
           new PushMessage({
             type: idepb.PushType.PUSH_CREATE_SNIPPET,
             create_snippet: new CreateSnippetPush({
-              path: currentFilePath(editor),
-              range: selectedRange(editor),
-              before: 10,
-              after: 10,
+              location: new Location({
+                path: currentFilePath(editor),
+                range: selectedRange(editor),
+              }),
+              context: new SnippetContext({
+                before: 10,
+                after: 10,
+              }),
             }),
           }),
         );
@@ -109,6 +129,116 @@ export function registerGooseCodeCommands(
     }),
   );
 
+  // Highlight
+  subscriptions.push(
+    vscode.commands.registerCommand("goosecode.follow", async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor) {
+        const selection = editor.selection;
+        let definitions = await getDefinitions();
+
+        let currentDefinition: vscode.LocationLink | undefined;
+        definitions = definitions.filter((def) => {
+          if (
+            def.originSelectionRange!.intersection(def.targetSelectionRange!)
+          ) {
+            console.log(
+              `------- SKIPPING CURRENT SELECTION DEFINITION ------ `,
+            );
+            console.log(def);
+            currentDefinition = def;
+            return false;
+          }
+          return true;
+        });
+
+        if (definitions.length > 0) {
+          if (definitions.length > 1) {
+            console.warn("Multiple definitions found. Going to the first one");
+          }
+          console.log(`------- DEFINITIONS------ ${definitions.length}`);
+          console.log(definitions[0]);
+
+          // TODO check if the definition is the current range
+
+          gooseCodeServer.push(
+            new PushMessage({
+              type: idepb.PushType.PUSH_FOLLOW,
+              follow: new FollowPush({
+                type: idepb.FollowType.FOLLOW_DEFINITION,
+                definition: new DefinitionFollow({
+                  from: new LocationWithContext({
+                    location: new Location({
+                      path: relativePath(editor.document.uri.fsPath),
+                      range: convertRange(definitions[0].originSelectionRange!),
+                    }),
+                  }),
+                  to: new LocationWithContext({
+                    location: new Location({
+                      path: relativePath(definitions[0].targetUri.fsPath),
+                      range: convertRange(definitions[0].targetSelectionRange!),
+                    }),
+                    context: new SnippetContext({
+                      full_range: convertRange(definitions[0].targetRange),
+                    }),
+                  }),
+                }),
+              }),
+            }),
+          );
+          return;
+        }
+
+        let currentLocation: vscode.Location | undefined;
+        let refs = await getReferences();
+
+        refs = refs.filter((ref) => {
+          if (ref.range!.intersection(selection)) {
+            console.log(`------- SKIPPING CURRENT SELECTION REFERENCE ------ `);
+            console.log(ref);
+            currentLocation = ref;
+            return false;
+          }
+          return true;
+        });
+
+        if (refs.length > 0) {
+          console.log("-------REFERENCES------");
+          console.log(refs);
+          gooseCodeServer.push(
+            new PushMessage({
+              type: idepb.PushType.PUSH_FOLLOW,
+              follow: new FollowPush({
+                type: idepb.FollowType.FOLLOW_REFERENCE,
+                reference: new ReferenceFollow({
+                  from: new LocationWithContext({
+                    location: new Location({
+                      path: relativePath(currentLocation!.uri.fsPath),
+                      range: convertRange(currentLocation!.range),
+                    }),
+                    context: new SnippetContext({
+                      full_range: convertRange(currentDefinition!.targetRange),
+                    }),
+                  }),
+                  to: refs.map(
+                    (ref) =>
+                      new LocationWithContext({
+                        location: new Location({
+                          path: relativePath(ref.uri.fsPath),
+                          range: convertRange(ref.range),
+                        }),
+                        context: new SnippetContext({}),
+                      }),
+                  ),
+                }),
+              }),
+            }),
+          );
+        }
+      }
+    }),
+  );
+
   return subscriptions;
 }
 
@@ -117,6 +247,11 @@ function currentFilePath(editor: vscode.TextEditor) {
   const path = editor.document.fileName.replace(projectRoot, "");
   console.log(path);
   return path;
+}
+
+function relativePath(path: string) {
+  const projectRoot = getProjectRoot();
+  return path.replace(projectRoot, "");
 }
 
 function selectedRange(editor: vscode.TextEditor) {

@@ -1,4 +1,4 @@
-import {findUses, openFiles, selectRange} from "../../commands/commands";
+import {getReferences, openFiles, selectRange} from "../../commands/commands";
 import * as vscode from 'vscode';
 import {convertLocations, isEntireWord} from "../../../util";
 import {idepb} from "../../../proto/idepb/ide";
@@ -13,8 +13,8 @@ async function handleFindUses(request: RequestMessage, send: (msg: ResponseMessa
     const location = request.find_uses_request.location;
 
     await openFiles([location!.path]);
-    const start = new vscode.Position(location!.start.line, location!.start.character);
-    const end = new vscode.Position(location!.end.line, location!.end.character);
+    const start = new vscode.Position(location!.range.start.line, location!.range.start.character);
+    const end = new vscode.Position(location!.range.end.line, location!.range.end.character);
 
 
     const selection = selectRange(start, end);
@@ -26,7 +26,7 @@ async function handleFindUses(request: RequestMessage, send: (msg: ResponseMessa
         throw new ApiError("Selection is not word");
     }
 
-    const uses = await findUses();
+    const uses = await getReferences();
     if (!uses) {
         throw new ApiError("Failed to find uses");
     }

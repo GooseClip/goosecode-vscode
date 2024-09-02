@@ -11,8 +11,8 @@ async function handleSelectRange(request: RequestMessage, send: (msg: ResponseMe
     const location = request.select_range_request.location;
 
     await openFiles([location!.path]);
-    const start = new vscode.Position(location!.start.line, location!.start.character);
-    const end = new vscode.Position(location!.end.line, location!.end.character);
+    const start = new vscode.Position(location!.range.start.line, location!.range.start.character);
+    const end = new vscode.Position(location!.range.end.line, location!.range.end.character);
 
     const selection = selectRange(start, end);
     if (!selection) {

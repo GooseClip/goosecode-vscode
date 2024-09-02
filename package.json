@@ -15,6 +15,14 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "keybindings": [
+      {
+        "command": "goosecode.follow",
+        "key": "alt+ctrl+g",
+        "mac": "alt+cmd+g",
+        "when": "editorTextFocus"
+      }
+    ],
     "commands": [
       {
         "command": "goosecode.pushDiagnostics",
@@ -44,6 +52,11 @@
       {
         "command": "goosecode.pinFile",
         "title": "Pin",
+        "category": "GooseCode"
+      },
+      {
+        "command": "goosecode.follow",
+        "title": "Follow",
         "category": "GooseCode"
       }
     ],
@@ -79,6 +92,11 @@
           "when": "editorHasSelection",
           "command": "goosecode.highlight",
           "group": "goosecode@5"
+        },
+        {
+          "when": "editorTextFocus",
+          "command": "goosecode.follow",
+          "group": "goosecode@6"
         }
       ]
     },
