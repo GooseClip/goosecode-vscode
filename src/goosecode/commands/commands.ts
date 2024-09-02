@@ -62,13 +62,13 @@ export async function listProjectFiles(
 export async function openFiles(filePaths: string[]) {
     try {
         const projectRoot = getProjectRoot();
-        filePaths.forEach(async f => {
+        for (const f of filePaths) {
             console.log("[OPEN FILES]", f);
             const absolutePath = path.join(projectRoot, f);
             const fileUri = vscode.Uri.file(absolutePath);
             const document = await vscode.workspace.openTextDocument(fileUri);
             await vscode.window.showTextDocument(document);
-        });
+        }
     } catch (error) {
         console.error(`Error opening file: ${error}`);
     }

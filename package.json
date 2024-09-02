@@ -17,8 +17,75 @@
   "contributes": {
     "commands": [
       {
-        "command": "goosecode.pushDiagnosticsExample",
-        "title": "Push Diagnostics To Monaco"
+        "command": "goosecode.pushDiagnostics",
+        "title": "Push Diagnostics To Monaco",
+        "category": "GooseCode"
+      },
+      {
+        "command": "goosecode.newFile",
+        "title": "New File",
+        "category": "GooseCode"
+      },
+      {
+        "command": "goosecode.showFile",
+        "title": "Show File",
+        "category": "GooseCode"
+      },
+      {
+        "command": "goosecode.createSnippet",
+        "title": "Snippet",
+        "category": "GooseCode"
+      },
+      {
+        "command": "goosecode.highlight",
+        "title": "Highlight",
+        "category": "GooseCode"
+      },
+      {
+        "command": "goosecode.pinFile",
+        "title": "Pin",
+        "category": "GooseCode"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "goosecode.submenu",
+          "group": "goosecode"
+        }
+      ],
+      "goosecode.submenu": [
+        {
+          "when": "editorTextFocus",
+          "command": "goosecode.newFile",
+          "group": "goosecode@1"
+        },
+        {
+          "when": "editorTextFocus",
+          "command": "goosecode.showFile",
+          "group": "goosecode@2"
+        },
+        {
+          "when": "editorTextFocus",
+          "command": "goosecode.pinFile",
+          "group": "goosecode@3"
+        },
+        {
+          "when": "editorHasSelection",
+          "command": "goosecode.createSnippet",
+          "group": "goosecode@4"
+        },
+        {
+          "when": "editorHasSelection",
+          "command": "goosecode.highlight",
+          "group": "goosecode@5"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "goosecode.submenu",
+        "label": "GooseCode"
       }
     ]
   },
