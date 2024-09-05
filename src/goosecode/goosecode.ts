@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Disposable } from "vscode";
+import {Disposable, workspace} from "vscode";
 import { GooseCodeServer } from "./api/api";
 import { idepb } from "../proto/idepb/ide";
 import PushMessage = idepb.PushMessage;
@@ -26,6 +26,7 @@ import { raw } from "express";
 import ReferenceFollow = idepb.ReferenceFollow;
 import SnippetContext = idepb.SnippetContext;
 import LocationWithContext = idepb.LocationWithContext;
+import * as path from "node:path";
 
 export function registerGooseCodeCommands(
   gooseCodeServer: GooseCodeServer,
@@ -250,9 +251,15 @@ function currentFilePath(editor: vscode.TextEditor) {
   return path;
 }
 
-function relativePath(path: string) {
+function relativePath(filePath: string) {
   const projectRoot = getProjectRoot();
-  return path.replace(projectRoot, "");
+
+  // Return the path relative to the project root
+   const rel = path.relative(projectRoot, filePath);
+   // console.log("RELATIVE PATH FILE", filePath);
+   // console.log("RELATIVE PATH ROOT", projectRoot);
+   // console.log("RELATIVE PATH", rel);
+   return rel;
 }
 
 function selectedRange(editor: vscode.TextEditor) {
