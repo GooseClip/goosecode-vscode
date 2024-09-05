@@ -186,6 +186,8 @@ export function registerGooseCodeCommands(
               }),
             }),
           );
+
+          await goToDefinition();
           return;
         }
 
@@ -227,7 +229,6 @@ export function registerGooseCodeCommands(
                           path: relativePath(ref.uri.fsPath),
                           range: convertRange(ref.range),
                         }),
-                        context: new SnippetContext({}),
                       }),
                   ),
                 }),

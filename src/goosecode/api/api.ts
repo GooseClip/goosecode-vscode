@@ -231,6 +231,7 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
+        vscode.window.showErrorMessage(`Error: ${err.message}`);
         console.error(err.message); // Log the full error stack for server-side debugging.
         console.log(err.stack); // Log the full error stack for server-side debugging.
         if (err instanceof ApiError) {
