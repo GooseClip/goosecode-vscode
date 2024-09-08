@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import {Disposable, workspace} from "vscode";
-import { GooseCodeServer } from "./api/api";
+import { Disposable, workspace } from "vscode";
+import { GooseCodeServer } from "./server/server";
 import { idepb } from "../proto/idepb/ide";
 import PushMessage = idepb.PushMessage;
 import OpenFilePush = idepb.OpenFilePush;
@@ -21,7 +21,7 @@ import {
 import FollowPush = idepb.FollowPush;
 import DefinitionFollow = idepb.DefinitionFollow;
 import Location = idepb.Location;
-import { convertRange } from "../util";
+import { convertLocations, convertRange } from "../util";
 import { raw } from "express";
 import ReferenceFollow = idepb.ReferenceFollow;
 import SnippetContext = idepb.SnippetContext;
@@ -33,28 +33,9 @@ export function registerGooseCodeCommands(
 ): Array<Disposable> {
   const subscriptions: Array<Disposable> = [];
 
-  // New File
-  subscriptions.push(
-    vscode.commands.registerCommand("goosecode.newFile", () => {
-      const editor = vscode.window.activeTextEditor;
-      if (editor) {
-        gooseCodeServer.push(
-          new PushMessage({
-            type: idepb.PushType.PUSH_OPEN_FILE,
-            open_file: new OpenFilePush({
-              path: currentFilePath(editor),
-              range: selectedRange(editor),
-              force_new: true,
-            }),
-          }),
-        );
-      }
-    }),
-  );
-
   // Show file
   subscriptions.push(
-    vscode.commands.registerCommand("goosecode.showFile", () => {
+    vscode.commands.registerCommand("goosecode.open", () => {
       const editor = vscode.window.activeTextEditor;
       if (editor) {
         gooseCodeServer.push(
@@ -72,7 +53,7 @@ export function registerGooseCodeCommands(
 
   // Create Snippet
   subscriptions.push(
-    vscode.commands.registerCommand("goosecode.createSnippet", () => {
+    vscode.commands.registerCommand("goosecode.snippet", () => {
       const editor = vscode.window.activeTextEditor;
       if (editor) {
         gooseCodeServer.push(
@@ -96,7 +77,7 @@ export function registerGooseCodeCommands(
 
   // Pin File
   subscriptions.push(
-    vscode.commands.registerCommand("goosecode.pinFile", () => {
+    vscode.commands.registerCommand("goosecode.pin", () => {
       const editor = vscode.window.activeTextEditor;
       if (editor) {
         gooseCodeServer.push(
@@ -111,24 +92,24 @@ export function registerGooseCodeCommands(
     }),
   );
 
-  // Highlight
-  subscriptions.push(
-    vscode.commands.registerCommand("goosecode.highlight", () => {
-      const editor = vscode.window.activeTextEditor;
-      if (editor) {
-        gooseCodeServer.push(
-          new PushMessage({
-            type: idepb.PushType.PUSH_HIGHLIGHT,
-            highlight: new HighlightPush({
-              path: currentFilePath(editor),
-              range: selectedRange(editor),
-              color: 0xaaffffff,
-            }),
-          }),
-        );
-      }
-    }),
-  );
+  // // Highlight
+  // subscriptions.push(
+  //   vscode.commands.registerCommand("goosecode.highlight", () => {
+  //     const editor = vscode.window.activeTextEditor;
+  //     if (editor) {
+  //       gooseCodeServer.push(
+  //         new PushMessage({
+  //           type: idepb.PushType.PUSH_HIGHLIGHT,
+  //           highlight: new HighlightPush({
+  //             path: currentFilePath(editor),
+  //             range: selectedRange(editor),
+  //             color: 0xaaffffff,
+  //           }),
+  //         }),
+  //       );
+  //     }
+  //   }),
+  // );
 
   // Highlight
   subscriptions.push(
@@ -188,7 +169,13 @@ export function registerGooseCodeCommands(
             }),
           );
 
-          await goToDefinition();
+          await goToDefinition(
+            new Location({
+              path: relativePath(definitions[0].targetUri.fsPath),
+              range: convertRange(definitions[0].targetSelectionRange!),
+            }),
+            false,
+          );
           return;
         }
 
@@ -255,11 +242,8 @@ function relativePath(filePath: string) {
   const projectRoot = getProjectRoot();
 
   // Return the path relative to the project root
-   const rel = path.relative(projectRoot, filePath);
-   // console.log("RELATIVE PATH FILE", filePath);
-   // console.log("RELATIVE PATH ROOT", projectRoot);
-   // console.log("RELATIVE PATH", rel);
-   return rel;
+  const rel = path.relative(projectRoot, filePath);
+  return rel;
 }
 
 function selectedRange(editor: vscode.TextEditor) {

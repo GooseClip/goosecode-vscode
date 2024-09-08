@@ -7,19 +7,18 @@ import * as pb_1 from "google-protobuf";
 export namespace idepb {
     export enum RequestType {
         REQUEST_INVALID = 0,
-        REQUEST_LIST_FILES = 1,
-        REQUEST_GET_FILES = 2,
-        REQUEST_OPEN_FILES = 3,
-        REQUEST_FIND_STRING = 4,
-        REQUEST_SELECT_RANGE = 5,
-        REQUEST_DESCRIBE_RANGE = 6,
-        REQUEST_GO_TO_DEFINITION = 7,
-        REQUEST_RENAME = 8,
-        REQUEST_FIND_USES = 9,
-        REQUEST_EDITOR_STATE = 10,
-        REQUEST_CONTENT_CHANGE = 11,
-        REQUEST_EDITOR_DIAGNOSTICS = 12,
-        REQUEST_PROJECT_ROOT = 13
+        REQUEST_CODE_SOURCE_ID = 1,
+        REQUEST_LIST_FILES = 2,
+        REQUEST_GET_FILES = 3,
+        REQUEST_OPEN_FILES = 4,
+        REQUEST_FIND_STRING = 5,
+        REQUEST_SELECT_RANGE = 6,
+        REQUEST_DESCRIBE_RANGE = 7,
+        REQUEST_GO_TO_DEFINITION = 8,
+        REQUEST_RENAME = 9,
+        REQUEST_FIND_USES = 10,
+        REQUEST_EDITOR_STATE = 11,
+        REQUEST_CONTENT_CHANGE = 12
     }
     export enum SymbolKind {
         SYMBOL_KIND_FILE = 0,
@@ -51,16 +50,16 @@ export namespace idepb {
     }
     export enum ResponseType {
         RESPONSE_INVALID = 0,
-        RESPONSE_LIST_FILES = 1,
-        RESPONSE_GET_FILES = 2,
-        RESPONSE_OPEN_FILES = 3,
-        RESPONSE_FIND_STRING = 4,
-        RESPONSE_SELECT_RANGE = 5,
-        RESPONSE_DESCRIBE_RANGE = 6,
-        RESPONSE_GO_TO_DEFINITION = 7,
-        RESPONSE_RENAME = 8,
-        RESPONSE_FIND_USES = 9,
-        RESPONSE_PROJECT_ROOT = 10,
+        RESPONSE_CODE_SOURCE_ID = 1,
+        RESPONSE_LIST_FILES = 2,
+        RESPONSE_GET_FILES = 3,
+        RESPONSE_OPEN_FILES = 4,
+        RESPONSE_FIND_STRING = 5,
+        RESPONSE_SELECT_RANGE = 6,
+        RESPONSE_DESCRIBE_RANGE = 7,
+        RESPONSE_GO_TO_DEFINITION = 8,
+        RESPONSE_RENAME = 9,
+        RESPONSE_FIND_USES = 10,
         RESPONSE_ERROR = 999
     }
     export enum PushType {
@@ -76,15 +75,15 @@ export namespace idepb {
         FOLLOW_DEFINITION = 1,
         FOLLOW_REFERENCE = 2
     }
-    export class EmptyRequest extends pb_1.Message {
+    export class CodeSourceIDRequest extends pb_1.Message {
         #one_of_decls: number[][] = [];
         constructor(data?: any[] | {}) {
             super();
             pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
             if (!Array.isArray(data) && typeof data == "object") { }
         }
-        static fromObject(data: {}): EmptyRequest {
-            const message = new EmptyRequest({});
+        static fromObject(data: {}): CodeSourceIDRequest {
+            const message = new CodeSourceIDRequest({});
             return message;
         }
         toObject() {
@@ -98,8 +97,8 @@ export namespace idepb {
             if (!w)
                 return writer.getResultBuffer();
         }
-        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): EmptyRequest {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new EmptyRequest();
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CodeSourceIDRequest {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CodeSourceIDRequest();
             while (reader.nextField()) {
                 if (reader.isEndGroup())
                     break;
@@ -112,8 +111,8 @@ export namespace idepb {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): EmptyRequest {
-            return EmptyRequest.deserialize(bytes);
+        static deserializeBinary(bytes: Uint8Array): CodeSourceIDRequest {
+            return CodeSourceIDRequest.deserialize(bytes);
         }
     }
     export class ListFilesRequest extends pb_1.Message {
@@ -574,12 +573,16 @@ export namespace idepb {
         #one_of_decls: number[][] = [];
         constructor(data?: any[] | {
             location?: Location;
+            select?: boolean;
         }) {
             super();
             pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
             if (!Array.isArray(data) && typeof data == "object") {
                 if ("location" in data && data.location != undefined) {
                     this.location = data.location;
+                }
+                if ("select" in data && data.select != undefined) {
+                    this.select = data.select;
                 }
             }
         }
@@ -592,21 +595,35 @@ export namespace idepb {
         get has_location() {
             return pb_1.Message.getField(this, 1) != null;
         }
+        get select() {
+            return pb_1.Message.getFieldWithDefault(this, 2, false) as boolean;
+        }
+        set select(value: boolean) {
+            pb_1.Message.setField(this, 2, value);
+        }
         static fromObject(data: {
             location?: ReturnType<typeof Location.prototype.toObject>;
+            select?: boolean;
         }): GoToDefinitionRequest {
             const message = new GoToDefinitionRequest({});
             if (data.location != null) {
                 message.location = Location.fromObject(data.location);
+            }
+            if (data.select != null) {
+                message.select = data.select;
             }
             return message;
         }
         toObject() {
             const data: {
                 location?: ReturnType<typeof Location.prototype.toObject>;
+                select?: boolean;
             } = {};
             if (this.location != null) {
                 data.location = this.location.toObject();
+            }
+            if (this.select != null) {
+                data.select = this.select;
             }
             return data;
         }
@@ -616,6 +633,8 @@ export namespace idepb {
             const writer = w || new pb_1.BinaryWriter();
             if (this.has_location)
                 writer.writeMessage(1, this.location, () => this.location.serialize(writer));
+            if (this.select != false)
+                writer.writeBool(2, this.select);
             if (!w)
                 return writer.getResultBuffer();
         }
@@ -627,6 +646,9 @@ export namespace idepb {
                 switch (reader.getFieldNumber()) {
                     case 1:
                         reader.readMessage(message.location, () => message.location = Location.deserialize(reader));
+                        break;
+                    case 2:
+                        message.select = reader.readBool();
                         break;
                     default: reader.skipField();
                 }
@@ -807,8 +829,20 @@ export namespace idepb {
         #one_of_decls: number[][] = [[3, 4, 5, 6, 7, 8, 9, 10, 11, 12]];
         constructor(data?: any[] | ({
             type?: RequestType;
-            command_id?: string;
+            code_source_id?: string;
         } & (({
+            code_source_id_request?: CodeSourceIDRequest;
+            list_files_request?: never;
+            get_files_request?: never;
+            open_files_request?: never;
+            find_string_request?: never;
+            select_range_request?: never;
+            describe_range_request?: never;
+            go_to_definition_request?: never;
+            rename_request?: never;
+            find_uses_request?: never;
+        } | {
+            code_source_id_request?: never;
             list_files_request?: ListFilesRequest;
             get_files_request?: never;
             open_files_request?: never;
@@ -818,8 +852,8 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            project_root_request?: never;
         } | {
+            code_source_id_request?: never;
             list_files_request?: never;
             get_files_request?: GetFilesRequest;
             open_files_request?: never;
@@ -829,8 +863,8 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            project_root_request?: never;
         } | {
+            code_source_id_request?: never;
             list_files_request?: never;
             get_files_request?: never;
             open_files_request?: OpenFilesRequest;
@@ -840,8 +874,8 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            project_root_request?: never;
         } | {
+            code_source_id_request?: never;
             list_files_request?: never;
             get_files_request?: never;
             open_files_request?: never;
@@ -851,8 +885,8 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            project_root_request?: never;
         } | {
+            code_source_id_request?: never;
             list_files_request?: never;
             get_files_request?: never;
             open_files_request?: never;
@@ -862,8 +896,8 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            project_root_request?: never;
         } | {
+            code_source_id_request?: never;
             list_files_request?: never;
             get_files_request?: never;
             open_files_request?: never;
@@ -873,8 +907,8 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: never;
-            project_root_request?: never;
         } | {
+            code_source_id_request?: never;
             list_files_request?: never;
             get_files_request?: never;
             open_files_request?: never;
@@ -884,8 +918,8 @@ export namespace idepb {
             go_to_definition_request?: GoToDefinitionRequest;
             rename_request?: never;
             find_uses_request?: never;
-            project_root_request?: never;
         } | {
+            code_source_id_request?: never;
             list_files_request?: never;
             get_files_request?: never;
             open_files_request?: never;
@@ -895,8 +929,8 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: RenameRequest;
             find_uses_request?: never;
-            project_root_request?: never;
         } | {
+            code_source_id_request?: never;
             list_files_request?: never;
             get_files_request?: never;
             open_files_request?: never;
@@ -906,18 +940,6 @@ export namespace idepb {
             go_to_definition_request?: never;
             rename_request?: never;
             find_uses_request?: FindUsesRequest;
-            project_root_request?: never;
-        } | {
-            list_files_request?: never;
-            get_files_request?: never;
-            open_files_request?: never;
-            find_string_request?: never;
-            select_range_request?: never;
-            describe_range_request?: never;
-            go_to_definition_request?: never;
-            rename_request?: never;
-            find_uses_request?: never;
-            project_root_request?: EmptyRequest;
         })))) {
             super();
             pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -925,8 +947,11 @@ export namespace idepb {
                 if ("type" in data && data.type != undefined) {
                     this.type = data.type;
                 }
-                if ("command_id" in data && data.command_id != undefined) {
-                    this.command_id = data.command_id;
+                if ("code_source_id" in data && data.code_source_id != undefined) {
+                    this.code_source_id = data.code_source_id;
+                }
+                if ("code_source_id_request" in data && data.code_source_id_request != undefined) {
+                    this.code_source_id_request = data.code_source_id_request;
                 }
                 if ("list_files_request" in data && data.list_files_request != undefined) {
                     this.list_files_request = data.list_files_request;
@@ -955,9 +980,6 @@ export namespace idepb {
                 if ("find_uses_request" in data && data.find_uses_request != undefined) {
                     this.find_uses_request = data.find_uses_request;
                 }
-                if ("project_root_request" in data && data.project_root_request != undefined) {
-                    this.project_root_request = data.project_root_request;
-                }
             }
         }
         get type() {
@@ -966,123 +988,124 @@ export namespace idepb {
         set type(value: RequestType) {
             pb_1.Message.setField(this, 1, value);
         }
-        get command_id() {
+        get code_source_id() {
             return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
         }
-        set command_id(value: string) {
+        set code_source_id(value: string) {
             pb_1.Message.setField(this, 2, value);
         }
-        get list_files_request() {
-            return pb_1.Message.getWrapperField(this, ListFilesRequest, 3) as ListFilesRequest;
+        get code_source_id_request() {
+            return pb_1.Message.getWrapperField(this, CodeSourceIDRequest, 3) as CodeSourceIDRequest;
         }
-        set list_files_request(value: ListFilesRequest) {
+        set code_source_id_request(value: CodeSourceIDRequest) {
             pb_1.Message.setOneofWrapperField(this, 3, this.#one_of_decls[0], value);
         }
-        get has_list_files_request() {
+        get has_code_source_id_request() {
             return pb_1.Message.getField(this, 3) != null;
         }
-        get get_files_request() {
-            return pb_1.Message.getWrapperField(this, GetFilesRequest, 4) as GetFilesRequest;
+        get list_files_request() {
+            return pb_1.Message.getWrapperField(this, ListFilesRequest, 4) as ListFilesRequest;
         }
-        set get_files_request(value: GetFilesRequest) {
+        set list_files_request(value: ListFilesRequest) {
             pb_1.Message.setOneofWrapperField(this, 4, this.#one_of_decls[0], value);
         }
-        get has_get_files_request() {
+        get has_list_files_request() {
             return pb_1.Message.getField(this, 4) != null;
         }
-        get open_files_request() {
-            return pb_1.Message.getWrapperField(this, OpenFilesRequest, 5) as OpenFilesRequest;
+        get get_files_request() {
+            return pb_1.Message.getWrapperField(this, GetFilesRequest, 5) as GetFilesRequest;
         }
-        set open_files_request(value: OpenFilesRequest) {
+        set get_files_request(value: GetFilesRequest) {
             pb_1.Message.setOneofWrapperField(this, 5, this.#one_of_decls[0], value);
         }
-        get has_open_files_request() {
+        get has_get_files_request() {
             return pb_1.Message.getField(this, 5) != null;
         }
-        get find_string_request() {
-            return pb_1.Message.getWrapperField(this, FindStringRequest, 6) as FindStringRequest;
+        get open_files_request() {
+            return pb_1.Message.getWrapperField(this, OpenFilesRequest, 6) as OpenFilesRequest;
         }
-        set find_string_request(value: FindStringRequest) {
+        set open_files_request(value: OpenFilesRequest) {
             pb_1.Message.setOneofWrapperField(this, 6, this.#one_of_decls[0], value);
         }
-        get has_find_string_request() {
+        get has_open_files_request() {
             return pb_1.Message.getField(this, 6) != null;
         }
-        get select_range_request() {
-            return pb_1.Message.getWrapperField(this, SelectRangeRequest, 7) as SelectRangeRequest;
+        get find_string_request() {
+            return pb_1.Message.getWrapperField(this, FindStringRequest, 7) as FindStringRequest;
         }
-        set select_range_request(value: SelectRangeRequest) {
+        set find_string_request(value: FindStringRequest) {
             pb_1.Message.setOneofWrapperField(this, 7, this.#one_of_decls[0], value);
         }
-        get has_select_range_request() {
+        get has_find_string_request() {
             return pb_1.Message.getField(this, 7) != null;
         }
-        get describe_range_request() {
-            return pb_1.Message.getWrapperField(this, DescribeRangeRequest, 8) as DescribeRangeRequest;
+        get select_range_request() {
+            return pb_1.Message.getWrapperField(this, SelectRangeRequest, 8) as SelectRangeRequest;
         }
-        set describe_range_request(value: DescribeRangeRequest) {
+        set select_range_request(value: SelectRangeRequest) {
             pb_1.Message.setOneofWrapperField(this, 8, this.#one_of_decls[0], value);
         }
-        get has_describe_range_request() {
+        get has_select_range_request() {
             return pb_1.Message.getField(this, 8) != null;
         }
-        get go_to_definition_request() {
-            return pb_1.Message.getWrapperField(this, GoToDefinitionRequest, 9) as GoToDefinitionRequest;
+        get describe_range_request() {
+            return pb_1.Message.getWrapperField(this, DescribeRangeRequest, 9) as DescribeRangeRequest;
         }
-        set go_to_definition_request(value: GoToDefinitionRequest) {
+        set describe_range_request(value: DescribeRangeRequest) {
             pb_1.Message.setOneofWrapperField(this, 9, this.#one_of_decls[0], value);
         }
-        get has_go_to_definition_request() {
+        get has_describe_range_request() {
             return pb_1.Message.getField(this, 9) != null;
         }
-        get rename_request() {
-            return pb_1.Message.getWrapperField(this, RenameRequest, 10) as RenameRequest;
+        get go_to_definition_request() {
+            return pb_1.Message.getWrapperField(this, GoToDefinitionRequest, 10) as GoToDefinitionRequest;
         }
-        set rename_request(value: RenameRequest) {
+        set go_to_definition_request(value: GoToDefinitionRequest) {
             pb_1.Message.setOneofWrapperField(this, 10, this.#one_of_decls[0], value);
         }
-        get has_rename_request() {
+        get has_go_to_definition_request() {
             return pb_1.Message.getField(this, 10) != null;
         }
-        get find_uses_request() {
-            return pb_1.Message.getWrapperField(this, FindUsesRequest, 11) as FindUsesRequest;
+        get rename_request() {
+            return pb_1.Message.getWrapperField(this, RenameRequest, 11) as RenameRequest;
         }
-        set find_uses_request(value: FindUsesRequest) {
+        set rename_request(value: RenameRequest) {
             pb_1.Message.setOneofWrapperField(this, 11, this.#one_of_decls[0], value);
         }
-        get has_find_uses_request() {
+        get has_rename_request() {
             return pb_1.Message.getField(this, 11) != null;
         }
-        get project_root_request() {
-            return pb_1.Message.getWrapperField(this, EmptyRequest, 12) as EmptyRequest;
+        get find_uses_request() {
+            return pb_1.Message.getWrapperField(this, FindUsesRequest, 12) as FindUsesRequest;
         }
-        set project_root_request(value: EmptyRequest) {
+        set find_uses_request(value: FindUsesRequest) {
             pb_1.Message.setOneofWrapperField(this, 12, this.#one_of_decls[0], value);
         }
-        get has_project_root_request() {
+        get has_find_uses_request() {
             return pb_1.Message.getField(this, 12) != null;
         }
         get data() {
             const cases: {
-                [index: number]: "none" | "list_files_request" | "get_files_request" | "open_files_request" | "find_string_request" | "select_range_request" | "describe_range_request" | "go_to_definition_request" | "rename_request" | "find_uses_request" | "project_root_request";
+                [index: number]: "none" | "code_source_id_request" | "list_files_request" | "get_files_request" | "open_files_request" | "find_string_request" | "select_range_request" | "describe_range_request" | "go_to_definition_request" | "rename_request" | "find_uses_request";
             } = {
                 0: "none",
-                3: "list_files_request",
-                4: "get_files_request",
-                5: "open_files_request",
-                6: "find_string_request",
-                7: "select_range_request",
-                8: "describe_range_request",
-                9: "go_to_definition_request",
-                10: "rename_request",
-                11: "find_uses_request",
-                12: "project_root_request"
+                3: "code_source_id_request",
+                4: "list_files_request",
+                5: "get_files_request",
+                6: "open_files_request",
+                7: "find_string_request",
+                8: "select_range_request",
+                9: "describe_range_request",
+                10: "go_to_definition_request",
+                11: "rename_request",
+                12: "find_uses_request"
             };
             return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12])];
         }
         static fromObject(data: {
             type?: RequestType;
-            command_id?: string;
+            code_source_id?: string;
+            code_source_id_request?: ReturnType<typeof CodeSourceIDRequest.prototype.toObject>;
             list_files_request?: ReturnType<typeof ListFilesRequest.prototype.toObject>;
             get_files_request?: ReturnType<typeof GetFilesRequest.prototype.toObject>;
             open_files_request?: ReturnType<typeof OpenFilesRequest.prototype.toObject>;
@@ -1092,14 +1115,16 @@ export namespace idepb {
             go_to_definition_request?: ReturnType<typeof GoToDefinitionRequest.prototype.toObject>;
             rename_request?: ReturnType<typeof RenameRequest.prototype.toObject>;
             find_uses_request?: ReturnType<typeof FindUsesRequest.prototype.toObject>;
-            project_root_request?: ReturnType<typeof EmptyRequest.prototype.toObject>;
         }): RequestMessage {
             const message = new RequestMessage({});
             if (data.type != null) {
                 message.type = data.type;
             }
-            if (data.command_id != null) {
-                message.command_id = data.command_id;
+            if (data.code_source_id != null) {
+                message.code_source_id = data.code_source_id;
+            }
+            if (data.code_source_id_request != null) {
+                message.code_source_id_request = CodeSourceIDRequest.fromObject(data.code_source_id_request);
             }
             if (data.list_files_request != null) {
                 message.list_files_request = ListFilesRequest.fromObject(data.list_files_request);
@@ -1128,15 +1153,13 @@ export namespace idepb {
             if (data.find_uses_request != null) {
                 message.find_uses_request = FindUsesRequest.fromObject(data.find_uses_request);
             }
-            if (data.project_root_request != null) {
-                message.project_root_request = EmptyRequest.fromObject(data.project_root_request);
-            }
             return message;
         }
         toObject() {
             const data: {
                 type?: RequestType;
-                command_id?: string;
+                code_source_id?: string;
+                code_source_id_request?: ReturnType<typeof CodeSourceIDRequest.prototype.toObject>;
                 list_files_request?: ReturnType<typeof ListFilesRequest.prototype.toObject>;
                 get_files_request?: ReturnType<typeof GetFilesRequest.prototype.toObject>;
                 open_files_request?: ReturnType<typeof OpenFilesRequest.prototype.toObject>;
@@ -1146,13 +1169,15 @@ export namespace idepb {
                 go_to_definition_request?: ReturnType<typeof GoToDefinitionRequest.prototype.toObject>;
                 rename_request?: ReturnType<typeof RenameRequest.prototype.toObject>;
                 find_uses_request?: ReturnType<typeof FindUsesRequest.prototype.toObject>;
-                project_root_request?: ReturnType<typeof EmptyRequest.prototype.toObject>;
             } = {};
             if (this.type != null) {
                 data.type = this.type;
             }
-            if (this.command_id != null) {
-                data.command_id = this.command_id;
+            if (this.code_source_id != null) {
+                data.code_source_id = this.code_source_id;
+            }
+            if (this.code_source_id_request != null) {
+                data.code_source_id_request = this.code_source_id_request.toObject();
             }
             if (this.list_files_request != null) {
                 data.list_files_request = this.list_files_request.toObject();
@@ -1181,9 +1206,6 @@ export namespace idepb {
             if (this.find_uses_request != null) {
                 data.find_uses_request = this.find_uses_request.toObject();
             }
-            if (this.project_root_request != null) {
-                data.project_root_request = this.project_root_request.toObject();
-            }
             return data;
         }
         serialize(): Uint8Array;
@@ -1192,28 +1214,28 @@ export namespace idepb {
             const writer = w || new pb_1.BinaryWriter();
             if (this.type != RequestType.REQUEST_INVALID)
                 writer.writeEnum(1, this.type);
-            if (this.command_id.length)
-                writer.writeString(2, this.command_id);
+            if (this.code_source_id.length)
+                writer.writeString(2, this.code_source_id);
+            if (this.has_code_source_id_request)
+                writer.writeMessage(3, this.code_source_id_request, () => this.code_source_id_request.serialize(writer));
             if (this.has_list_files_request)
-                writer.writeMessage(3, this.list_files_request, () => this.list_files_request.serialize(writer));
+                writer.writeMessage(4, this.list_files_request, () => this.list_files_request.serialize(writer));
             if (this.has_get_files_request)
-                writer.writeMessage(4, this.get_files_request, () => this.get_files_request.serialize(writer));
+                writer.writeMessage(5, this.get_files_request, () => this.get_files_request.serialize(writer));
             if (this.has_open_files_request)
-                writer.writeMessage(5, this.open_files_request, () => this.open_files_request.serialize(writer));
+                writer.writeMessage(6, this.open_files_request, () => this.open_files_request.serialize(writer));
             if (this.has_find_string_request)
-                writer.writeMessage(6, this.find_string_request, () => this.find_string_request.serialize(writer));
+                writer.writeMessage(7, this.find_string_request, () => this.find_string_request.serialize(writer));
             if (this.has_select_range_request)
-                writer.writeMessage(7, this.select_range_request, () => this.select_range_request.serialize(writer));
+                writer.writeMessage(8, this.select_range_request, () => this.select_range_request.serialize(writer));
             if (this.has_describe_range_request)
-                writer.writeMessage(8, this.describe_range_request, () => this.describe_range_request.serialize(writer));
+                writer.writeMessage(9, this.describe_range_request, () => this.describe_range_request.serialize(writer));
             if (this.has_go_to_definition_request)
-                writer.writeMessage(9, this.go_to_definition_request, () => this.go_to_definition_request.serialize(writer));
+                writer.writeMessage(10, this.go_to_definition_request, () => this.go_to_definition_request.serialize(writer));
             if (this.has_rename_request)
-                writer.writeMessage(10, this.rename_request, () => this.rename_request.serialize(writer));
+                writer.writeMessage(11, this.rename_request, () => this.rename_request.serialize(writer));
             if (this.has_find_uses_request)
-                writer.writeMessage(11, this.find_uses_request, () => this.find_uses_request.serialize(writer));
-            if (this.has_project_root_request)
-                writer.writeMessage(12, this.project_root_request, () => this.project_root_request.serialize(writer));
+                writer.writeMessage(12, this.find_uses_request, () => this.find_uses_request.serialize(writer));
             if (!w)
                 return writer.getResultBuffer();
         }
@@ -1227,37 +1249,37 @@ export namespace idepb {
                         message.type = reader.readEnum();
                         break;
                     case 2:
-                        message.command_id = reader.readString();
+                        message.code_source_id = reader.readString();
                         break;
                     case 3:
-                        reader.readMessage(message.list_files_request, () => message.list_files_request = ListFilesRequest.deserialize(reader));
+                        reader.readMessage(message.code_source_id_request, () => message.code_source_id_request = CodeSourceIDRequest.deserialize(reader));
                         break;
                     case 4:
-                        reader.readMessage(message.get_files_request, () => message.get_files_request = GetFilesRequest.deserialize(reader));
+                        reader.readMessage(message.list_files_request, () => message.list_files_request = ListFilesRequest.deserialize(reader));
                         break;
                     case 5:
-                        reader.readMessage(message.open_files_request, () => message.open_files_request = OpenFilesRequest.deserialize(reader));
+                        reader.readMessage(message.get_files_request, () => message.get_files_request = GetFilesRequest.deserialize(reader));
                         break;
                     case 6:
-                        reader.readMessage(message.find_string_request, () => message.find_string_request = FindStringRequest.deserialize(reader));
+                        reader.readMessage(message.open_files_request, () => message.open_files_request = OpenFilesRequest.deserialize(reader));
                         break;
                     case 7:
-                        reader.readMessage(message.select_range_request, () => message.select_range_request = SelectRangeRequest.deserialize(reader));
+                        reader.readMessage(message.find_string_request, () => message.find_string_request = FindStringRequest.deserialize(reader));
                         break;
                     case 8:
-                        reader.readMessage(message.describe_range_request, () => message.describe_range_request = DescribeRangeRequest.deserialize(reader));
+                        reader.readMessage(message.select_range_request, () => message.select_range_request = SelectRangeRequest.deserialize(reader));
                         break;
                     case 9:
-                        reader.readMessage(message.go_to_definition_request, () => message.go_to_definition_request = GoToDefinitionRequest.deserialize(reader));
+                        reader.readMessage(message.describe_range_request, () => message.describe_range_request = DescribeRangeRequest.deserialize(reader));
                         break;
                     case 10:
-                        reader.readMessage(message.rename_request, () => message.rename_request = RenameRequest.deserialize(reader));
+                        reader.readMessage(message.go_to_definition_request, () => message.go_to_definition_request = GoToDefinitionRequest.deserialize(reader));
                         break;
                     case 11:
-                        reader.readMessage(message.find_uses_request, () => message.find_uses_request = FindUsesRequest.deserialize(reader));
+                        reader.readMessage(message.rename_request, () => message.rename_request = RenameRequest.deserialize(reader));
                         break;
                     case 12:
-                        reader.readMessage(message.project_root_request, () => message.project_root_request = EmptyRequest.deserialize(reader));
+                        reader.readMessage(message.find_uses_request, () => message.find_uses_request = FindUsesRequest.deserialize(reader));
                         break;
                     default: reader.skipField();
                 }
@@ -2376,40 +2398,40 @@ export namespace idepb {
             return EditorDiagnosticsResponse.deserialize(bytes);
         }
     }
-    export class ProjectRootResponse extends pb_1.Message {
+    export class CodeSourceIDResponse extends pb_1.Message {
         #one_of_decls: number[][] = [];
         constructor(data?: any[] | {
-            project_root?: string;
+            suggested_alias?: string;
         }) {
             super();
             pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
             if (!Array.isArray(data) && typeof data == "object") {
-                if ("project_root" in data && data.project_root != undefined) {
-                    this.project_root = data.project_root;
+                if ("suggested_alias" in data && data.suggested_alias != undefined) {
+                    this.suggested_alias = data.suggested_alias;
                 }
             }
         }
-        get project_root() {
+        get suggested_alias() {
             return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
         }
-        set project_root(value: string) {
+        set suggested_alias(value: string) {
             pb_1.Message.setField(this, 1, value);
         }
         static fromObject(data: {
-            project_root?: string;
-        }): ProjectRootResponse {
-            const message = new ProjectRootResponse({});
-            if (data.project_root != null) {
-                message.project_root = data.project_root;
+            suggested_alias?: string;
+        }): CodeSourceIDResponse {
+            const message = new CodeSourceIDResponse({});
+            if (data.suggested_alias != null) {
+                message.suggested_alias = data.suggested_alias;
             }
             return message;
         }
         toObject() {
             const data: {
-                project_root?: string;
+                suggested_alias?: string;
             } = {};
-            if (this.project_root != null) {
-                data.project_root = this.project_root;
+            if (this.suggested_alias != null) {
+                data.suggested_alias = this.suggested_alias;
             }
             return data;
         }
@@ -2417,19 +2439,19 @@ export namespace idepb {
         serialize(w: pb_1.BinaryWriter): void;
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
-            if (this.project_root.length)
-                writer.writeString(1, this.project_root);
+            if (this.suggested_alias.length)
+                writer.writeString(1, this.suggested_alias);
             if (!w)
                 return writer.getResultBuffer();
         }
-        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ProjectRootResponse {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ProjectRootResponse();
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CodeSourceIDResponse {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CodeSourceIDResponse();
             while (reader.nextField()) {
                 if (reader.isEndGroup())
                     break;
                 switch (reader.getFieldNumber()) {
                     case 1:
-                        message.project_root = reader.readString();
+                        message.suggested_alias = reader.readString();
                         break;
                     default: reader.skipField();
                 }
@@ -2439,8 +2461,8 @@ export namespace idepb {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): ProjectRootResponse {
-            return ProjectRootResponse.deserialize(bytes);
+        static deserializeBinary(bytes: Uint8Array): CodeSourceIDResponse {
+            return CodeSourceIDResponse.deserialize(bytes);
         }
     }
     export class ErrorResponse extends pb_1.Message {
@@ -2514,8 +2536,21 @@ export namespace idepb {
         #one_of_decls: number[][] = [[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 999]];
         constructor(data?: any[] | ({
             type?: ResponseType;
-            command_id?: string;
+            code_source_id?: string;
         } & (({
+            code_source_id_response?: CodeSourceIDResponse;
+            list_files_response?: never;
+            get_files_response?: never;
+            open_files_response?: never;
+            find_string_response?: never;
+            select_range_response?: never;
+            describe_range_response?: never;
+            go_to_definition_response?: never;
+            rename_response?: never;
+            find_uses_response?: never;
+            error_response?: never;
+        } | {
+            code_source_id_response?: never;
             list_files_response?: ListFilesResponse;
             get_files_response?: never;
             open_files_response?: never;
@@ -2525,9 +2560,9 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            project_root_response?: never;
             error_response?: never;
         } | {
+            code_source_id_response?: never;
             list_files_response?: never;
             get_files_response?: GetFilesResponse;
             open_files_response?: never;
@@ -2537,9 +2572,9 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            project_root_response?: never;
             error_response?: never;
         } | {
+            code_source_id_response?: never;
             list_files_response?: never;
             get_files_response?: never;
             open_files_response?: OpenFilesResponse;
@@ -2549,9 +2584,9 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            project_root_response?: never;
             error_response?: never;
         } | {
+            code_source_id_response?: never;
             list_files_response?: never;
             get_files_response?: never;
             open_files_response?: never;
@@ -2561,9 +2596,9 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            project_root_response?: never;
             error_response?: never;
         } | {
+            code_source_id_response?: never;
             list_files_response?: never;
             get_files_response?: never;
             open_files_response?: never;
@@ -2573,9 +2608,9 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            project_root_response?: never;
             error_response?: never;
         } | {
+            code_source_id_response?: never;
             list_files_response?: never;
             get_files_response?: never;
             open_files_response?: never;
@@ -2585,9 +2620,9 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            project_root_response?: never;
             error_response?: never;
         } | {
+            code_source_id_response?: never;
             list_files_response?: never;
             get_files_response?: never;
             open_files_response?: never;
@@ -2597,9 +2632,9 @@ export namespace idepb {
             go_to_definition_response?: GoToDefinitionResponse;
             rename_response?: never;
             find_uses_response?: never;
-            project_root_response?: never;
             error_response?: never;
         } | {
+            code_source_id_response?: never;
             list_files_response?: never;
             get_files_response?: never;
             open_files_response?: never;
@@ -2609,9 +2644,9 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: RenameResponse;
             find_uses_response?: never;
-            project_root_response?: never;
             error_response?: never;
         } | {
+            code_source_id_response?: never;
             list_files_response?: never;
             get_files_response?: never;
             open_files_response?: never;
@@ -2621,9 +2656,9 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: FindUsesResponse;
-            project_root_response?: never;
             error_response?: never;
         } | {
+            code_source_id_response?: never;
             list_files_response?: never;
             get_files_response?: never;
             open_files_response?: never;
@@ -2633,19 +2668,6 @@ export namespace idepb {
             go_to_definition_response?: never;
             rename_response?: never;
             find_uses_response?: never;
-            project_root_response?: ProjectRootResponse;
-            error_response?: never;
-        } | {
-            list_files_response?: never;
-            get_files_response?: never;
-            open_files_response?: never;
-            find_string_response?: never;
-            select_range_response?: never;
-            describe_range_response?: never;
-            go_to_definition_response?: never;
-            rename_response?: never;
-            find_uses_response?: never;
-            project_root_response?: never;
             error_response?: ErrorResponse;
         })))) {
             super();
@@ -2654,8 +2676,11 @@ export namespace idepb {
                 if ("type" in data && data.type != undefined) {
                     this.type = data.type;
                 }
-                if ("command_id" in data && data.command_id != undefined) {
-                    this.command_id = data.command_id;
+                if ("code_source_id" in data && data.code_source_id != undefined) {
+                    this.code_source_id = data.code_source_id;
+                }
+                if ("code_source_id_response" in data && data.code_source_id_response != undefined) {
+                    this.code_source_id_response = data.code_source_id_response;
                 }
                 if ("list_files_response" in data && data.list_files_response != undefined) {
                     this.list_files_response = data.list_files_response;
@@ -2684,9 +2709,6 @@ export namespace idepb {
                 if ("find_uses_response" in data && data.find_uses_response != undefined) {
                     this.find_uses_response = data.find_uses_response;
                 }
-                if ("project_root_response" in data && data.project_root_response != undefined) {
-                    this.project_root_response = data.project_root_response;
-                }
                 if ("error_response" in data && data.error_response != undefined) {
                     this.error_response = data.error_response;
                 }
@@ -2698,100 +2720,100 @@ export namespace idepb {
         set type(value: ResponseType) {
             pb_1.Message.setField(this, 1, value);
         }
-        get command_id() {
+        get code_source_id() {
             return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
         }
-        set command_id(value: string) {
+        set code_source_id(value: string) {
             pb_1.Message.setField(this, 2, value);
         }
-        get list_files_response() {
-            return pb_1.Message.getWrapperField(this, ListFilesResponse, 3) as ListFilesResponse;
+        get code_source_id_response() {
+            return pb_1.Message.getWrapperField(this, CodeSourceIDResponse, 3) as CodeSourceIDResponse;
         }
-        set list_files_response(value: ListFilesResponse) {
+        set code_source_id_response(value: CodeSourceIDResponse) {
             pb_1.Message.setOneofWrapperField(this, 3, this.#one_of_decls[0], value);
         }
-        get has_list_files_response() {
+        get has_code_source_id_response() {
             return pb_1.Message.getField(this, 3) != null;
         }
-        get get_files_response() {
-            return pb_1.Message.getWrapperField(this, GetFilesResponse, 4) as GetFilesResponse;
+        get list_files_response() {
+            return pb_1.Message.getWrapperField(this, ListFilesResponse, 4) as ListFilesResponse;
         }
-        set get_files_response(value: GetFilesResponse) {
+        set list_files_response(value: ListFilesResponse) {
             pb_1.Message.setOneofWrapperField(this, 4, this.#one_of_decls[0], value);
         }
-        get has_get_files_response() {
+        get has_list_files_response() {
             return pb_1.Message.getField(this, 4) != null;
         }
-        get open_files_response() {
-            return pb_1.Message.getWrapperField(this, OpenFilesResponse, 5) as OpenFilesResponse;
+        get get_files_response() {
+            return pb_1.Message.getWrapperField(this, GetFilesResponse, 5) as GetFilesResponse;
         }
-        set open_files_response(value: OpenFilesResponse) {
+        set get_files_response(value: GetFilesResponse) {
             pb_1.Message.setOneofWrapperField(this, 5, this.#one_of_decls[0], value);
         }
-        get has_open_files_response() {
+        get has_get_files_response() {
             return pb_1.Message.getField(this, 5) != null;
         }
-        get find_string_response() {
-            return pb_1.Message.getWrapperField(this, FindStringResponse, 6) as FindStringResponse;
+        get open_files_response() {
+            return pb_1.Message.getWrapperField(this, OpenFilesResponse, 6) as OpenFilesResponse;
         }
-        set find_string_response(value: FindStringResponse) {
+        set open_files_response(value: OpenFilesResponse) {
             pb_1.Message.setOneofWrapperField(this, 6, this.#one_of_decls[0], value);
         }
-        get has_find_string_response() {
+        get has_open_files_response() {
             return pb_1.Message.getField(this, 6) != null;
         }
-        get select_range_response() {
-            return pb_1.Message.getWrapperField(this, SelectRangeResponse, 7) as SelectRangeResponse;
+        get find_string_response() {
+            return pb_1.Message.getWrapperField(this, FindStringResponse, 7) as FindStringResponse;
         }
-        set select_range_response(value: SelectRangeResponse) {
+        set find_string_response(value: FindStringResponse) {
             pb_1.Message.setOneofWrapperField(this, 7, this.#one_of_decls[0], value);
         }
-        get has_select_range_response() {
+        get has_find_string_response() {
             return pb_1.Message.getField(this, 7) != null;
         }
-        get describe_range_response() {
-            return pb_1.Message.getWrapperField(this, DescribeRangeResponse, 8) as DescribeRangeResponse;
+        get select_range_response() {
+            return pb_1.Message.getWrapperField(this, SelectRangeResponse, 8) as SelectRangeResponse;
         }
-        set describe_range_response(value: DescribeRangeResponse) {
+        set select_range_response(value: SelectRangeResponse) {
             pb_1.Message.setOneofWrapperField(this, 8, this.#one_of_decls[0], value);
         }
-        get has_describe_range_response() {
+        get has_select_range_response() {
             return pb_1.Message.getField(this, 8) != null;
         }
-        get go_to_definition_response() {
-            return pb_1.Message.getWrapperField(this, GoToDefinitionResponse, 9) as GoToDefinitionResponse;
+        get describe_range_response() {
+            return pb_1.Message.getWrapperField(this, DescribeRangeResponse, 9) as DescribeRangeResponse;
         }
-        set go_to_definition_response(value: GoToDefinitionResponse) {
+        set describe_range_response(value: DescribeRangeResponse) {
             pb_1.Message.setOneofWrapperField(this, 9, this.#one_of_decls[0], value);
         }
-        get has_go_to_definition_response() {
+        get has_describe_range_response() {
             return pb_1.Message.getField(this, 9) != null;
         }
-        get rename_response() {
-            return pb_1.Message.getWrapperField(this, RenameResponse, 10) as RenameResponse;
+        get go_to_definition_response() {
+            return pb_1.Message.getWrapperField(this, GoToDefinitionResponse, 10) as GoToDefinitionResponse;
         }
-        set rename_response(value: RenameResponse) {
+        set go_to_definition_response(value: GoToDefinitionResponse) {
             pb_1.Message.setOneofWrapperField(this, 10, this.#one_of_decls[0], value);
         }
-        get has_rename_response() {
+        get has_go_to_definition_response() {
             return pb_1.Message.getField(this, 10) != null;
         }
-        get find_uses_response() {
-            return pb_1.Message.getWrapperField(this, FindUsesResponse, 11) as FindUsesResponse;
+        get rename_response() {
+            return pb_1.Message.getWrapperField(this, RenameResponse, 11) as RenameResponse;
         }
-        set find_uses_response(value: FindUsesResponse) {
+        set rename_response(value: RenameResponse) {
             pb_1.Message.setOneofWrapperField(this, 11, this.#one_of_decls[0], value);
         }
-        get has_find_uses_response() {
+        get has_rename_response() {
             return pb_1.Message.getField(this, 11) != null;
         }
-        get project_root_response() {
-            return pb_1.Message.getWrapperField(this, ProjectRootResponse, 12) as ProjectRootResponse;
+        get find_uses_response() {
+            return pb_1.Message.getWrapperField(this, FindUsesResponse, 12) as FindUsesResponse;
         }
-        set project_root_response(value: ProjectRootResponse) {
+        set find_uses_response(value: FindUsesResponse) {
             pb_1.Message.setOneofWrapperField(this, 12, this.#one_of_decls[0], value);
         }
-        get has_project_root_response() {
+        get has_find_uses_response() {
             return pb_1.Message.getField(this, 12) != null;
         }
         get error_response() {
@@ -2805,26 +2827,27 @@ export namespace idepb {
         }
         get data() {
             const cases: {
-                [index: number]: "none" | "list_files_response" | "get_files_response" | "open_files_response" | "find_string_response" | "select_range_response" | "describe_range_response" | "go_to_definition_response" | "rename_response" | "find_uses_response" | "project_root_response" | "error_response";
+                [index: number]: "none" | "code_source_id_response" | "list_files_response" | "get_files_response" | "open_files_response" | "find_string_response" | "select_range_response" | "describe_range_response" | "go_to_definition_response" | "rename_response" | "find_uses_response" | "error_response";
             } = {
                 0: "none",
-                3: "list_files_response",
-                4: "get_files_response",
-                5: "open_files_response",
-                6: "find_string_response",
-                7: "select_range_response",
-                8: "describe_range_response",
-                9: "go_to_definition_response",
-                10: "rename_response",
-                11: "find_uses_response",
-                12: "project_root_response",
+                3: "code_source_id_response",
+                4: "list_files_response",
+                5: "get_files_response",
+                6: "open_files_response",
+                7: "find_string_response",
+                8: "select_range_response",
+                9: "describe_range_response",
+                10: "go_to_definition_response",
+                11: "rename_response",
+                12: "find_uses_response",
                 999: "error_response"
             };
             return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 999])];
         }
         static fromObject(data: {
             type?: ResponseType;
-            command_id?: string;
+            code_source_id?: string;
+            code_source_id_response?: ReturnType<typeof CodeSourceIDResponse.prototype.toObject>;
             list_files_response?: ReturnType<typeof ListFilesResponse.prototype.toObject>;
             get_files_response?: ReturnType<typeof GetFilesResponse.prototype.toObject>;
             open_files_response?: ReturnType<typeof OpenFilesResponse.prototype.toObject>;
@@ -2834,15 +2857,17 @@ export namespace idepb {
             go_to_definition_response?: ReturnType<typeof GoToDefinitionResponse.prototype.toObject>;
             rename_response?: ReturnType<typeof RenameResponse.prototype.toObject>;
             find_uses_response?: ReturnType<typeof FindUsesResponse.prototype.toObject>;
-            project_root_response?: ReturnType<typeof ProjectRootResponse.prototype.toObject>;
             error_response?: ReturnType<typeof ErrorResponse.prototype.toObject>;
         }): ResponseMessage {
             const message = new ResponseMessage({});
             if (data.type != null) {
                 message.type = data.type;
             }
-            if (data.command_id != null) {
-                message.command_id = data.command_id;
+            if (data.code_source_id != null) {
+                message.code_source_id = data.code_source_id;
+            }
+            if (data.code_source_id_response != null) {
+                message.code_source_id_response = CodeSourceIDResponse.fromObject(data.code_source_id_response);
             }
             if (data.list_files_response != null) {
                 message.list_files_response = ListFilesResponse.fromObject(data.list_files_response);
@@ -2871,9 +2896,6 @@ export namespace idepb {
             if (data.find_uses_response != null) {
                 message.find_uses_response = FindUsesResponse.fromObject(data.find_uses_response);
             }
-            if (data.project_root_response != null) {
-                message.project_root_response = ProjectRootResponse.fromObject(data.project_root_response);
-            }
             if (data.error_response != null) {
                 message.error_response = ErrorResponse.fromObject(data.error_response);
             }
@@ -2882,7 +2904,8 @@ export namespace idepb {
         toObject() {
             const data: {
                 type?: ResponseType;
-                command_id?: string;
+                code_source_id?: string;
+                code_source_id_response?: ReturnType<typeof CodeSourceIDResponse.prototype.toObject>;
                 list_files_response?: ReturnType<typeof ListFilesResponse.prototype.toObject>;
                 get_files_response?: ReturnType<typeof GetFilesResponse.prototype.toObject>;
                 open_files_response?: ReturnType<typeof OpenFilesResponse.prototype.toObject>;
@@ -2892,14 +2915,16 @@ export namespace idepb {
                 go_to_definition_response?: ReturnType<typeof GoToDefinitionResponse.prototype.toObject>;
                 rename_response?: ReturnType<typeof RenameResponse.prototype.toObject>;
                 find_uses_response?: ReturnType<typeof FindUsesResponse.prototype.toObject>;
-                project_root_response?: ReturnType<typeof ProjectRootResponse.prototype.toObject>;
                 error_response?: ReturnType<typeof ErrorResponse.prototype.toObject>;
             } = {};
             if (this.type != null) {
                 data.type = this.type;
             }
-            if (this.command_id != null) {
-                data.command_id = this.command_id;
+            if (this.code_source_id != null) {
+                data.code_source_id = this.code_source_id;
+            }
+            if (this.code_source_id_response != null) {
+                data.code_source_id_response = this.code_source_id_response.toObject();
             }
             if (this.list_files_response != null) {
                 data.list_files_response = this.list_files_response.toObject();
@@ -2928,9 +2953,6 @@ export namespace idepb {
             if (this.find_uses_response != null) {
                 data.find_uses_response = this.find_uses_response.toObject();
             }
-            if (this.project_root_response != null) {
-                data.project_root_response = this.project_root_response.toObject();
-            }
             if (this.error_response != null) {
                 data.error_response = this.error_response.toObject();
             }
@@ -2942,28 +2964,28 @@ export namespace idepb {
             const writer = w || new pb_1.BinaryWriter();
             if (this.type != ResponseType.RESPONSE_INVALID)
                 writer.writeEnum(1, this.type);
-            if (this.command_id.length)
-                writer.writeString(2, this.command_id);
+            if (this.code_source_id.length)
+                writer.writeString(2, this.code_source_id);
+            if (this.has_code_source_id_response)
+                writer.writeMessage(3, this.code_source_id_response, () => this.code_source_id_response.serialize(writer));
             if (this.has_list_files_response)
-                writer.writeMessage(3, this.list_files_response, () => this.list_files_response.serialize(writer));
+                writer.writeMessage(4, this.list_files_response, () => this.list_files_response.serialize(writer));
             if (this.has_get_files_response)
-                writer.writeMessage(4, this.get_files_response, () => this.get_files_response.serialize(writer));
+                writer.writeMessage(5, this.get_files_response, () => this.get_files_response.serialize(writer));
             if (this.has_open_files_response)
-                writer.writeMessage(5, this.open_files_response, () => this.open_files_response.serialize(writer));
+                writer.writeMessage(6, this.open_files_response, () => this.open_files_response.serialize(writer));
             if (this.has_find_string_response)
-                writer.writeMessage(6, this.find_string_response, () => this.find_string_response.serialize(writer));
+                writer.writeMessage(7, this.find_string_response, () => this.find_string_response.serialize(writer));
             if (this.has_select_range_response)
-                writer.writeMessage(7, this.select_range_response, () => this.select_range_response.serialize(writer));
+                writer.writeMessage(8, this.select_range_response, () => this.select_range_response.serialize(writer));
             if (this.has_describe_range_response)
-                writer.writeMessage(8, this.describe_range_response, () => this.describe_range_response.serialize(writer));
+                writer.writeMessage(9, this.describe_range_response, () => this.describe_range_response.serialize(writer));
             if (this.has_go_to_definition_response)
-                writer.writeMessage(9, this.go_to_definition_response, () => this.go_to_definition_response.serialize(writer));
+                writer.writeMessage(10, this.go_to_definition_response, () => this.go_to_definition_response.serialize(writer));
             if (this.has_rename_response)
-                writer.writeMessage(10, this.rename_response, () => this.rename_response.serialize(writer));
+                writer.writeMessage(11, this.rename_response, () => this.rename_response.serialize(writer));
             if (this.has_find_uses_response)
-                writer.writeMessage(11, this.find_uses_response, () => this.find_uses_response.serialize(writer));
-            if (this.has_project_root_response)
-                writer.writeMessage(12, this.project_root_response, () => this.project_root_response.serialize(writer));
+                writer.writeMessage(12, this.find_uses_response, () => this.find_uses_response.serialize(writer));
             if (this.has_error_response)
                 writer.writeMessage(999, this.error_response, () => this.error_response.serialize(writer));
             if (!w)
@@ -2979,37 +3001,37 @@ export namespace idepb {
                         message.type = reader.readEnum();
                         break;
                     case 2:
-                        message.command_id = reader.readString();
+                        message.code_source_id = reader.readString();
                         break;
                     case 3:
-                        reader.readMessage(message.list_files_response, () => message.list_files_response = ListFilesResponse.deserialize(reader));
+                        reader.readMessage(message.code_source_id_response, () => message.code_source_id_response = CodeSourceIDResponse.deserialize(reader));
                         break;
                     case 4:
-                        reader.readMessage(message.get_files_response, () => message.get_files_response = GetFilesResponse.deserialize(reader));
+                        reader.readMessage(message.list_files_response, () => message.list_files_response = ListFilesResponse.deserialize(reader));
                         break;
                     case 5:
-                        reader.readMessage(message.open_files_response, () => message.open_files_response = OpenFilesResponse.deserialize(reader));
+                        reader.readMessage(message.get_files_response, () => message.get_files_response = GetFilesResponse.deserialize(reader));
                         break;
                     case 6:
-                        reader.readMessage(message.find_string_response, () => message.find_string_response = FindStringResponse.deserialize(reader));
+                        reader.readMessage(message.open_files_response, () => message.open_files_response = OpenFilesResponse.deserialize(reader));
                         break;
                     case 7:
-                        reader.readMessage(message.select_range_response, () => message.select_range_response = SelectRangeResponse.deserialize(reader));
+                        reader.readMessage(message.find_string_response, () => message.find_string_response = FindStringResponse.deserialize(reader));
                         break;
                     case 8:
-                        reader.readMessage(message.describe_range_response, () => message.describe_range_response = DescribeRangeResponse.deserialize(reader));
+                        reader.readMessage(message.select_range_response, () => message.select_range_response = SelectRangeResponse.deserialize(reader));
                         break;
                     case 9:
-                        reader.readMessage(message.go_to_definition_response, () => message.go_to_definition_response = GoToDefinitionResponse.deserialize(reader));
+                        reader.readMessage(message.describe_range_response, () => message.describe_range_response = DescribeRangeResponse.deserialize(reader));
                         break;
                     case 10:
-                        reader.readMessage(message.rename_response, () => message.rename_response = RenameResponse.deserialize(reader));
+                        reader.readMessage(message.go_to_definition_response, () => message.go_to_definition_response = GoToDefinitionResponse.deserialize(reader));
                         break;
                     case 11:
-                        reader.readMessage(message.find_uses_response, () => message.find_uses_response = FindUsesResponse.deserialize(reader));
+                        reader.readMessage(message.rename_response, () => message.rename_response = RenameResponse.deserialize(reader));
                         break;
                     case 12:
-                        reader.readMessage(message.project_root_response, () => message.project_root_response = ProjectRootResponse.deserialize(reader));
+                        reader.readMessage(message.find_uses_response, () => message.find_uses_response = FindUsesResponse.deserialize(reader));
                         break;
                     case 999:
                         reader.readMessage(message.error_response, () => message.error_response = ErrorResponse.deserialize(reader));
@@ -3991,9 +4013,10 @@ export namespace idepb {
         }
     }
     export class PushMessage extends pb_1.Message {
-        #one_of_decls: number[][] = [[2, 3, 4, 5, 6]];
+        #one_of_decls: number[][] = [[3, 4, 5, 6, 7]];
         constructor(data?: any[] | ({
             type?: PushType;
+            code_source_id?: string;
         } & (({
             open_file?: OpenFilePush;
             create_snippet?: never;
@@ -4031,6 +4054,9 @@ export namespace idepb {
                 if ("type" in data && data.type != undefined) {
                     this.type = data.type;
                 }
+                if ("code_source_id" in data && data.code_source_id != undefined) {
+                    this.code_source_id = data.code_source_id;
+                }
                 if ("open_file" in data && data.open_file != undefined) {
                     this.open_file = data.open_file;
                 }
@@ -4054,66 +4080,73 @@ export namespace idepb {
         set type(value: PushType) {
             pb_1.Message.setField(this, 1, value);
         }
+        get code_source_id() {
+            return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+        }
+        set code_source_id(value: string) {
+            pb_1.Message.setField(this, 2, value);
+        }
         get open_file() {
-            return pb_1.Message.getWrapperField(this, OpenFilePush, 2) as OpenFilePush;
+            return pb_1.Message.getWrapperField(this, OpenFilePush, 3) as OpenFilePush;
         }
         set open_file(value: OpenFilePush) {
-            pb_1.Message.setOneofWrapperField(this, 2, this.#one_of_decls[0], value);
-        }
-        get has_open_file() {
-            return pb_1.Message.getField(this, 2) != null;
-        }
-        get create_snippet() {
-            return pb_1.Message.getWrapperField(this, CreateSnippetPush, 3) as CreateSnippetPush;
-        }
-        set create_snippet(value: CreateSnippetPush) {
             pb_1.Message.setOneofWrapperField(this, 3, this.#one_of_decls[0], value);
         }
-        get has_create_snippet() {
+        get has_open_file() {
             return pb_1.Message.getField(this, 3) != null;
         }
-        get pin_file() {
-            return pb_1.Message.getWrapperField(this, PinFilePush, 4) as PinFilePush;
+        get create_snippet() {
+            return pb_1.Message.getWrapperField(this, CreateSnippetPush, 4) as CreateSnippetPush;
         }
-        set pin_file(value: PinFilePush) {
+        set create_snippet(value: CreateSnippetPush) {
             pb_1.Message.setOneofWrapperField(this, 4, this.#one_of_decls[0], value);
         }
-        get has_pin_file() {
+        get has_create_snippet() {
             return pb_1.Message.getField(this, 4) != null;
         }
-        get highlight() {
-            return pb_1.Message.getWrapperField(this, HighlightPush, 5) as HighlightPush;
+        get pin_file() {
+            return pb_1.Message.getWrapperField(this, PinFilePush, 5) as PinFilePush;
         }
-        set highlight(value: HighlightPush) {
+        set pin_file(value: PinFilePush) {
             pb_1.Message.setOneofWrapperField(this, 5, this.#one_of_decls[0], value);
         }
-        get has_highlight() {
+        get has_pin_file() {
             return pb_1.Message.getField(this, 5) != null;
         }
-        get follow() {
-            return pb_1.Message.getWrapperField(this, FollowPush, 6) as FollowPush;
+        get highlight() {
+            return pb_1.Message.getWrapperField(this, HighlightPush, 6) as HighlightPush;
         }
-        set follow(value: FollowPush) {
+        set highlight(value: HighlightPush) {
             pb_1.Message.setOneofWrapperField(this, 6, this.#one_of_decls[0], value);
         }
-        get has_follow() {
+        get has_highlight() {
             return pb_1.Message.getField(this, 6) != null;
+        }
+        get follow() {
+            return pb_1.Message.getWrapperField(this, FollowPush, 7) as FollowPush;
+        }
+        set follow(value: FollowPush) {
+            pb_1.Message.setOneofWrapperField(this, 7, this.#one_of_decls[0], value);
+        }
+        get has_follow() {
+            return pb_1.Message.getField(this, 7) != null;
         }
         get data() {
             const cases: {
                 [index: number]: "none" | "open_file" | "create_snippet" | "pin_file" | "highlight" | "follow";
             } = {
                 0: "none",
-                2: "open_file",
-                3: "create_snippet",
-                4: "pin_file",
-                5: "highlight",
-                6: "follow"
+                3: "open_file",
+                4: "create_snippet",
+                5: "pin_file",
+                6: "highlight",
+                7: "follow"
             };
-            return cases[pb_1.Message.computeOneofCase(this, [2, 3, 4, 5, 6])];
+            return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7])];
         }
         static fromObject(data: {
             type?: PushType;
+            code_source_id?: string;
             open_file?: ReturnType<typeof OpenFilePush.prototype.toObject>;
             create_snippet?: ReturnType<typeof CreateSnippetPush.prototype.toObject>;
             pin_file?: ReturnType<typeof PinFilePush.prototype.toObject>;
@@ -4123,6 +4156,9 @@ export namespace idepb {
             const message = new PushMessage({});
             if (data.type != null) {
                 message.type = data.type;
+            }
+            if (data.code_source_id != null) {
+                message.code_source_id = data.code_source_id;
             }
             if (data.open_file != null) {
                 message.open_file = OpenFilePush.fromObject(data.open_file);
@@ -4144,6 +4180,7 @@ export namespace idepb {
         toObject() {
             const data: {
                 type?: PushType;
+                code_source_id?: string;
                 open_file?: ReturnType<typeof OpenFilePush.prototype.toObject>;
                 create_snippet?: ReturnType<typeof CreateSnippetPush.prototype.toObject>;
                 pin_file?: ReturnType<typeof PinFilePush.prototype.toObject>;
@@ -4152,6 +4189,9 @@ export namespace idepb {
             } = {};
             if (this.type != null) {
                 data.type = this.type;
+            }
+            if (this.code_source_id != null) {
+                data.code_source_id = this.code_source_id;
             }
             if (this.open_file != null) {
                 data.open_file = this.open_file.toObject();
@@ -4176,16 +4216,18 @@ export namespace idepb {
             const writer = w || new pb_1.BinaryWriter();
             if (this.type != PushType.PUSH_INVALID)
                 writer.writeEnum(1, this.type);
+            if (this.code_source_id.length)
+                writer.writeString(2, this.code_source_id);
             if (this.has_open_file)
-                writer.writeMessage(2, this.open_file, () => this.open_file.serialize(writer));
+                writer.writeMessage(3, this.open_file, () => this.open_file.serialize(writer));
             if (this.has_create_snippet)
-                writer.writeMessage(3, this.create_snippet, () => this.create_snippet.serialize(writer));
+                writer.writeMessage(4, this.create_snippet, () => this.create_snippet.serialize(writer));
             if (this.has_pin_file)
-                writer.writeMessage(4, this.pin_file, () => this.pin_file.serialize(writer));
+                writer.writeMessage(5, this.pin_file, () => this.pin_file.serialize(writer));
             if (this.has_highlight)
-                writer.writeMessage(5, this.highlight, () => this.highlight.serialize(writer));
+                writer.writeMessage(6, this.highlight, () => this.highlight.serialize(writer));
             if (this.has_follow)
-                writer.writeMessage(6, this.follow, () => this.follow.serialize(writer));
+                writer.writeMessage(7, this.follow, () => this.follow.serialize(writer));
             if (!w)
                 return writer.getResultBuffer();
         }
@@ -4199,18 +4241,21 @@ export namespace idepb {
                         message.type = reader.readEnum();
                         break;
                     case 2:
-                        reader.readMessage(message.open_file, () => message.open_file = OpenFilePush.deserialize(reader));
+                        message.code_source_id = reader.readString();
                         break;
                     case 3:
-                        reader.readMessage(message.create_snippet, () => message.create_snippet = CreateSnippetPush.deserialize(reader));
+                        reader.readMessage(message.open_file, () => message.open_file = OpenFilePush.deserialize(reader));
                         break;
                     case 4:
-                        reader.readMessage(message.pin_file, () => message.pin_file = PinFilePush.deserialize(reader));
+                        reader.readMessage(message.create_snippet, () => message.create_snippet = CreateSnippetPush.deserialize(reader));
                         break;
                     case 5:
-                        reader.readMessage(message.highlight, () => message.highlight = HighlightPush.deserialize(reader));
+                        reader.readMessage(message.pin_file, () => message.pin_file = PinFilePush.deserialize(reader));
                         break;
                     case 6:
+                        reader.readMessage(message.highlight, () => message.highlight = HighlightPush.deserialize(reader));
+                        break;
+                    case 7:
                         reader.readMessage(message.follow, () => message.follow = FollowPush.deserialize(reader));
                         break;
                     default: reader.skipField();

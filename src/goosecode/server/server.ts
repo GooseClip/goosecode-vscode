@@ -1,13 +1,7 @@
 import * as vscode from "vscode";
-import express = require("express");
-import { Express } from "express";
-import { promisify } from "util";
-import { readFile } from "fs";
+import * as express from "express";
+import * as expressWs from "express-ws";
 import { RawData, WebSocket } from "ws";
-import expressWs = require("express-ws");
-import * as path from "path";
-import * as http from "http";
-import { deserializeBinary } from "../../util";
 import { handleListFilesRequest } from "./handlers/list-files";
 import { handleGetFilesRequest } from "./handlers/get-files";
 import { handleOpenFilesRequest } from "./handlers/open-files";
@@ -17,22 +11,40 @@ import { handleDescribeRange } from "./handlers/describe-range";
 import { handleGoToDefinition } from "./handlers/go-to";
 import { handleRename } from "./handlers/rename";
 import { handleFindUses } from "./handlers/find-uses";
-import { deserializeBinaryMiddleware } from "../deserializeBinaryMiddleware";
+import { convertBodyToProtoMiddleware } from "./middleware/proto-binary";
 import { getProjectRoot } from "../commands/commands";
 import { idepb } from "../../proto/idepb/ide";
 import ResponseMessage = idepb.ResponseMessage;
-import { handleProjectRootRequest } from "./handlers/project-root";
+import { handleCodeSourceID } from "./handlers/code-source-id";
 import ErrorResponse = idepb.ErrorResponse;
 import { ApiError } from "../errors";
 import PushMessage = idepb.PushMessage;
+import {CodeSourceID, GooseCodeConfig} from "../../config";
+import * as https from "https";
+import { Server, ServerOptions } from "https";
+import { DepNodeProvider } from "../../file-tree";
+import { registerGooseCodeCommands } from "../goosecode";
+import { authMiddleware } from "./middleware/auth";
+import {config} from "webpack";
+import {checkCodeSourceMiddleware} from "./middleware/code-source";
 
 export class GooseCodeServer {
-  constructor() {}
+  constructor(private readonly config: GooseCodeConfig) {}
 
-  websocket: WebSocket | null = null;
+  public websocket: WebSocket | null = null;
+  public server: Server | null = null;
+  private subscriptions: Array<vscode.Disposable> = [];
+
+  public stop() {
+    this.subscriptions.forEach((s) => s.dispose());
+    this.websocket?.close();
+    this.server?.close(() => {
+      console.log("HTTP server stopped");
+    });
+  }
 
   public push(msg: PushMessage) {
-    if (this.websocket == null) {
+    if (this.websocket === null) {
       console.error("Websocket is not connected");
       return;
     }
@@ -46,22 +58,40 @@ export class GooseCodeServer {
     res.send(buffer);
   }
 
-  public initialize(
-    context: vscode.ExtensionContext,
-    app: Express,
-    wsApp: expressWs.Instance,
-  ) {
+  private createProjectExplorerProvider() {
+    const rootPath = getProjectRoot();
+    const explorerProvider = new DepNodeProvider(rootPath);
+    const explorerProviderDisposable = vscode.window.registerTreeDataProvider(
+      "goosecode.explorer",
+      explorerProvider,
+    );
+    this.subscriptions.push(explorerProviderDisposable);
+  }
+
+  public async start() {
+    if (this.server !== null) {
+      console.error("Server already started");
+      return;
+    }
+    const codeSourceID: CodeSourceID = this.config.config.code_source_id;
+    // Establish server and websocket connection
+    const app = express();
+    this.server = https.createServer(this.config.tlsOptions, app);
+    const wsApp = expressWs(app as any, this.server!);
+
     app.use(express.raw({ type: "application/octet-stream" }));
-    app.use(deserializeBinaryMiddleware);
+    app.use(convertBodyToProtoMiddleware);
+    app.use((r, q, n) => authMiddleware(r, q, n, this.config.config.password));
+    app.use((r, q, n) => checkCodeSourceMiddleware(r, q, n, this.config.config.code_source_id));
 
     app.post(
-      "/project-root",
+      "/code-source-id",
       async (
         req: express.Request,
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleProjectRootRequest(req.body, (m) =>
+        await handleCodeSourceID(codeSourceID, req.body, (m) =>
           this.send(res, m),
         ).catch((e) => next(e));
       },
@@ -74,7 +104,7 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleListFilesRequest(req.body, (m) => this.send(res, m)).catch(
+        await handleListFilesRequest(codeSourceID, req.body, (m) => this.send(res, m)).catch(
           (e) => next(e),
         );
       },
@@ -87,7 +117,7 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleGetFilesRequest(req.body, (m) => this.send(res, m)).catch(
+        await handleGetFilesRequest(codeSourceID, req.body, (m) => this.send(res, m)).catch(
           (e) => next(e),
         );
       },
@@ -100,7 +130,7 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleOpenFilesRequest(req.body, (m) => this.send(res, m)).catch(
+        await handleOpenFilesRequest(codeSourceID, req.body, (m) => this.send(res, m)).catch(
           (e) => next(e),
         );
       },
@@ -113,7 +143,7 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleFindRequest(req.body, (m) => this.send(res, m)).catch((e) =>
+        await handleFindRequest(codeSourceID, req.body, (m) => this.send(res, m)).catch((e) =>
           next(e),
         );
       },
@@ -126,7 +156,7 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleSelectRange(req.body, (m) => this.send(res, m)).catch((e) =>
+        await handleSelectRange(codeSourceID, req.body, (m) => this.send(res, m)).catch((e) =>
           next(e),
         );
       },
@@ -139,7 +169,7 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleDescribeRange(req.body, (m) => this.send(res, m)).catch(
+        await handleDescribeRange(codeSourceID, req.body, (m) => this.send(res, m)).catch(
           (e) => next(e),
         );
       },
@@ -152,7 +182,7 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleGoToDefinition(req.body, (m) => this.send(res, m)).catch(
+        await handleGoToDefinition(codeSourceID, req.body, (m) => this.send(res, m)).catch(
           (e) => next(e),
         );
       },
@@ -165,7 +195,7 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleRename(req.body, (m) => this.send(res, m)).catch((e) =>
+        await handleRename(codeSourceID, req.body, (m) => this.send(res, m)).catch((e) =>
           next(e),
         );
       },
@@ -178,7 +208,7 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleFindUses(req.body, (m) => this.send(res, m)).catch((e) =>
+        await handleFindUses(codeSourceID, req.body, (m) => this.send(res, m)).catch((e) =>
           next(e),
         );
       },
@@ -199,15 +229,19 @@ export class GooseCodeServer {
 
     // Start a websocket server
     wsApp.app.ws("/connect", (socket, req) => {
+      console.log("Authorization:", req.headers.authorization);
+      if(req.headers.authorization !== this.config.config.password){
+        console.error("Unauthorized websocket connection");
+        socket.close(3000);
+        return;
+      }
+
       console.log("Extension: WebSocket connection opened");
       this.websocket = socket;
 
       socket.on("message", (message: RawData) => {
         console.log("Extension: Received message on websocket...");
-        if (typeof message === "string") {
-        } else {
-          console.error("Received non-string message data", message); // TODO handle appropriately
-        }
+        console.error("Received non-string message data", message);
       });
 
       socket.on("close", (code, reason) => {
@@ -253,5 +287,19 @@ export class GooseCodeServer {
         }
       },
     );
+
+    const port = this.config.config.port;
+    const ip = this.config.config.localhostOnly ? "127.0.0.1" : "0.0.0.0";
+
+    // Serve the server
+    this.server!.listen(port, ip, () => {
+      console.log(`Listening on ${ip}:${port}`);
+    });
+
+    this.createProjectExplorerProvider();
+
+    this.subscriptions.push(...registerGooseCodeCommands(this));
+
+    console.log("GooseCode server started");
   }
 }
