@@ -4013,10 +4013,11 @@ export namespace idepb {
         }
     }
     export class PushMessage extends pb_1.Message {
-        #one_of_decls: number[][] = [[3, 4, 5, 6, 7]];
+        #one_of_decls: number[][] = [[4, 5, 6, 7, 8]];
         constructor(data?: any[] | ({
             type?: PushType;
             code_source_id?: string;
+            workspace_root?: string;
         } & (({
             open_file?: OpenFilePush;
             create_snippet?: never;
@@ -4057,6 +4058,9 @@ export namespace idepb {
                 if ("code_source_id" in data && data.code_source_id != undefined) {
                     this.code_source_id = data.code_source_id;
                 }
+                if ("workspace_root" in data && data.workspace_root != undefined) {
+                    this.workspace_root = data.workspace_root;
+                }
                 if ("open_file" in data && data.open_file != undefined) {
                     this.open_file = data.open_file;
                 }
@@ -4086,67 +4090,74 @@ export namespace idepb {
         set code_source_id(value: string) {
             pb_1.Message.setField(this, 2, value);
         }
+        get workspace_root() {
+            return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+        }
+        set workspace_root(value: string) {
+            pb_1.Message.setField(this, 3, value);
+        }
         get open_file() {
-            return pb_1.Message.getWrapperField(this, OpenFilePush, 3) as OpenFilePush;
+            return pb_1.Message.getWrapperField(this, OpenFilePush, 4) as OpenFilePush;
         }
         set open_file(value: OpenFilePush) {
-            pb_1.Message.setOneofWrapperField(this, 3, this.#one_of_decls[0], value);
-        }
-        get has_open_file() {
-            return pb_1.Message.getField(this, 3) != null;
-        }
-        get create_snippet() {
-            return pb_1.Message.getWrapperField(this, CreateSnippetPush, 4) as CreateSnippetPush;
-        }
-        set create_snippet(value: CreateSnippetPush) {
             pb_1.Message.setOneofWrapperField(this, 4, this.#one_of_decls[0], value);
         }
-        get has_create_snippet() {
+        get has_open_file() {
             return pb_1.Message.getField(this, 4) != null;
         }
-        get pin_file() {
-            return pb_1.Message.getWrapperField(this, PinFilePush, 5) as PinFilePush;
+        get create_snippet() {
+            return pb_1.Message.getWrapperField(this, CreateSnippetPush, 5) as CreateSnippetPush;
         }
-        set pin_file(value: PinFilePush) {
+        set create_snippet(value: CreateSnippetPush) {
             pb_1.Message.setOneofWrapperField(this, 5, this.#one_of_decls[0], value);
         }
-        get has_pin_file() {
+        get has_create_snippet() {
             return pb_1.Message.getField(this, 5) != null;
         }
-        get highlight() {
-            return pb_1.Message.getWrapperField(this, HighlightPush, 6) as HighlightPush;
+        get pin_file() {
+            return pb_1.Message.getWrapperField(this, PinFilePush, 6) as PinFilePush;
         }
-        set highlight(value: HighlightPush) {
+        set pin_file(value: PinFilePush) {
             pb_1.Message.setOneofWrapperField(this, 6, this.#one_of_decls[0], value);
         }
-        get has_highlight() {
+        get has_pin_file() {
             return pb_1.Message.getField(this, 6) != null;
         }
-        get follow() {
-            return pb_1.Message.getWrapperField(this, FollowPush, 7) as FollowPush;
+        get highlight() {
+            return pb_1.Message.getWrapperField(this, HighlightPush, 7) as HighlightPush;
         }
-        set follow(value: FollowPush) {
+        set highlight(value: HighlightPush) {
             pb_1.Message.setOneofWrapperField(this, 7, this.#one_of_decls[0], value);
         }
-        get has_follow() {
+        get has_highlight() {
             return pb_1.Message.getField(this, 7) != null;
+        }
+        get follow() {
+            return pb_1.Message.getWrapperField(this, FollowPush, 8) as FollowPush;
+        }
+        set follow(value: FollowPush) {
+            pb_1.Message.setOneofWrapperField(this, 8, this.#one_of_decls[0], value);
+        }
+        get has_follow() {
+            return pb_1.Message.getField(this, 8) != null;
         }
         get data() {
             const cases: {
                 [index: number]: "none" | "open_file" | "create_snippet" | "pin_file" | "highlight" | "follow";
             } = {
                 0: "none",
-                3: "open_file",
-                4: "create_snippet",
-                5: "pin_file",
-                6: "highlight",
-                7: "follow"
+                4: "open_file",
+                5: "create_snippet",
+                6: "pin_file",
+                7: "highlight",
+                8: "follow"
             };
-            return cases[pb_1.Message.computeOneofCase(this, [3, 4, 5, 6, 7])];
+            return cases[pb_1.Message.computeOneofCase(this, [4, 5, 6, 7, 8])];
         }
         static fromObject(data: {
             type?: PushType;
             code_source_id?: string;
+            workspace_root?: string;
             open_file?: ReturnType<typeof OpenFilePush.prototype.toObject>;
             create_snippet?: ReturnType<typeof CreateSnippetPush.prototype.toObject>;
             pin_file?: ReturnType<typeof PinFilePush.prototype.toObject>;
@@ -4159,6 +4170,9 @@ export namespace idepb {
             }
             if (data.code_source_id != null) {
                 message.code_source_id = data.code_source_id;
+            }
+            if (data.workspace_root != null) {
+                message.workspace_root = data.workspace_root;
             }
             if (data.open_file != null) {
                 message.open_file = OpenFilePush.fromObject(data.open_file);
@@ -4181,6 +4195,7 @@ export namespace idepb {
             const data: {
                 type?: PushType;
                 code_source_id?: string;
+                workspace_root?: string;
                 open_file?: ReturnType<typeof OpenFilePush.prototype.toObject>;
                 create_snippet?: ReturnType<typeof CreateSnippetPush.prototype.toObject>;
                 pin_file?: ReturnType<typeof PinFilePush.prototype.toObject>;
@@ -4192,6 +4207,9 @@ export namespace idepb {
             }
             if (this.code_source_id != null) {
                 data.code_source_id = this.code_source_id;
+            }
+            if (this.workspace_root != null) {
+                data.workspace_root = this.workspace_root;
             }
             if (this.open_file != null) {
                 data.open_file = this.open_file.toObject();
@@ -4218,16 +4236,18 @@ export namespace idepb {
                 writer.writeEnum(1, this.type);
             if (this.code_source_id.length)
                 writer.writeString(2, this.code_source_id);
+            if (this.workspace_root.length)
+                writer.writeString(3, this.workspace_root);
             if (this.has_open_file)
-                writer.writeMessage(3, this.open_file, () => this.open_file.serialize(writer));
+                writer.writeMessage(4, this.open_file, () => this.open_file.serialize(writer));
             if (this.has_create_snippet)
-                writer.writeMessage(4, this.create_snippet, () => this.create_snippet.serialize(writer));
+                writer.writeMessage(5, this.create_snippet, () => this.create_snippet.serialize(writer));
             if (this.has_pin_file)
-                writer.writeMessage(5, this.pin_file, () => this.pin_file.serialize(writer));
+                writer.writeMessage(6, this.pin_file, () => this.pin_file.serialize(writer));
             if (this.has_highlight)
-                writer.writeMessage(6, this.highlight, () => this.highlight.serialize(writer));
+                writer.writeMessage(7, this.highlight, () => this.highlight.serialize(writer));
             if (this.has_follow)
-                writer.writeMessage(7, this.follow, () => this.follow.serialize(writer));
+                writer.writeMessage(8, this.follow, () => this.follow.serialize(writer));
             if (!w)
                 return writer.getResultBuffer();
         }
@@ -4244,18 +4264,21 @@ export namespace idepb {
                         message.code_source_id = reader.readString();
                         break;
                     case 3:
-                        reader.readMessage(message.open_file, () => message.open_file = OpenFilePush.deserialize(reader));
+                        message.workspace_root = reader.readString();
                         break;
                     case 4:
-                        reader.readMessage(message.create_snippet, () => message.create_snippet = CreateSnippetPush.deserialize(reader));
+                        reader.readMessage(message.open_file, () => message.open_file = OpenFilePush.deserialize(reader));
                         break;
                     case 5:
-                        reader.readMessage(message.pin_file, () => message.pin_file = PinFilePush.deserialize(reader));
+                        reader.readMessage(message.create_snippet, () => message.create_snippet = CreateSnippetPush.deserialize(reader));
                         break;
                     case 6:
-                        reader.readMessage(message.highlight, () => message.highlight = HighlightPush.deserialize(reader));
+                        reader.readMessage(message.pin_file, () => message.pin_file = PinFilePush.deserialize(reader));
                         break;
                     case 7:
+                        reader.readMessage(message.highlight, () => message.highlight = HighlightPush.deserialize(reader));
+                        break;
+                    case 8:
                         reader.readMessage(message.follow, () => message.follow = FollowPush.deserialize(reader));
                         break;
                     default: reader.skipField();

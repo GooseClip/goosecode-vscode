@@ -19,21 +19,28 @@ import { handleCodeSourceID } from "./handlers/code-source-id";
 import ErrorResponse = idepb.ErrorResponse;
 import { ApiError } from "../errors";
 import PushMessage = idepb.PushMessage;
-import {CodeSourceID, GooseCodeConfig} from "../../config";
+import {
+  CodeSourceID,
+  GooseCodeExtensionConfig,
+  GooseCodeWorkspaceConfig,
+  loadWorkspaceConfiguration,
+} from "../../config";
 import * as https from "https";
 import { Server, ServerOptions } from "https";
 import { DepNodeProvider } from "../../file-tree";
 import { registerGooseCodeCommands } from "../goosecode";
 import { authMiddleware } from "./middleware/auth";
-import {config} from "webpack";
-import {checkCodeSourceMiddleware} from "./middleware/code-source";
+import { config } from "webpack";
+import { checkCodeSourceMiddleware } from "./middleware/code-source";
+import { workspace } from "vscode";
 
 export class GooseCodeServer {
-  constructor(private readonly config: GooseCodeConfig) {}
+  constructor(private readonly extensionConfig: GooseCodeExtensionConfig) {}
 
   public websocket: WebSocket | null = null;
   public server: Server | null = null;
   private subscriptions: Array<vscode.Disposable> = [];
+  private workspaceConfig: GooseCodeWorkspaceConfig | null = null;
 
   public stop() {
     this.subscriptions.forEach((s) => s.dispose());
@@ -43,12 +50,22 @@ export class GooseCodeServer {
     });
   }
 
+  private initializeWorkspaceConfig() {
+    this.workspaceConfig = loadWorkspaceConfiguration();
+  }
+
   public push(msg: PushMessage) {
     if (this.websocket === null) {
       console.error("Websocket is not connected");
       return;
     }
 
+    if (this.workspaceConfig == null) {
+      this.initializeWorkspaceConfig();
+    }
+
+    msg.code_source_id = this.workspaceConfig!.config.code_source_id;
+    msg.workspace_root = getProjectRoot();
     this.websocket.send(msg.serializeBinary());
   }
 
@@ -68,21 +85,29 @@ export class GooseCodeServer {
     this.subscriptions.push(explorerProviderDisposable);
   }
 
+  private codeSourceID(): CodeSourceID | null {
+    if(!this.workspaceConfig){
+      return null;
+    }
+    return this.workspaceConfig!.config.code_source_id;
+  }
+
   public async start() {
     if (this.server !== null) {
       console.error("Server already started");
       return;
     }
-    const codeSourceID: CodeSourceID = this.config.config.code_source_id;
     // Establish server and websocket connection
     const app = express();
-    this.server = https.createServer(this.config.tlsOptions, app);
+    this.server = https.createServer(this.extensionConfig.tlsOptions, app);
     const wsApp = expressWs(app as any, this.server!);
 
     app.use(express.raw({ type: "application/octet-stream" }));
     app.use(convertBodyToProtoMiddleware);
-    app.use((r, q, n) => authMiddleware(r, q, n, this.config.config.password));
-    app.use((r, q, n) => checkCodeSourceMiddleware(r, q, n, this.config.config.code_source_id));
+    app.use((r, q, n) =>
+      authMiddleware(r, q, n, this.extensionConfig.settings.password),
+    );
+    app.use((r, q, n) => checkCodeSourceMiddleware(r, q, n, ()=>this.codeSourceID()));
 
     app.post(
       "/code-source-id",
@@ -91,7 +116,7 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleCodeSourceID(codeSourceID, req.body, (m) =>
+        await handleCodeSourceID(this.codeSourceID()!, req.body, (m) =>
           this.send(res, m),
         ).catch((e) => next(e));
       },
@@ -104,9 +129,9 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleListFilesRequest(codeSourceID, req.body, (m) => this.send(res, m)).catch(
-          (e) => next(e),
-        );
+        await handleListFilesRequest(this.codeSourceID()!, req.body, (m) =>
+          this.send(res, m),
+        ).catch((e) => next(e));
       },
     );
 
@@ -117,9 +142,9 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleGetFilesRequest(codeSourceID, req.body, (m) => this.send(res, m)).catch(
-          (e) => next(e),
-        );
+        await handleGetFilesRequest(this.codeSourceID()!, req.body, (m) =>
+          this.send(res, m),
+        ).catch((e) => next(e));
       },
     );
 
@@ -130,9 +155,9 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleOpenFilesRequest(codeSourceID, req.body, (m) => this.send(res, m)).catch(
-          (e) => next(e),
-        );
+        await handleOpenFilesRequest(this.codeSourceID()!, req.body, (m) =>
+          this.send(res, m),
+        ).catch((e) => next(e));
       },
     );
 
@@ -143,9 +168,9 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleFindRequest(codeSourceID, req.body, (m) => this.send(res, m)).catch((e) =>
-          next(e),
-        );
+        await handleFindRequest(this.codeSourceID()!, req.body, (m) =>
+          this.send(res, m),
+        ).catch((e) => next(e));
       },
     );
 
@@ -156,9 +181,9 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleSelectRange(codeSourceID, req.body, (m) => this.send(res, m)).catch((e) =>
-          next(e),
-        );
+        await handleSelectRange(this.codeSourceID()!, req.body, (m) =>
+          this.send(res, m),
+        ).catch((e) => next(e));
       },
     );
 
@@ -169,9 +194,9 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleDescribeRange(codeSourceID, req.body, (m) => this.send(res, m)).catch(
-          (e) => next(e),
-        );
+        await handleDescribeRange(this.codeSourceID()!, req.body, (m) =>
+          this.send(res, m),
+        ).catch((e) => next(e));
       },
     );
 
@@ -182,9 +207,9 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleGoToDefinition(codeSourceID, req.body, (m) => this.send(res, m)).catch(
-          (e) => next(e),
-        );
+        await handleGoToDefinition(this.codeSourceID()!, req.body, (m) =>
+          this.send(res, m),
+        ).catch((e) => next(e));
       },
     );
 
@@ -195,9 +220,9 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleRename(codeSourceID, req.body, (m) => this.send(res, m)).catch((e) =>
-          next(e),
-        );
+        await handleRename(this.codeSourceID()!, req.body, (m) =>
+          this.send(res, m),
+        ).catch((e) => next(e));
       },
     );
 
@@ -208,9 +233,9 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleFindUses(codeSourceID, req.body, (m) => this.send(res, m)).catch((e) =>
-          next(e),
-        );
+        await handleFindUses(this.codeSourceID()!, req.body, (m) =>
+          this.send(res, m),
+        ).catch((e) => next(e));
       },
     );
 
@@ -230,7 +255,9 @@ export class GooseCodeServer {
     // Start a websocket server
     wsApp.app.ws("/connect", (socket, req) => {
       console.log("Authorization:", req.headers.authorization);
-      if(req.headers.authorization !== this.config.config.password){
+      if (
+        req.headers.authorization !== this.extensionConfig.settings.password
+      ) {
         console.error("Unauthorized websocket connection");
         socket.close(3000);
         return;
@@ -288,8 +315,10 @@ export class GooseCodeServer {
       },
     );
 
-    const port = this.config.config.port;
-    const ip = this.config.config.localhostOnly ? "127.0.0.1" : "0.0.0.0";
+    const port = this.extensionConfig.settings.port;
+    const ip = this.extensionConfig.settings.localhostOnly
+      ? "127.0.0.1"
+      : "0.0.0.0";
 
     // Serve the server
     this.server!.listen(port, ip, () => {

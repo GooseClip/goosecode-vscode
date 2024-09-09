@@ -8,7 +8,7 @@ function checkCodeSourceMiddleware(
   req: Request,
   res: Response,
   next: NextFunction,
-  codeSourceID: CodeSourceID,
+  getCodeSourceID: () => (CodeSourceID | null),
 ) {
   if (req.path === "/connect/.websocket") {
     next();
@@ -16,9 +16,9 @@ function checkCodeSourceMiddleware(
   }
 
   const msg = req.body as RequestMessage;
-  if (msg.code_source_id !== codeSourceID && req.path !== "/code-source-id") {
-    res.status(422).send("CodeSource no longer active");
-    next(new ApiError("CodeSource no longer active"));
+  const codeSourceID = getCodeSourceID();
+  if (!codeSourceID || (msg.code_source_id !== codeSourceID && req.path !== "/code-source-id")) {
+    next(new ApiError("CodeSource no longer active", 422));
     return;
   }
 

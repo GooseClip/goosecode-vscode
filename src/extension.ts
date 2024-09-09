@@ -10,7 +10,7 @@ import { DepNodeProvider } from "./file-tree";
 import * as https from "node:https";
 import { createTLSOptions, purge } from "./tls";
 import { getProjectRoot } from "./goosecode/commands/commands";
-import { GooseCodeConfig, loadConfigAndSettings } from "./config";
+import { GooseCodeExtensionConfig, loadGlobalConfigurations } from "./config";
 import { gettingStarted } from "./getting-started";
 import { idepb } from "./proto/idepb/ide";
 
@@ -18,9 +18,9 @@ var gooseCodeServer: GooseCodeServer | null = null;
 
 async function startServer(
   context: vscode.ExtensionContext,
-  config: GooseCodeConfig,
+  config: GooseCodeExtensionConfig,
 ) {
-    console.log("Starting server, password: ", config.config.password);
+    console.log("Starting server, password: ", config.settings.password);
   gooseCodeServer = new GooseCodeServer(config);
   await gooseCodeServer.start();
 }
@@ -32,7 +32,7 @@ async function stopServer() {
 
 async function restartServer(context: vscode.ExtensionContext) {
   await stopServer();
-  const config = await loadConfigAndSettings(context);
+  const config = await loadGlobalConfigurations(context);
   await startServer(context, config);
 }
 
@@ -42,7 +42,7 @@ async function persistentCommands(
   const subscriptions: Array<vscode.Disposable> = [];
   subscriptions.push(
     vscode.commands.registerCommand("goosecode.start", async () => {
-      await startServer(context, await loadConfigAndSettings(context));
+      await startServer(context, await loadGlobalConfigurations(context));
       vscode.window.showInformationMessage("GooseCode server started");
     }),
   );
@@ -72,8 +72,8 @@ async function persistentCommands(
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-  const config = await loadConfigAndSettings(context);
-  if (config.config.startAutomatically) {
+  const config = await loadGlobalConfigurations(context);
+  if (config.settings.startAutomatically) {
     await startServer(context, config);
   } else {
     // Show warning

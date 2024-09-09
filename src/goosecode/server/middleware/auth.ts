@@ -4,8 +4,7 @@ import {ApiError} from "../../errors";
 
 function authMiddleware(req: Request, res: Response, next: NextFunction, password: string) {
     if(req.headers.authorization !== password){
-        res.status(401).send("Unauthorized");
-        next(new ApiError("Unauthorized"));
+        next(new ApiError("Unauthorized", 401));
         return;
     }
     next();

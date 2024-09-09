@@ -8556,18 +8556,18 @@ proto.idepb.FollowPush.prototype.hasReference = function() {
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.idepb.PushMessage.oneofGroups_ = [[3,4,5,6,7]];
+proto.idepb.PushMessage.oneofGroups_ = [[4,5,6,7,8]];
 
 /**
  * @enum {number}
  */
 proto.idepb.PushMessage.DataCase = {
   DATA_NOT_SET: 0,
-  OPEN_FILE: 3,
-  CREATE_SNIPPET: 4,
-  PIN_FILE: 5,
-  HIGHLIGHT: 6,
-  FOLLOW: 7
+  OPEN_FILE: 4,
+  CREATE_SNIPPET: 5,
+  PIN_FILE: 6,
+  HIGHLIGHT: 7,
+  FOLLOW: 8
 };
 
 /**
@@ -8610,6 +8610,7 @@ proto.idepb.PushMessage.toObject = function(includeInstance, msg) {
   var f, obj = {
     type: jspb.Message.getFieldWithDefault(msg, 1, 0),
     codeSourceId: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    workspaceRoot: jspb.Message.getFieldWithDefault(msg, 3, ""),
     openFile: (f = msg.getOpenFile()) && proto.idepb.OpenFilePush.toObject(includeInstance, f),
     createSnippet: (f = msg.getCreateSnippet()) && proto.idepb.CreateSnippetPush.toObject(includeInstance, f),
     pinFile: (f = msg.getPinFile()) && proto.idepb.PinFilePush.toObject(includeInstance, f),
@@ -8660,26 +8661,30 @@ proto.idepb.PushMessage.deserializeBinaryFromReader = function(msg, reader) {
       msg.setCodeSourceId(value);
       break;
     case 3:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setWorkspaceRoot(value);
+      break;
+    case 4:
       var value = new proto.idepb.OpenFilePush;
       reader.readMessage(value,proto.idepb.OpenFilePush.deserializeBinaryFromReader);
       msg.setOpenFile(value);
       break;
-    case 4:
+    case 5:
       var value = new proto.idepb.CreateSnippetPush;
       reader.readMessage(value,proto.idepb.CreateSnippetPush.deserializeBinaryFromReader);
       msg.setCreateSnippet(value);
       break;
-    case 5:
+    case 6:
       var value = new proto.idepb.PinFilePush;
       reader.readMessage(value,proto.idepb.PinFilePush.deserializeBinaryFromReader);
       msg.setPinFile(value);
       break;
-    case 6:
+    case 7:
       var value = new proto.idepb.HighlightPush;
       reader.readMessage(value,proto.idepb.HighlightPush.deserializeBinaryFromReader);
       msg.setHighlight(value);
       break;
-    case 7:
+    case 8:
       var value = new proto.idepb.FollowPush;
       reader.readMessage(value,proto.idepb.FollowPush.deserializeBinaryFromReader);
       msg.setFollow(value);
@@ -8727,10 +8732,17 @@ proto.idepb.PushMessage.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
+  f = message.getWorkspaceRoot();
+  if (f.length > 0) {
+    writer.writeString(
+      3,
+      f
+    );
+  }
   f = message.getOpenFile();
   if (f != null) {
     writer.writeMessage(
-      3,
+      4,
       f,
       proto.idepb.OpenFilePush.serializeBinaryToWriter
     );
@@ -8738,7 +8750,7 @@ proto.idepb.PushMessage.serializeBinaryToWriter = function(message, writer) {
   f = message.getCreateSnippet();
   if (f != null) {
     writer.writeMessage(
-      4,
+      5,
       f,
       proto.idepb.CreateSnippetPush.serializeBinaryToWriter
     );
@@ -8746,7 +8758,7 @@ proto.idepb.PushMessage.serializeBinaryToWriter = function(message, writer) {
   f = message.getPinFile();
   if (f != null) {
     writer.writeMessage(
-      5,
+      6,
       f,
       proto.idepb.PinFilePush.serializeBinaryToWriter
     );
@@ -8754,7 +8766,7 @@ proto.idepb.PushMessage.serializeBinaryToWriter = function(message, writer) {
   f = message.getHighlight();
   if (f != null) {
     writer.writeMessage(
-      6,
+      7,
       f,
       proto.idepb.HighlightPush.serializeBinaryToWriter
     );
@@ -8762,7 +8774,7 @@ proto.idepb.PushMessage.serializeBinaryToWriter = function(message, writer) {
   f = message.getFollow();
   if (f != null) {
     writer.writeMessage(
-      7,
+      8,
       f,
       proto.idepb.FollowPush.serializeBinaryToWriter
     );
@@ -8807,12 +8819,30 @@ proto.idepb.PushMessage.prototype.setCodeSourceId = function(value) {
 
 
 /**
- * optional OpenFilePush open_file = 3;
+ * optional string workspace_root = 3;
+ * @return {string}
+ */
+proto.idepb.PushMessage.prototype.getWorkspaceRoot = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.idepb.PushMessage} returns this
+ */
+proto.idepb.PushMessage.prototype.setWorkspaceRoot = function(value) {
+  return jspb.Message.setProto3StringField(this, 3, value);
+};
+
+
+/**
+ * optional OpenFilePush open_file = 4;
  * @return {?proto.idepb.OpenFilePush}
  */
 proto.idepb.PushMessage.prototype.getOpenFile = function() {
   return /** @type{?proto.idepb.OpenFilePush} */ (
-    jspb.Message.getWrapperField(this, proto.idepb.OpenFilePush, 3));
+    jspb.Message.getWrapperField(this, proto.idepb.OpenFilePush, 4));
 };
 
 
@@ -8821,7 +8851,7 @@ proto.idepb.PushMessage.prototype.getOpenFile = function() {
  * @return {!proto.idepb.PushMessage} returns this
 */
 proto.idepb.PushMessage.prototype.setOpenFile = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 3, proto.idepb.PushMessage.oneofGroups_[0], value);
+  return jspb.Message.setOneofWrapperField(this, 4, proto.idepb.PushMessage.oneofGroups_[0], value);
 };
 
 
@@ -8839,17 +8869,17 @@ proto.idepb.PushMessage.prototype.clearOpenFile = function() {
  * @return {boolean}
  */
 proto.idepb.PushMessage.prototype.hasOpenFile = function() {
-  return jspb.Message.getField(this, 3) != null;
+  return jspb.Message.getField(this, 4) != null;
 };
 
 
 /**
- * optional CreateSnippetPush create_snippet = 4;
+ * optional CreateSnippetPush create_snippet = 5;
  * @return {?proto.idepb.CreateSnippetPush}
  */
 proto.idepb.PushMessage.prototype.getCreateSnippet = function() {
   return /** @type{?proto.idepb.CreateSnippetPush} */ (
-    jspb.Message.getWrapperField(this, proto.idepb.CreateSnippetPush, 4));
+    jspb.Message.getWrapperField(this, proto.idepb.CreateSnippetPush, 5));
 };
 
 
@@ -8858,7 +8888,7 @@ proto.idepb.PushMessage.prototype.getCreateSnippet = function() {
  * @return {!proto.idepb.PushMessage} returns this
 */
 proto.idepb.PushMessage.prototype.setCreateSnippet = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 4, proto.idepb.PushMessage.oneofGroups_[0], value);
+  return jspb.Message.setOneofWrapperField(this, 5, proto.idepb.PushMessage.oneofGroups_[0], value);
 };
 
 
@@ -8876,17 +8906,17 @@ proto.idepb.PushMessage.prototype.clearCreateSnippet = function() {
  * @return {boolean}
  */
 proto.idepb.PushMessage.prototype.hasCreateSnippet = function() {
-  return jspb.Message.getField(this, 4) != null;
+  return jspb.Message.getField(this, 5) != null;
 };
 
 
 /**
- * optional PinFilePush pin_file = 5;
+ * optional PinFilePush pin_file = 6;
  * @return {?proto.idepb.PinFilePush}
  */
 proto.idepb.PushMessage.prototype.getPinFile = function() {
   return /** @type{?proto.idepb.PinFilePush} */ (
-    jspb.Message.getWrapperField(this, proto.idepb.PinFilePush, 5));
+    jspb.Message.getWrapperField(this, proto.idepb.PinFilePush, 6));
 };
 
 
@@ -8895,7 +8925,7 @@ proto.idepb.PushMessage.prototype.getPinFile = function() {
  * @return {!proto.idepb.PushMessage} returns this
 */
 proto.idepb.PushMessage.prototype.setPinFile = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 5, proto.idepb.PushMessage.oneofGroups_[0], value);
+  return jspb.Message.setOneofWrapperField(this, 6, proto.idepb.PushMessage.oneofGroups_[0], value);
 };
 
 
@@ -8913,17 +8943,17 @@ proto.idepb.PushMessage.prototype.clearPinFile = function() {
  * @return {boolean}
  */
 proto.idepb.PushMessage.prototype.hasPinFile = function() {
-  return jspb.Message.getField(this, 5) != null;
+  return jspb.Message.getField(this, 6) != null;
 };
 
 
 /**
- * optional HighlightPush highlight = 6;
+ * optional HighlightPush highlight = 7;
  * @return {?proto.idepb.HighlightPush}
  */
 proto.idepb.PushMessage.prototype.getHighlight = function() {
   return /** @type{?proto.idepb.HighlightPush} */ (
-    jspb.Message.getWrapperField(this, proto.idepb.HighlightPush, 6));
+    jspb.Message.getWrapperField(this, proto.idepb.HighlightPush, 7));
 };
 
 
@@ -8932,7 +8962,7 @@ proto.idepb.PushMessage.prototype.getHighlight = function() {
  * @return {!proto.idepb.PushMessage} returns this
 */
 proto.idepb.PushMessage.prototype.setHighlight = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 6, proto.idepb.PushMessage.oneofGroups_[0], value);
+  return jspb.Message.setOneofWrapperField(this, 7, proto.idepb.PushMessage.oneofGroups_[0], value);
 };
 
 
@@ -8950,17 +8980,17 @@ proto.idepb.PushMessage.prototype.clearHighlight = function() {
  * @return {boolean}
  */
 proto.idepb.PushMessage.prototype.hasHighlight = function() {
-  return jspb.Message.getField(this, 6) != null;
+  return jspb.Message.getField(this, 7) != null;
 };
 
 
 /**
- * optional FollowPush follow = 7;
+ * optional FollowPush follow = 8;
  * @return {?proto.idepb.FollowPush}
  */
 proto.idepb.PushMessage.prototype.getFollow = function() {
   return /** @type{?proto.idepb.FollowPush} */ (
-    jspb.Message.getWrapperField(this, proto.idepb.FollowPush, 7));
+    jspb.Message.getWrapperField(this, proto.idepb.FollowPush, 8));
 };
 
 
@@ -8969,7 +8999,7 @@ proto.idepb.PushMessage.prototype.getFollow = function() {
  * @return {!proto.idepb.PushMessage} returns this
 */
 proto.idepb.PushMessage.prototype.setFollow = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 7, proto.idepb.PushMessage.oneofGroups_[0], value);
+  return jspb.Message.setOneofWrapperField(this, 8, proto.idepb.PushMessage.oneofGroups_[0], value);
 };
 
 
@@ -8987,7 +9017,7 @@ proto.idepb.PushMessage.prototype.clearFollow = function() {
  * @return {boolean}
  */
 proto.idepb.PushMessage.prototype.hasFollow = function() {
-  return jspb.Message.getField(this, 7) != null;
+  return jspb.Message.getField(this, 8) != null;
 };
 
 
