@@ -4,7 +4,6 @@
 import { parse, stringify } from "smol-toml";
 import * as fs from "fs";
 import { v4 as uuidv4 } from "uuid";
-import { getProjectRoot } from "./goosecode/commands/commands";
 import * as crypto from "crypto";
 import * as vscode from "vscode";
 import { ServerOptions } from "https";
@@ -59,8 +58,6 @@ export function loadWorkspaceConfiguration(
   create: boolean,
 ): GooseCodeWorkspaceConfig | null {
   const p = path.join(root, configFileName);
-
-  console.log("Loading GooseCode configuration file at: ", p);
   const exists = fs.existsSync(p);
 
   if (!create && !exists) {
@@ -82,7 +79,6 @@ export function loadWorkspaceConfiguration(
   const c = fs.readFileSync(p, "utf-8");
   const parsed = parse(c);
 
-  console.log("Parsed config file: ", parsed);
   const config: GooseCodeWorkspace = (parsed as GooseClipConfig).GooseCode;
 
   return {

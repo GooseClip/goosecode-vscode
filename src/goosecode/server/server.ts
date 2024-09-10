@@ -2,48 +2,32 @@ import * as vscode from "vscode";
 import * as express from "express";
 import * as expressWs from "express-ws";
 import { RawData, WebSocket } from "ws";
-import { handleListFilesRequest } from "./handlers/list-files";
 import { handleGetFilesRequest } from "./handlers/get-files";
-import { handleOpenFilesRequest } from "./handlers/open-files";
-import { handleFindRequest } from "./handlers/find";
-import { handleSelectRange } from "./handlers/select-range";
-import { handleDescribeRange } from "./handlers/describe-range";
 import { handleGoToDefinition } from "./handlers/go-to";
-import { handleRename } from "./handlers/rename";
-import { handleFindUses } from "./handlers/find-uses";
 import { convertBodyToProtoMiddleware } from "./middleware/proto-binary";
-import { getProjectRoot } from "../commands/commands";
 import { idepb } from "../../proto/idepb/ide";
 import ResponseMessage = idepb.ResponseMessage;
-import { handleCodeSourceID } from "./handlers/code-source-id";
 import ErrorResponse = idepb.ErrorResponse;
 import { ApiError } from "../errors";
 import PushMessage = idepb.PushMessage;
-import {
-  CodeSourceID,
-  GooseCodeExtensionConfig,
-  GooseCodeWorkspaceConfig,
-  loadWorkspaceConfiguration,
-} from "../../config";
+import { CodeSourceID, GooseCodeExtensionConfig } from "../../config";
 import * as https from "https";
 import { Server, ServerOptions } from "https";
-import { CodeSourcesProvider } from "../../views/code-sources";
 import { registerGooseCodeCommands } from "../goosecode";
 import { authMiddleware } from "./middleware/auth";
-import { config } from "webpack";
-import { checkCodeSourceMiddleware } from "./middleware/code-source";
-import { workspace } from "vscode";
-import { GenerateSessionProvider } from "../../views/generate-session";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import PushType = idepb.PushType;
 import WorkspacesPush = idepb.WorkspacesPush;
 import WorkspaceDetails = idepb.WorkspaceDetails;
+import { Workspace, WorkspaceTracker } from "../../workspace-tracker";
+import RequestMessage = idepb.RequestMessage;
 
 export class GooseCodeServer {
-  constructor(private readonly extensionConfig: GooseCodeExtensionConfig) {
-    // this.workspaceConfig = loadWorkspaceConfiguration(false);
-  }
+  constructor(
+    private readonly workspaceTracker: WorkspaceTracker,
+    private readonly extensionConfig: GooseCodeExtensionConfig,
+  ) {}
 
   public websocket: WebSocket | null = null;
   public server: Server | null = null;
@@ -53,33 +37,31 @@ export class GooseCodeServer {
     this.subscriptions.forEach((s) => s.dispose());
     this.websocket?.close();
     this.server?.close(() => {
-      console.log("HTTP server stopped");
+      // console.log("HTTP server stopped");
     });
   }
 
-  private getWorkspaceRoot(): string {
-    const activeFileUri = vscode.window.activeTextEditor!.document.uri;
-    return vscode.workspace.getWorkspaceFolder(activeFileUri)!.uri!.fsPath;
-  }
-
-  private getCodeSourceID(workspaceFolder: string): CodeSourceID {
-    return loadWorkspaceConfiguration(workspaceFolder, false)!.config
-      .code_source_id;
-  }
-
-  public push(msg: PushMessage, workspaceFolder?: string) {
+  public push(msg: PushMessage) {
     if (this.websocket === null) {
       console.error("Websocket is not connected");
       return;
     }
 
-    try {
-      msg.workspace_root = workspaceFolder ?? this.getWorkspaceRoot();
-      msg.code_source_id = this.getCodeSourceID(msg.workspace_root)!;
-    } catch (e) {
+    console.log("[PUSH]", msg.type);
+    if (msg.type !== PushType.PUSH_WORKSPACES) {
+      const activeWorkspace =
+        this.workspaceTracker.getLastActiveGooseCodeWorkspace();
+      if (!activeWorkspace) {
+        console.error("[PUSH]", "No active workspace found");
+        return;
+      }
+      msg.workspace_root = activeWorkspace.uri.fsPath;
+      msg.code_source_id = activeWorkspace.codeSourceID!;
+
+      console.log("[INJECTING] root", msg.workspace_root);
+      console.log("[INJECTING] codesource", msg.code_source_id);
     }
     this.websocket.send(msg.serializeBinary());
-    console.log("Sent message", JSON.stringify(msg));
   }
 
   private send(res: express.Response, msg: ResponseMessage) {
@@ -110,33 +92,6 @@ export class GooseCodeServer {
     app.use((r, q, n) =>
       authMiddleware(r, q, n, this.extensionConfig.settings.password),
     );
-    // app.use((r, q, n) => checkCodeSourceMiddleware(r, q, n, ()=>this.codeSourceID()));
-
-    app.post(
-      "/code-source-id",
-      async (
-        req: express.Request,
-        res: express.Response,
-        next: express.NextFunction,
-      ) => {
-        await handleCodeSourceID(req.body, (m) => this.send(res, m)).catch(
-          (e) => next(e),
-        );
-      },
-    );
-
-    app.post(
-      "/files-list",
-      async (
-        req: express.Request,
-        res: express.Response,
-        next: express.NextFunction,
-      ) => {
-        await handleListFilesRequest(req.body, (m) => this.send(res, m)).catch(
-          (e) => next(e),
-        );
-      },
-    );
 
     app.post(
       "/files-get",
@@ -145,63 +100,23 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleGetFilesRequest(req.body, (m) => this.send(res, m)).catch(
-          (e) => next(e),
+        console.log("GET FILES REQUEST");
+        const request: RequestMessage = req.body as RequestMessage;
+        const workspace = this.workspaceTracker.getWorkspaceFromCodeSourceID(
+          request.code_source_id,
         );
+
+        console.log(
+          "Using workspace",
+          workspace?.uri.fsPath,
+          workspace?.codeSourceID,
+        );
+
+        await handleGetFilesRequest(request, workspace!.uri!, (m) =>
+          this.send(res, m),
+        ).catch((e) => next(e));
       },
     );
-
-    app.post(
-      "/files-open",
-      async (
-        req: express.Request,
-        res: express.Response,
-        next: express.NextFunction,
-      ) => {
-        await handleOpenFilesRequest(req.body, (m) => this.send(res, m)).catch(
-          (e) => next(e),
-        );
-      },
-    );
-
-    // app.post(
-    //   "/find-string",
-    //   async (
-    //     req: express.Request,
-    //     res: express.Response,
-    //     next: express.NextFunction,
-    //   ) => {
-    //     await handleFindRequest(req.body, (m) =>
-    //       this.send(res, m),
-    //     ).catch((e) => next(e));
-    //   },
-    // );
-
-    // app.post(
-    //   "/range-select",
-    //   async (
-    //     req: express.Request,
-    //     res: express.Response,
-    //     next: express.NextFunction,
-    //   ) => {
-    //     await handleSelectRange(req.body, (m) =>
-    //       this.send(res, m),
-    //     ).catch((e) => next(e));
-    //   },
-    // );
-
-    // app.post(
-    //   "/range-describe",
-    //   async (
-    //     req: express.Request,
-    //     res: express.Response,
-    //     next: express.NextFunction,
-    //   ) => {
-    //     await handleDescribeRange(req.body, (m) =>
-    //       this.send(res, m),
-    //     ).catch((e) => next(e));
-    //   },
-    // );
 
     app.post(
       "/go-to-definition",
@@ -210,54 +125,23 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        await handleGoToDefinition(req.body, (m) => this.send(res, m)).catch(
-          (e) => next(e),
-        );
+        console.log("GO TO DEFINITION REQUEST");
+        try {
+          const request: RequestMessage = req.body as RequestMessage;
+          const workspace = this.workspaceTracker.getWorkspaceFromCodeSourceID(
+            request.code_source_id,
+          );
+          await handleGoToDefinition(req.body, workspace!.uri!, (m) =>
+            this.send(res, m),
+          );
+        } catch (e) {
+          next(e);
+        }
       },
     );
 
-    // app.post(
-    //   "/rename",
-    //   async (
-    //     req: express.Request,
-    //     res: express.Response,
-    //     next: express.NextFunction,
-    //   ) => {
-    //     await handleRename(req.body, (m) =>
-    //       this.send(res, m),
-    //     ).catch((e) => next(e));
-    //   },
-    // );
-
-    // app.post(
-    //   "/find-uses",
-    //   async (
-    //     req: express.Request,
-    //     res: express.Response,
-    //     next: express.NextFunction,
-    //   ) => {
-    //     await handleFindUses(req.body, (m) =>
-    //       this.send(res, m),
-    //     ).catch((e) => next(e));
-    //   },
-    // );
-
-    // app.post(
-    //   "/editor-state",
-    //   async (
-    //     req: express.Request,
-    //     res: express.Response,
-    //     next: express.NextFunction,
-    //   ) => {
-    //     await handleGetEditorState(req.body, (m) => this.send(res, m)).catch(
-    //       (e) => next(e),
-    //     );
-    //   },
-    // );
-
     // Start a websocket server
     wsApp.app.ws("/connect", (socket, req) => {
-      console.log("Authorization:", req.headers.authorization);
       if (
         req.headers.authorization !== this.extensionConfig.settings.password
       ) {
@@ -266,7 +150,6 @@ export class GooseCodeServer {
         return;
       }
 
-      console.log("Extension: WebSocket connection opened");
       this.websocket = socket;
 
       socket.on("message", (message: RawData) => {
@@ -287,10 +170,11 @@ export class GooseCodeServer {
         console.error("WebSocket error:", error);
       });
 
+      const workspaces = this.workspaceTracker.refresh();
       // After delay, send refresh
-        setTimeout(() => {
-            this.refreshWorkspacesInGooseCode();
-        }, 1000);
+      setTimeout(() => {
+        this.pushWorkspacesToGooseCode(workspaces);
+      }, 1000);
     });
 
     app.use(
@@ -333,60 +217,44 @@ export class GooseCodeServer {
       console.log(`Listening on ${ip}:${port}`);
     });
 
-    this.subscriptions.push(...registerGooseCodeCommands(this));
-
-    console.log("GooseCode server started");
+    this.subscriptions.push(
+      ...registerGooseCodeCommands(this, this.workspaceTracker),
+    );
   }
 
-  private isGooseCodeEnabledForWorkspace(p: string): boolean {
-    try {
-      fs.accessSync(path.join(p, ".goose"));
-    } catch (err) {
-      return false;
-    }
+  public pushWorkspacesToGooseCode(
+    workspaces: Workspace[],
+    deleted?: RefreshWorkspace,
+  ) {
+    const toSend: RefreshWorkspace[] = [];
 
-    return true;
-  }
-
-  public refreshWorkspacesInGooseCode(deleted?: Workspace) {
-    const toSend: Workspace[] = [];
-    const workspaces = vscode.workspace.workspaceFolders;
     if (workspaces) {
       for (const workspace of workspaces) {
-        if (this.isGooseCodeEnabledForWorkspace(workspace.uri.fsPath)) {
-          toSend.push({
-            workspace_root: workspace.uri.fsPath,
-            code_source_id: loadWorkspaceConfiguration(workspace.uri.fsPath, false)!.config.code_source_id,
-            deleted: false,
-          });
-        }
+        toSend.push({
+          workspace_root: workspace.uri.fsPath,
+          code_source_id: workspace.config!.config.code_source_id,
+          deleted: false,
+        });
       }
     }
 
-    if(deleted){
+    if (deleted) {
       toSend.push(deleted);
     }
 
-
     this.push(
-        new PushMessage({
-          type: PushType.PUSH_WORKSPACES,
-          workspaces: new WorkspacesPush({
-            workspaces: [
-              ...toSend.map(
-                  (root) =>
-                      new WorkspaceDetails(root),
-              ),
-            ],
-          }),
+      new PushMessage({
+        type: PushType.PUSH_WORKSPACES,
+        workspaces: new WorkspacesPush({
+          workspaces: [...toSend.map((root) => new WorkspaceDetails(root))],
         }),
+      }),
     );
-    console.log("Sent workspaces", toSend);
   }
 }
 
-type Workspace = {
+type RefreshWorkspace = {
   workspace_root: string;
   code_source_id: CodeSourceID;
   deleted: boolean;
-}
+};

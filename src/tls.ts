@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import * as https from "node:https";
 import * as forge from "node-forge";
 import { ServerOptions } from "https";
 import { SecretStorage } from "vscode";

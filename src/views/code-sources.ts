@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { Command, Uri } from "vscode";
+import { WorkspaceTracker } from "../workspace-tracker";
 
 export class CodeSourcesProvider
   implements vscode.TreeDataProvider<CodeSource>
@@ -12,7 +13,7 @@ export class CodeSourcesProvider
   readonly onDidChangeTreeData: vscode.Event<CodeSource | undefined | void> =
     this._onDidChangeTreeData.event;
 
-  constructor() {}
+  constructor(private readonly workspaceTracker: WorkspaceTracker) {}
 
   refresh(): void {
     this._onDidChangeTreeData.fire();
@@ -23,8 +24,7 @@ export class CodeSourcesProvider
   }
 
   getChildren(element?: CodeSource): Thenable<CodeSource[]> {
-
-    const workspaces = vscode.workspace.workspaceFolders;
+    const workspaces = this.workspaceTracker.refresh();
     if (!workspaces) {
       return Promise.resolve([]);
     }
@@ -33,24 +33,14 @@ export class CodeSourcesProvider
     for (const workspace of workspaces) {
       dependencies.push(
         new CodeSource(
-          workspace.name,
+          workspace.workspace.name,
           vscode.TreeItemCollapsibleState.None,
-          this.isEnabled(workspace.uri.fsPath),
+          workspace.isEnabled,
           workspace.uri,
         ),
       );
     }
     return Promise.resolve(dependencies);
-  }
-
-  private isEnabled(p: string): boolean {
-    try {
-      fs.accessSync(path.join(p, ".goose"));
-    } catch (err) {
-      return false;
-    }
-
-    return true;
   }
 }
 
@@ -122,5 +112,5 @@ export class CodeSource extends vscode.TreeItem {
    * ```
    * This will show action `extension.deleteFolder` only for items with `contextValue` is `folder`.
    */
-  contextValue = this.enabled ? "enabled": "disabled";
+  contextValue = this.enabled ? "enabled" : "disabled";
 }

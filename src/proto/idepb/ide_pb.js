@@ -2582,14 +2582,13 @@ proto.idepb.FindUsesRequest.prototype.hasLocation = function() {
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.idepb.RequestMessage.oneofGroups_ = [[3,4,5,6,7,8,9,10,11,12]];
+proto.idepb.RequestMessage.oneofGroups_ = [[4,5,6,7,8,9,10,11,12]];
 
 /**
  * @enum {number}
  */
 proto.idepb.RequestMessage.DataCase = {
   DATA_NOT_SET: 0,
-  CODE_SOURCE_ID_REQUEST: 3,
   LIST_FILES_REQUEST: 4,
   GET_FILES_REQUEST: 5,
   OPEN_FILES_REQUEST: 6,
@@ -2641,7 +2640,6 @@ proto.idepb.RequestMessage.toObject = function(includeInstance, msg) {
   var f, obj = {
     type: jspb.Message.getFieldWithDefault(msg, 1, 0),
     codeSourceId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    codeSourceIdRequest: (f = msg.getCodeSourceIdRequest()) && proto.idepb.CodeSourceIDRequest.toObject(includeInstance, f),
     listFilesRequest: (f = msg.getListFilesRequest()) && proto.idepb.ListFilesRequest.toObject(includeInstance, f),
     getFilesRequest: (f = msg.getGetFilesRequest()) && proto.idepb.GetFilesRequest.toObject(includeInstance, f),
     openFilesRequest: (f = msg.getOpenFilesRequest()) && proto.idepb.OpenFilesRequest.toObject(includeInstance, f),
@@ -2694,11 +2692,6 @@ proto.idepb.RequestMessage.deserializeBinaryFromReader = function(msg, reader) {
     case 2:
       var value = /** @type {string} */ (reader.readString());
       msg.setCodeSourceId(value);
-      break;
-    case 3:
-      var value = new proto.idepb.CodeSourceIDRequest;
-      reader.readMessage(value,proto.idepb.CodeSourceIDRequest.deserializeBinaryFromReader);
-      msg.setCodeSourceIdRequest(value);
       break;
     case 4:
       var value = new proto.idepb.ListFilesRequest;
@@ -2786,14 +2779,6 @@ proto.idepb.RequestMessage.serializeBinaryToWriter = function(message, writer) {
     writer.writeString(
       2,
       f
-    );
-  }
-  f = message.getCodeSourceIdRequest();
-  if (f != null) {
-    writer.writeMessage(
-      3,
-      f,
-      proto.idepb.CodeSourceIDRequest.serializeBinaryToWriter
     );
   }
   f = message.getListFilesRequest();
@@ -2904,43 +2889,6 @@ proto.idepb.RequestMessage.prototype.getCodeSourceId = function() {
  */
 proto.idepb.RequestMessage.prototype.setCodeSourceId = function(value) {
   return jspb.Message.setProto3StringField(this, 2, value);
-};
-
-
-/**
- * optional CodeSourceIDRequest code_source_id_request = 3;
- * @return {?proto.idepb.CodeSourceIDRequest}
- */
-proto.idepb.RequestMessage.prototype.getCodeSourceIdRequest = function() {
-  return /** @type{?proto.idepb.CodeSourceIDRequest} */ (
-    jspb.Message.getWrapperField(this, proto.idepb.CodeSourceIDRequest, 3));
-};
-
-
-/**
- * @param {?proto.idepb.CodeSourceIDRequest|undefined} value
- * @return {!proto.idepb.RequestMessage} returns this
-*/
-proto.idepb.RequestMessage.prototype.setCodeSourceIdRequest = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 3, proto.idepb.RequestMessage.oneofGroups_[0], value);
-};
-
-
-/**
- * Clears the message field making it undefined.
- * @return {!proto.idepb.RequestMessage} returns this
- */
-proto.idepb.RequestMessage.prototype.clearCodeSourceIdRequest = function() {
-  return this.setCodeSourceIdRequest(undefined);
-};
-
-
-/**
- * Returns whether this field is set.
- * @return {boolean}
- */
-proto.idepb.RequestMessage.prototype.hasCodeSourceIdRequest = function() {
-  return jspb.Message.getField(this, 3) != null;
 };
 
 
@@ -3283,7 +3231,7 @@ proto.idepb.RequestMessage.prototype.hasFindUsesRequest = function() {
  * @private {!Array<number>}
  * @const
  */
-proto.idepb.ListFilesResponse.repeatedFields_ = [2];
+proto.idepb.ListFilesResponse.repeatedFields_ = [1];
 
 
 
@@ -3316,8 +3264,7 @@ proto.idepb.ListFilesResponse.prototype.toObject = function(opt_includeInstance)
  */
 proto.idepb.ListFilesResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    rootPath: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    filePathsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f
+    filePathsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -3356,10 +3303,6 @@ proto.idepb.ListFilesResponse.deserializeBinaryFromReader = function(msg, reader
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setRootPath(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
       msg.addFilePaths(value);
       break;
     default:
@@ -3391,47 +3334,22 @@ proto.idepb.ListFilesResponse.prototype.serializeBinary = function() {
  */
 proto.idepb.ListFilesResponse.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getRootPath();
+  f = message.getFilePathsList();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeRepeatedString(
       1,
       f
     );
   }
-  f = message.getFilePathsList();
-  if (f.length > 0) {
-    writer.writeRepeatedString(
-      2,
-      f
-    );
-  }
 };
 
 
 /**
- * optional string root_path = 1;
- * @return {string}
- */
-proto.idepb.ListFilesResponse.prototype.getRootPath = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.idepb.ListFilesResponse} returns this
- */
-proto.idepb.ListFilesResponse.prototype.setRootPath = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
-};
-
-
-/**
- * repeated string file_paths = 2;
+ * repeated string file_paths = 1;
  * @return {!Array<string>}
  */
 proto.idepb.ListFilesResponse.prototype.getFilePathsList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 1));
 };
 
 
@@ -3440,7 +3358,7 @@ proto.idepb.ListFilesResponse.prototype.getFilePathsList = function() {
  * @return {!proto.idepb.ListFilesResponse} returns this
  */
 proto.idepb.ListFilesResponse.prototype.setFilePathsList = function(value) {
-  return jspb.Message.setField(this, 2, value || []);
+  return jspb.Message.setField(this, 1, value || []);
 };
 
 
@@ -3450,7 +3368,7 @@ proto.idepb.ListFilesResponse.prototype.setFilePathsList = function(value) {
  * @return {!proto.idepb.ListFilesResponse} returns this
  */
 proto.idepb.ListFilesResponse.prototype.addFilePaths = function(value, opt_index) {
-  return jspb.Message.addToRepeatedField(this, 2, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
 };
 
 
@@ -5970,14 +5888,13 @@ proto.idepb.ErrorResponse.prototype.setError = function(value) {
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.idepb.ResponseMessage.oneofGroups_ = [[3,4,5,6,7,8,9,10,11,12,999]];
+proto.idepb.ResponseMessage.oneofGroups_ = [[4,5,6,7,8,9,10,11,12,999]];
 
 /**
  * @enum {number}
  */
 proto.idepb.ResponseMessage.DataCase = {
   DATA_NOT_SET: 0,
-  CODE_SOURCE_ID_RESPONSE: 3,
   LIST_FILES_RESPONSE: 4,
   GET_FILES_RESPONSE: 5,
   OPEN_FILES_RESPONSE: 6,
@@ -6030,7 +5947,6 @@ proto.idepb.ResponseMessage.toObject = function(includeInstance, msg) {
   var f, obj = {
     type: jspb.Message.getFieldWithDefault(msg, 1, 0),
     codeSourceId: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    codeSourceIdResponse: (f = msg.getCodeSourceIdResponse()) && proto.idepb.CodeSourceIDResponse.toObject(includeInstance, f),
     listFilesResponse: (f = msg.getListFilesResponse()) && proto.idepb.ListFilesResponse.toObject(includeInstance, f),
     getFilesResponse: (f = msg.getGetFilesResponse()) && proto.idepb.GetFilesResponse.toObject(includeInstance, f),
     openFilesResponse: (f = msg.getOpenFilesResponse()) && proto.idepb.OpenFilesResponse.toObject(includeInstance, f),
@@ -6084,11 +6000,6 @@ proto.idepb.ResponseMessage.deserializeBinaryFromReader = function(msg, reader) 
     case 2:
       var value = /** @type {string} */ (reader.readString());
       msg.setCodeSourceId(value);
-      break;
-    case 3:
-      var value = new proto.idepb.CodeSourceIDResponse;
-      reader.readMessage(value,proto.idepb.CodeSourceIDResponse.deserializeBinaryFromReader);
-      msg.setCodeSourceIdResponse(value);
       break;
     case 4:
       var value = new proto.idepb.ListFilesResponse;
@@ -6181,14 +6092,6 @@ proto.idepb.ResponseMessage.serializeBinaryToWriter = function(message, writer) 
     writer.writeString(
       2,
       f
-    );
-  }
-  f = message.getCodeSourceIdResponse();
-  if (f != null) {
-    writer.writeMessage(
-      3,
-      f,
-      proto.idepb.CodeSourceIDResponse.serializeBinaryToWriter
     );
   }
   f = message.getListFilesResponse();
@@ -6307,43 +6210,6 @@ proto.idepb.ResponseMessage.prototype.getCodeSourceId = function() {
  */
 proto.idepb.ResponseMessage.prototype.setCodeSourceId = function(value) {
   return jspb.Message.setProto3StringField(this, 2, value);
-};
-
-
-/**
- * optional CodeSourceIDResponse code_source_id_response = 3;
- * @return {?proto.idepb.CodeSourceIDResponse}
- */
-proto.idepb.ResponseMessage.prototype.getCodeSourceIdResponse = function() {
-  return /** @type{?proto.idepb.CodeSourceIDResponse} */ (
-    jspb.Message.getWrapperField(this, proto.idepb.CodeSourceIDResponse, 3));
-};
-
-
-/**
- * @param {?proto.idepb.CodeSourceIDResponse|undefined} value
- * @return {!proto.idepb.ResponseMessage} returns this
-*/
-proto.idepb.ResponseMessage.prototype.setCodeSourceIdResponse = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 3, proto.idepb.ResponseMessage.oneofGroups_[0], value);
-};
-
-
-/**
- * Clears the message field making it undefined.
- * @return {!proto.idepb.ResponseMessage} returns this
- */
-proto.idepb.ResponseMessage.prototype.clearCodeSourceIdResponse = function() {
-  return this.setCodeSourceIdResponse(undefined);
-};
-
-
-/**
- * Returns whether this field is set.
- * @return {boolean}
- */
-proto.idepb.ResponseMessage.prototype.hasCodeSourceIdResponse = function() {
-  return jspb.Message.getField(this, 3) != null;
 };
 
 
@@ -9508,7 +9374,6 @@ proto.idepb.PushMessage.prototype.hasFollow = function() {
  */
 proto.idepb.RequestType = {
   REQUEST_INVALID: 0,
-  REQUEST_CODE_SOURCE_ID: 1,
   REQUEST_LIST_FILES: 2,
   REQUEST_GET_FILES: 3,
   REQUEST_OPEN_FILES: 4,
@@ -9559,7 +9424,6 @@ proto.idepb.SymbolKind = {
  */
 proto.idepb.ResponseType = {
   RESPONSE_INVALID: 0,
-  RESPONSE_CODE_SOURCE_ID: 1,
   RESPONSE_LIST_FILES: 2,
   RESPONSE_GET_FILES: 3,
   RESPONSE_OPEN_FILES: 4,

@@ -4,13 +4,17 @@ import RequestMessage = idepb.RequestMessage;
 import ResponseMessage = idepb.ResponseMessage;
 import GetFilesResponse = idepb.GetFilesResponse;
 import ResponseType = idepb.ResponseType;
-import { CodeSourceID } from "../../../config";
+import { Uri } from "vscode";
 
 async function handleGetFilesRequest(
   request: RequestMessage,
+  workspaceUri: Uri,
   send: (msg: ResponseMessage) => void,
 ) {
-  const contents = await getFileContents(request.get_files_request.file_paths);
+  const contents = await getFileContents(
+    workspaceUri,
+    request.get_files_request.file_paths,
+  );
   const response = new ResponseMessage({
     type: ResponseType.RESPONSE_GET_FILES,
     code_source_id: request.code_source_id,
