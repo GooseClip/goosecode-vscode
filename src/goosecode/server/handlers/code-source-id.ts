@@ -9,14 +9,13 @@ import CodeSourceIDResponse = idepb.CodeSourceIDResponse;
 import * as path from "node:path";
 
 async function handleCodeSourceID(
-  codeSourceID: CodeSourceID,
   request: RequestMessage,
   send: (msg: ResponseMessage) => void,
 ) {
   const suggestedAlias = path.basename(getProjectRoot());
   const response = new ResponseMessage({
     type: ResponseType.RESPONSE_CODE_SOURCE_ID,
-    code_source_id: codeSourceID,
+    code_source_id: request.code_source_id,
     code_source_id_response: new CodeSourceIDResponse({
       suggested_alias: suggestedAlias,
     }),

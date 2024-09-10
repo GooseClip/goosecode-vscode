@@ -7,7 +7,6 @@ import ListFilesResponse = idepb.ListFilesResponse;
 import { CodeSourceID } from "../../../config";
 
 async function handleListFilesRequest(
-  codeSourceID: CodeSourceID,
   request: RequestMessage,
   send: (msg: ResponseMessage) => void,
 ) {
@@ -15,7 +14,7 @@ async function handleListFilesRequest(
 
   const response = new ResponseMessage({
     type: ResponseType.RESPONSE_LIST_FILES,
-    code_source_id: codeSourceID,
+    code_source_id: request.code_source_id,
     list_files_response: new ListFilesResponse({
       root_path: getProjectRoot(),
       file_paths: files,

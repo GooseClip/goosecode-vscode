@@ -7,14 +7,13 @@ import ResponseType = idepb.ResponseType;
 import { CodeSourceID } from "../../../config";
 
 async function handleGetFilesRequest(
-  codeSourceID: CodeSourceID,
   request: RequestMessage,
   send: (msg: ResponseMessage) => void,
 ) {
   const contents = await getFileContents(request.get_files_request.file_paths);
   const response = new ResponseMessage({
     type: ResponseType.RESPONSE_GET_FILES,
-    code_source_id: codeSourceID,
+    code_source_id: request.code_source_id,
     get_files_response: new GetFilesResponse({
       file_contents: contents,
     }),

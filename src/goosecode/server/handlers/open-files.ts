@@ -7,7 +7,6 @@ import ResponseType = idepb.ResponseType;
 import { CodeSourceID } from "../../../config";
 
 async function handleOpenFilesRequest(
-  codeSourceID: CodeSourceID,
   request: RequestMessage,
   send: (msg: ResponseMessage) => void,
 ) {
@@ -15,7 +14,7 @@ async function handleOpenFilesRequest(
 
   const response = new ResponseMessage({
     type: ResponseType.RESPONSE_OPEN_FILES,
-    code_source_id: codeSourceID,
+    code_source_id: request.code_source_id,
     open_files_response: new OpenFilesResponse(),
   });
   send(response);

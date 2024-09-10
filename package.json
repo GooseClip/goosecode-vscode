@@ -18,7 +18,11 @@
   "contributes": {
     "viewsWelcome": [
       {
-        "view": "goosecode.explorer",
+        "view": "goosecode.codeSources",
+        "contents": "You can have paragraphs of text here. You can have [links](https://code.visualstudio.com) to external sources or [internal commands](command:welcome-view-content-sample.hello).\nUse new lines to have new paragraphs.\nPlace a link alone in a paragraph to make it a button\n[Hello](command:welcome-view-content-sample.hello)"
+      },
+      {
+        "view": "goosecode.generateSession",
         "contents": "You can have paragraphs of text here. You can have [links](https://code.visualstudio.com) to external sources or [internal commands](command:welcome-view-content-sample.hello).\nUse new lines to have new paragraphs.\nPlace a link alone in a paragraph to make it a button\n[Hello](command:welcome-view-content-sample.hello)"
       }
     ],
@@ -34,8 +38,12 @@
     "views": {
       "goosecode": [
         {
-          "id": "goosecode.explorer",
-          "name": "GooseCode Explorer"
+          "id": "goosecode.codeSources",
+          "name": "Code Sources"
+        },
+        {
+          "id": "goosecode.generateSession",
+          "name": "Generate Session"
         }
       ]
     },
@@ -49,20 +57,33 @@
     ],
     "commands": [
       {
-        "command": "goosecode.explorer.refresh",
-        "title": "Refresh",
+        "command": "goosecode.codeSources.refresh",
+        "title": "Refresh Code Sources",
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
         }
       },
       {
-        "command": "goosecode.explorer.refreshFile",
-        "title": "Refresh File",
+        "command": "goosecode.codeSources.enableGooseCode",
+        "title": "Enable GooseCode",
         "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
+          "light": "resources/light/toggle_off.svg",
+          "dark": "resources/dark/toggle_off.svg"
         }
+      },
+      {
+        "command": "goosecode.codeSources.disableGooseCode",
+        "title": "Disable GooseCode",
+        "icon": {
+          "light": "resources/light/toggle_on.svg",
+          "dark": "resources/dark/toggle_on.svg"
+        }
+      },
+      {
+        "command": "goosecode.initialize",
+        "title": "Initialize Workspace",
+        "category": "GooseCode"
       },
       {
         "command": "goosecode.start",
@@ -108,14 +129,20 @@
     "menus": {
       "view/title": [
         {
-          "command": "goosecode.explorer.refresh",
+          "command": "goosecode.codeSources.refresh",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "goosecode.explorer.refreshFile",
-          "group": "inline"
+          "command": "goosecode.codeSources.enableGooseCode",
+          "group": "inline",
+          "when": "viewItem == disabled"
+        },
+        {
+          "command": "goosecode.codeSources.disableGooseCode",
+          "group": "inline",
+          "when": "viewItem == enabled"
         }
       ],
       "editor/context": [

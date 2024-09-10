@@ -99,12 +99,6 @@ export async function getFileContents(filePaths: string[]): Promise<string[]> {
 export function getProjectRoot(): string {
   let projectRoot = "";
 
-  // const rootPath =
-  //   vscode.workspace.workspaceFolders &&
-  //   vscode.workspace.workspaceFolders.length > 0
-  //     ? vscode.workspace.workspaceFolders[0].uri.fsPath
-  //     : undefined;
-
   if (!vscode.workspace.workspaceFolders) {
     throw Error("No workspace folder found.");
   }

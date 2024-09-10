@@ -8,7 +8,6 @@ import Location = idepb.Location;
 import { CodeSourceID } from "../../../config";
 
 async function handleFindRequest(
-  codeSourceID: CodeSourceID,
   request: RequestMessage,
   send: (msg: ResponseMessage) => void,
 ) {
@@ -21,7 +20,7 @@ async function handleFindRequest(
   const pblocs: Location[] = convertLocations(hits);
   const response = new ResponseMessage({
     type: idepb.ResponseType.RESPONSE_FIND_STRING,
-    code_source_id: codeSourceID,
+    code_source_id: request.code_source_id,
     find_string_response: new idepb.FindStringResponse({
       locations: pblocs,
     }),

@@ -9,7 +9,6 @@ import { ApiError } from "../../errors";
 import { CodeSourceID } from "../../../config";
 
 async function handleSelectRange(
-  codeSourceID: CodeSourceID,
   request: RequestMessage,
   send: (msg: ResponseMessage) => void,
 ) {
@@ -27,12 +26,12 @@ async function handleSelectRange(
 
   const selection = selectRange(start, end);
   if (!selection) {
-    throw new ApiError("Failed to select range");
+    throw new ApiError("Failed to select range", 500);
   }
 
   const response = new ResponseMessage({
     type: ResponseType.RESPONSE_SELECT_RANGE,
-    code_source_id: codeSourceID,
+    code_source_id: request.code_source_id,
     select_range_response: new SelectRangeResponse(selectRange(start, end)),
   });
   send(response);

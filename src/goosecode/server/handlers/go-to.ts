@@ -13,7 +13,6 @@ import { ApiError } from "../../errors";
 import { CodeSourceID } from "../../../config";
 
 async function handleGoToDefinition(
-  codeSourceID: CodeSourceID,
   request: RequestMessage,
   send: (msg: ResponseMessage) => void,
 ) {
@@ -23,12 +22,12 @@ async function handleGoToDefinition(
   // Open IDE
 
   if (!(await goToDefinition(location, req.select))) {
-    throw new ApiError("Failed to go to definition");
+    throw new ApiError("Failed to go to definition", 500);
   }
 
   const response = new ResponseMessage({
     type: ResponseType.RESPONSE_GO_TO_DEFINITION,
-    code_source_id: codeSourceID,
+    code_source_id: request.code_source_id,
     go_to_definition_response: new GoToDefinitionResponse({}),
   });
 

@@ -9,6 +9,7 @@ import * as crypto from "crypto";
 import * as vscode from "vscode";
 import { ServerOptions } from "https";
 import { createTLSOptions } from "./tls";
+import * as path from "node:path";
 
 const configFileName = ".goose";
 
@@ -41,11 +42,33 @@ export type GooseCodeExtensionConfig = {
   tlsOptions: ServerOptions;
 };
 
-export function loadWorkspaceConfiguration(): GooseCodeWorkspaceConfig {
-  const path = getProjectRoot() + configFileName;
+export function removeWorkspaceConfiguration(
+  root: string,
+): CodeSourceID | null {
+  const p = path.join(root, configFileName);
+  const config = loadWorkspaceConfiguration(root, false);
+  const exists = fs.existsSync(p);
+  if (exists) {
+    fs.unlinkSync(p);
+  }
+  return config?.config.code_source_id ?? null;
+}
 
+export function loadWorkspaceConfiguration(
+  root: string,
+  create: boolean,
+): GooseCodeWorkspaceConfig | null {
+  const p = path.join(root, configFileName);
+
+  console.log("Loading GooseCode configuration file at: ", p);
+  const exists = fs.existsSync(p);
+
+  if (!create && !exists) {
+    return null;
+  }
   // If file doesn't exist, create it
-  if (!fs.existsSync(path)) {
+  if (!exists) {
+    console.log("Creating new GooseCode configuration file at: ", p);
     // Generate a uuid
     const uuid = uuidv4();
     const t = stringify({
@@ -53,10 +76,10 @@ export function loadWorkspaceConfiguration(): GooseCodeWorkspaceConfig {
         code_source_id: uuid,
       },
     });
-    fs.writeFileSync(path, t);
+    fs.writeFileSync(p, t);
   }
 
-  const c = fs.readFileSync(path, "utf-8");
+  const c = fs.readFileSync(p, "utf-8");
   const parsed = parse(c);
 
   console.log("Parsed config file: ", parsed);
