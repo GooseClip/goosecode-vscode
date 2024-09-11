@@ -334,8 +334,7 @@
             "title": "Connecting GooseCode",
             "description": "Create a new project in GooseCode and open the IDE control pane.\nEnter your details found in [Settings](command:getting-started-goosecode.checkSettings).\n[Copy Password](command:getting-started-goosecode.copyPassword)",
             "media": {
-              "image": "media/walkthrough_first_connection.gif",
-              "altText": "Gif demonstrating your first connection"
+              "markdown": "media/walkthrough_first_connection.md"
             },
             "completionEvents": [
               "onCommand:getting-started-goosecode.copyPassword",
@@ -347,8 +346,7 @@
             "title": "Test Connection",
             "description": "Waiting for connection from GooseCode.",
             "media": {
-              "image": "media/walkthrough_testing_connection.svg",
-              "altText": "Connect icon"
+              "markdown": "media/walkthrough_first_connection.md"
             },
             "completionEvents": [
               "onContext:goosecode.initialized"
@@ -359,8 +357,7 @@
             "title": "Open Activity Bar",
             "description": "Click the GooseCode icon in the left activity bar. Here you can manage your code sources and connection state.",
             "media": {
-              "image": "media/walkthrough_open_activity_bar.gif",
-              "altText": "Gif demonstrating opening the activity bar"
+              "markdown": "media/walkthrough_open_activity_bar.md"
             },
             "completionEvents": [
               "onContext:goosecode.treeview.codeSources.visible"
@@ -382,8 +379,7 @@
             "title": "Enable a Code Source",
             "description": "Hover over a code source entry and click the toggle button to enable it.\n[Enable All](command:getting-started-goosecode.enableAllCodeSources)",
             "media": {
-              "image": "media/walkthrough_enabling_code_sources.gif",
-              "altText": "Gif demonstrating enabling a code source"
+              "markdown": "media/walkthrough_enabling_code_sources.md"
             },
             "completionEvents": [
               "onContext:goosecode.hasActiveCodeSources"
@@ -394,8 +390,7 @@
             "title": "Your First Command",
             "description": "Open a code file.\nRight click > GooseCode > Open in GooseCode.",
             "media": {
-              "image": "media/walkthrough_first_command.gif",
-              "altText": "Gif demonstrating opening a file"
+              "markdown": "media/walkthrough_first_command.md"
             },
             "completionEvents": [
               "onCommand:goosecode.open"
@@ -406,8 +401,7 @@
             "title": "Generating Commands",
             "description": "Unleash the full potential of GooseCode by using the 'follow' command. GooseCode will generate snippets of code as you navigate through your codebase.\nEither use the context menu 'follow' or the keyboard shortcut 'alt+ctrl+g' (windows) or 'cmd+option+g' (mac).\nThe works much in the same way as the built in 'go to definition' command.\nCurrently there are two strategies for generating snippets, linear and swimlane.",
             "media": {
-              "image": "media/walkthrough_generation_commands.gif",
-              "altText": "Gif demonstrating GooseCode follow"
+              "markdown": "media/walkthrough_generation_commands.md"
             },
             "completionEvents": [
               "onCommand:goosecode.follow"
@@ -442,8 +436,7 @@
             "title": "About Generation",
             "description": "When you first generate using the 'follow' command, a 'session' is started.\nThe benefit of this is we can update our generation preferences in GooseCode and regenerate.\nWe can also step back through the flow incrementally to review, or remove events before regenerating. You can even swap between linear and swimlane.\nWhen you're satisfied with the result, hit the save button or discard the session to delete all snippets.\n[I Understand](command:getting-started-goosecode.aboutGeneration)",
             "media": {
-              "image": "media/walkthrough_generation_controls.gif",
-              "altText": "Gif demonstrating generation controls"
+              "markdown": "media/walkthrough_generation_controls.md"
             },
             "completionEvents": [
               "onCommand:getting-started-goosecode.aboutGeneration"
@@ -454,8 +447,7 @@
             "title": "Your Coding Minimap",
             "description": "You can use GooseCode as a minimap for your codebase to quickly view important snippets of code.\nHit the 'm' key within GooseCode or run the Minimap command in VSCode and GooseCode will overlay your window.\nClick on your snippets within the minimap to open the relevant sections within your codebase.\nMinimap mode has a few keyboard shortcuts but be sure to focus on the floating window before pushing them.\nZoom (z): Quickly preview snippets while zoomed out so you know which one to click.\nFocus (f): Focus on the cursor, useful for navigating quickly around the map.\nYou can resize and reposition your minimap and it will restore to the original size and position on exit.\nIf you prefer a fully functional GooseCode overlayed, you can try Overlay (o) mode instead.\n[Wow](command:getting-started-goosecode.minimap)",
             "media": {
-              "image": "media/walkthrough_minimap.gif",
-              "altText": "Gif demonstrating GooseCode minimap"
+              "markdown": "media/walkthrough_minimap.md"
             },
             "completionEvents": [
               "onCommand:getting-started-goosecode.minimap"
