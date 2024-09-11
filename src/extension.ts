@@ -27,7 +27,6 @@ async function startServer(
   context: vscode.ExtensionContext,
   config: GooseCodeExtensionConfig,
 ) {
-  console.log("Starting server, password: ", config.settings.password);
   gooseCodeServer = new GooseCodeServer(
     workspaceTracker!,
     config,
@@ -55,7 +54,6 @@ async function startServer(
     workspaceTracker!,
   );
   connectionProvider?.refresh();
-  console.log("Started == true");
   vscode.commands.executeCommand("setContext", "goosecode.started", true);
 }
 
@@ -123,7 +121,6 @@ async function persistentCommands(
   sub = vscode.commands.registerCommand(
     "goosecode.openWalkthrough",
     async () => {
-      console.log("HERE");
       vscode.commands.executeCommand(
         "workbench.action.openWalkthrough",
         "GooseClip.goosecode#goosecode",
@@ -155,7 +152,6 @@ function createTreeProviders(
   });
 
   var sub = treeView.onDidChangeVisibility((e) => {
-    console.log("Visibility changed", e.visible);
     vscode.commands.executeCommand(
       "setContext",
       "goosecode.treeview.codeSources.visible",
@@ -181,7 +177,6 @@ function createTreeProviders(
   sub = vscode.commands.registerCommand(
     "goosecode.codeSources.refresh",
     async () => {
-      console.log("Refreshing code sources");
       const workspaces = workspaceTracker!.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
     },
@@ -257,7 +252,6 @@ export async function activate(context: vscode.ExtensionContext) {
   if (config.settings.startAutomatically) {
     await startServer(context, config);
   } else {
-    console.log("Started == false");
     vscode.commands.executeCommand("setContext", "goosecode.started", false);
     if (initialized) {
       // Show warning

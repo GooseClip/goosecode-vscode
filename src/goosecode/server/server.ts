@@ -53,9 +53,6 @@ export class GooseCodeServer {
       }
       msg.workspace_root = activeWorkspace.uri.fsPath;
       msg.code_source_id = activeWorkspace.codeSourceID!;
-
-      console.log("[INJECTING] root", msg.workspace_root);
-      console.log("[INJECTING] codesource", msg.code_source_id);
     }
     this.websocket.send(msg.serializeBinary());
   }

@@ -74,7 +74,6 @@ export async function createTLSOptions(
 
     await secrets.store("private_pem", privatePem);
     await secrets.store("cert_pem", certPem);
-    console.log("Done generating new keys");
   }
 
   return {

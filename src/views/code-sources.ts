@@ -19,7 +19,6 @@ export class CodeSourcesProvider
     new vscode.EventEmitter<CodeSource | undefined | void>();
 
   refresh(): void {
-    console.log("Codesources refreshed");
     this._onDidChangeTreeData.fire();
   }
 

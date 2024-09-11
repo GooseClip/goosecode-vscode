@@ -65,7 +65,6 @@ export function loadWorkspaceConfiguration(
   }
   // If file doesn't exist, create it
   if (!exists) {
-    console.log("Creating new GooseCode configuration file at: ", p);
     // Generate a uuid
     const uuid = uuidv4();
     const t = stringify({

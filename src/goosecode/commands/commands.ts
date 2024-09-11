@@ -48,7 +48,6 @@ export async function getFileContents(
 
     for (const f of filePaths) {
       const absolutePath = path.join(workspaceUri.fsPath, f);
-      console.log("Absolute path: ", absolutePath);
       const content = await fs.promises.readFile(absolutePath, "utf-8");
       files.push(content);
     }
@@ -120,7 +119,6 @@ export async function goToDefinition(
   const activeEditor = vscode.window.activeTextEditor;
 
   if (!activeEditor) {
-    console.log("[WARN][GOTO]", "No active text editor found.");
     return false;
   }
   const document = await vscode.workspace.openTextDocument(
@@ -168,6 +166,5 @@ export async function goToDefinition(
     decoration.dispose();
   }, 1000);
 
-  console.log("[GO TO DEFINITION]");
   return true;
 }

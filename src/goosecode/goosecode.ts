@@ -60,7 +60,6 @@ async function guard(
 
     if (selection === "Yes") {
       // Handle yes
-      console.log("User wants to enable");
       loadWorkspaceConfiguration(workspace!.uri.fsPath, true);
       vscode.window.showInformationMessage("Code source enabled");
       const workspaces = workspaceTracker.refresh();
@@ -86,10 +85,8 @@ export function registerGooseCodeCommands(
   // Show file
   var sub = vscode.commands.registerCommand("goosecode.open", async () => {
     if (!(await guard(gooseCodeServer, workspaceTracker))) {
-      console.log("GUARD FAILED");
       return;
     }
-    console.log("OPEN IN GOOSECODE");
     const editor = vscode.window.activeTextEditor!;
     gooseCodeServer?.push(
       new PushMessage({
@@ -180,8 +177,6 @@ export function registerGooseCodeCommands(
     let currentDefinition: vscode.LocationLink | undefined;
     definitions = definitions.filter((def) => {
       if (def.originSelectionRange!.intersection(def.targetSelectionRange!)) {
-        console.log(`------- SKIPPING CURRENT SELECTION DEFINITION ------ `);
-        console.log(def);
         currentDefinition = def;
         return false;
       }
@@ -192,10 +187,6 @@ export function registerGooseCodeCommands(
       if (definitions.length > 1) {
         console.warn("Multiple definitions found. Going to the first one");
       }
-      console.log(`------- DEFINITIONS------ ${definitions.length}`);
-      console.log(definitions[0]);
-
-      // TODO check if the definition is the current range
 
       gooseCodeServer?.push(
         new PushMessage({
@@ -243,8 +234,6 @@ export function registerGooseCodeCommands(
 
     refs = refs.filter((ref) => {
       if (ref.range!.intersection(selection)) {
-        console.log(`------- SKIPPING CURRENT SELECTION REFERENCE ------ `);
-        console.log(ref);
         currentLocation = ref;
         return false;
       }
@@ -252,8 +241,6 @@ export function registerGooseCodeCommands(
     });
 
     if (refs.length > 0) {
-      console.log("-------REFERENCES------");
-      console.log(refs);
       gooseCodeServer?.push(
         new PushMessage({
           type: idepb.PushType.PUSH_FOLLOW,
