@@ -94,12 +94,14 @@ export class WorkspaceTracker {
   }
 
   // TODO cache
-  public refresh(): Array<Workspace> {
+  public refresh(filterDisabled: boolean = true): Array<Workspace> {
     this.workspaces.length = 0;
     const spaces = vscode.workspace.workspaceFolders;
     if (spaces) {
       for (const workspace of spaces) {
+        console.log("Refreshing workspace", workspace.uri.fsPath);
         const config = loadWorkspaceConfiguration(workspace.uri.fsPath, false);
+        console.log("Got config:", workspace.uri.fsPath, config);
         this.workspaces.push(new Workspace(workspace, config));
       }
     }
@@ -110,7 +112,7 @@ export class WorkspaceTracker {
         .map((e) => e.uri.fsPath + "," + e.codeSourceID)
         .join("\n"),
     );
-    return this.workspaces;
+    return this.workspaces.filter((w) => !filterDisabled || w.isEnabled);
   }
 
   // TODO what if the first file is a dependency

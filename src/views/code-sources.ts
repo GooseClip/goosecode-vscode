@@ -24,7 +24,7 @@ export class CodeSourcesProvider
   }
 
   getChildren(element?: CodeSource): Thenable<CodeSource[]> {
-    const workspaces = this.workspaceTracker.refresh();
+    const workspaces = this.workspaceTracker.refresh(false);
     if (!workspaces) {
       return Promise.resolve([]);
     }
@@ -55,7 +55,7 @@ export class CodeSource extends vscode.TreeItem {
     super(label, collapsibleState);
 
     this.tooltip = `${this.label}-${this.enabled}`;
-    this.description = this.tooltip;
+    // this.description = this.tooltip;
   }
 
   iconPath = {

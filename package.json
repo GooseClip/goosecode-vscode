@@ -3,6 +3,7 @@
   "displayName": "goosecode",
   "description": "Companion AI powered infinity canvas app",
   "version": "0.0.1",
+  "publisher": "GooseClip",
   "engines": {
     "vscode": "^1.77.0"
   },
@@ -18,12 +19,18 @@
   "contributes": {
     "viewsWelcome": [
       {
-        "view": "goosecode.codeSources",
-        "contents": "You can have paragraphs of text here. You can have [links](https://code.visualstudio.com) to external sources or [internal commands](command:welcome-view-content-sample.hello).\nUse new lines to have new paragraphs.\nPlace a link alone in a paragraph to make it a button\n[Hello](command:welcome-view-content-sample.hello)"
+        "view": "goosecode.connection",
+        "contents": "GooseCode extension is not running.\n[Click here](command:goosecode.enableAutoStart) if you want GooseCode to start automatically.\nOtherwise [start for this session](command:goosecode.start).\nPlease view the walkthrough for detailed instructions.\n[Walkthrough](command:goosecode.openWalkthrough)",
+        "when": "goosecode.started == false"
       },
       {
-        "view": "goosecode.generateSession",
-        "contents": "You can have paragraphs of text here. You can have [links](https://code.visualstudio.com) to external sources or [internal commands](command:welcome-view-content-sample.hello).\nUse new lines to have new paragraphs.\nPlace a link alone in a paragraph to make it a button\n[Hello](command:welcome-view-content-sample.hello)"
+        "view": "goosecode.connection",
+        "contents": "Creating a [GooseCode](https://goosecode.app) Connection:\nCheck or update connection details in [Settings](command:getting-started-goosecode.checkSettings).\nConnect via the GooseCode IDE controls pane.\nPlease view the walkthrough for detailed instructions.\n[Walkthrough](command:goosecode.openWalkthrough)",
+        "when": "goosecode.started == true && goosecode.initialized == false"
+      },
+      {
+        "view": "goosecode.codeSources",
+        "contents": "Open a workspace to configure your code sources."
       }
     ],
     "viewsContainers": {
@@ -38,12 +45,12 @@
     "views": {
       "goosecode": [
         {
-          "id": "goosecode.codeSources",
-          "name": "Code Sources"
+          "id": "goosecode.connection",
+          "name": "Connection"
         },
         {
-          "id": "goosecode.generateSession",
-          "name": "Generate Session"
+          "id": "goosecode.codeSources",
+          "name": "Code Sources"
         }
       ]
     },
@@ -65,16 +72,16 @@
         }
       },
       {
-        "command": "goosecode.codeSources.enableGooseCode",
-        "title": "Enable GooseCode",
+        "command": "goosecode.codeSources.enableCodeSource",
+        "title": "Enable CodeSource",
         "icon": {
           "light": "resources/light/toggle_off.svg",
           "dark": "resources/dark/toggle_off.svg"
         }
       },
       {
-        "command": "goosecode.codeSources.disableGooseCode",
-        "title": "Disable GooseCode",
+        "command": "goosecode.codeSources.disableCodeSource",
+        "title": "Disable CodeSource",
         "icon": {
           "light": "resources/light/toggle_on.svg",
           "dark": "resources/dark/toggle_on.svg"
@@ -83,12 +90,20 @@
       {
         "command": "goosecode.start",
         "title": "Start",
-        "category": "GooseCode"
+        "category": "GooseCode",
+        "icon": {
+          "light": "resources/light/toggle_on.svg",
+          "dark": "resources/dark/toggle_on.svg"
+        }
       },
       {
         "command": "goosecode.stop",
         "title": "Stop",
-        "category": "GooseCode"
+        "category": "GooseCode",
+        "icon": {
+          "light": "resources/light/toggle_on.svg",
+          "dark": "resources/dark/toggle_on.svg"
+        }
       },
       {
         "command": "goosecode.restart",
@@ -125,19 +140,30 @@
       "view/title": [
         {
           "command": "goosecode.codeSources.refresh",
-          "group": "navigation"
+          "group": "navigation",
+          "when": "view == goosecode.codeSources"
         }
       ],
       "view/item/context": [
         {
-          "command": "goosecode.codeSources.enableGooseCode",
+          "command": "goosecode.start",
           "group": "inline",
-          "when": "viewItem == disabled"
+          "when": "viewItem == disabled && view == goosecode.connection"
         },
         {
-          "command": "goosecode.codeSources.disableGooseCode",
+          "command": "goosecode.stop",
           "group": "inline",
-          "when": "viewItem == enabled"
+          "when": "viewItem == enabled && view == goosecode.connection"
+        },
+        {
+          "command": "goosecode.codeSources.enableCodeSource",
+          "group": "inline",
+          "when": "viewItem == disabled && view == goosecode.codeSources"
+        },
+        {
+          "command": "goosecode.codeSources.disableCodeSource",
+          "group": "inline",
+          "when": "viewItem == enabled && view == goosecode.codeSources"
         }
       ],
       "editor/context": [
@@ -225,7 +251,7 @@
         "goosecode.startAutomatically": {
           "description": "Start GooseCode Extension server automatically on open.",
           "type": "boolean",
-          "default": true
+          "default": false
         },
         "goosecode.connections.port": {
           "description": "The port GooseCode will connect to the IDE.",

@@ -27,6 +27,8 @@ export class GooseCodeServer {
   constructor(
     private readonly workspaceTracker: WorkspaceTracker,
     private readonly extensionConfig: GooseCodeExtensionConfig,
+    private readonly onConnected: () => void,
+    private readonly onClosed: () => void,
   ) {}
 
   public websocket: WebSocket | null = null;
@@ -146,6 +148,7 @@ export class GooseCodeServer {
 
       this.websocket = socket;
 
+      this.onConnected();
       socket.on("message", (message: RawData) => {
         console.log("Extension: Received message on websocket...");
         console.error("Received non-string message data", message);
@@ -153,6 +156,7 @@ export class GooseCodeServer {
 
       socket.on("close", (code, reason) => {
         this.websocket = null;
+        this.onClosed();
         console.log(
           "WebSocket connection closed, code:",
           code,
