@@ -23,15 +23,6 @@ export function gettingStarted(
 
   subscriptions.push(
     vscode.commands.registerCommand(
-      "getting-started-goosecode.checkSettings",
-      async () => {
-        openSettingsPage();
-      },
-    ),
-  );
-
-  subscriptions.push(
-    vscode.commands.registerCommand(
       "getting-started-goosecode.aboutCodeSources",
       async () => {
         console.log("I understand");
@@ -77,15 +68,6 @@ export function gettingStarted(
 
   subscriptions.push(
     vscode.commands.registerCommand(
-      "getting-started-goosecode.minimap",
-      async () => {
-        console.log("I understand");
-      },
-    ),
-  );
-
-  subscriptions.push(
-    vscode.commands.registerCommand(
       "getting-started-goosecode.copyPassword",
       async () => {
         // Copy the password from goosecode.connections.password into clipboard and notify
@@ -102,35 +84,6 @@ export function gettingStarted(
     vscode.commands.registerCommand(
       "getting-started-goosecode.testConnection",
       async () => {},
-    ),
-  );
-
-  subscriptions.push(
-    vscode.commands.registerCommand(
-      "getting-started-goosecode.changeSetting",
-      async () => {
-        console.log(
-          vscode.workspace
-            .getConfiguration("getting-started-goosecode")
-            .get("sampleSetting"),
-        );
-        // vscode.workspace.getConfiguration('getting-started-goosecode').update('sampleSetting', true);
-        openSettingsPage();
-      },
-    ),
-  );
-
-  subscriptions.push(
-    vscode.commands.registerCommand(
-      "getting-started-goosecode.setContext",
-      async () => {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        vscode.commands.executeCommand(
-          "setContext",
-          "gettingStartedContextKey",
-          true,
-        );
-      },
     ),
   );
 

@@ -11,7 +11,7 @@ import {
   loadWorkspaceConfiguration,
   removeWorkspaceConfiguration,
 } from "./config";
-import { gettingStarted } from "./getting-started";
+import { gettingStarted, openSettingsPage } from "./getting-started";
 import { idepb } from "./proto/idepb/ide";
 import { WorkspaceTracker } from "./workspace-tracker";
 import { registerGooseCodeCommands } from "./goosecode/goosecode";
@@ -40,9 +40,20 @@ async function startServer(
         "goosecode.initialized",
         true,
       );
+
+      // Notify UI / Context menus that we have a connection
+      vscode.commands.executeCommand("setContext", "goosecode.connected", true);
+
       connectionProvider?.refresh();
     },
     () => {
+      // Notify UI / Context menus that we don't have a connection
+      vscode.commands.executeCommand(
+        "setContext",
+        "goosecode.connected",
+        false,
+      );
+
       connectionProvider?.refresh();
     },
   );
@@ -101,12 +112,25 @@ async function persistentCommands(
   });
   subscriptions.push(sub);
 
-  sub = vscode.commands.registerCommand("goosecode.purgeTLS", async () => {
-    await purge(context);
-    vscode.window.showInformationMessage(
-      "GooseCode TLS keys purged. Restart the server to generate new keys.",
-    );
-  });
+  (sub = vscode.commands.registerCommand("goosecode.openSettings", async () => {
+    openSettingsPage();
+  })),
+    subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.regenerateCertificatesAndPassword",
+    async () => {
+      context.globalState.update("goosecode.initialized", false);
+      await purge(context);
+      await restartServer(context);
+      vscode.window.showInformationMessage(
+        "GooseCode TLS keys purged and password has been changed.",
+      );
+      vscode.window.showWarningMessage(
+        "All previously connected GooseCode clients will need to be reconfigured.",
+      );
+    },
+  );
   subscriptions.push(sub);
 
   sub = vscode.commands.registerCommand(
@@ -253,9 +277,23 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.executeCommand("setContext", "goosecode.started", false);
     if (initialized) {
       // Show warning
-      vscode.window.showWarningMessage(
-        "GooseCode is not running. You can start it from the command palette. To start automatically, enable the setting 'GooseCode: Start Automatically'",
-      );
+      vscode.window
+        .showWarningMessage(
+          "GooseCode is not running. Would you like to start it?",
+          "Start Automatically",
+          "Start Once",
+          "Do not start",
+        )
+        .then((selection) => {
+          if (selection === "Start Automatically") {
+            vscode.workspace
+              .getConfiguration("goosecode")
+              .update("startAutomatically", true, ConfigurationTarget.Global);
+            startServer(context, config);
+          } else if (selection === "Start Once") {
+            startServer(context, config);
+          }
+        });
     }
   }
 

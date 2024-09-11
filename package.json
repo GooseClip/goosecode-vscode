@@ -25,7 +25,7 @@
       },
       {
         "view": "goosecode.connection",
-        "contents": "Creating a [GooseCode](https://goosecode.app) Connection:\nCheck or update connection details in [Settings](command:getting-started-goosecode.checkSettings).\nConnect via the GooseCode IDE controls pane.\nPlease view the walkthrough for detailed instructions.\n[Walkthrough](command:goosecode.openWalkthrough)",
+        "contents": "Creating a [GooseCode](https://goosecode.app) Connection:\nCheck or update connection details in [Settings](command:goosecode.openSettings).\nConnect via the GooseCode IDE controls pane.\nPlease view the walkthrough for detailed instructions.\n[Walkthrough](command:goosecode.openWalkthrough)",
         "when": "goosecode.started == true && goosecode.initialized == false"
       },
       {
@@ -69,6 +69,16 @@
     ],
     "commands": [
       {
+        "command": "goosecode.openWalkthrough",
+        "title": "View Walkthrough",
+        "category": "GooseCode"
+      },
+      {
+        "command": "goosecode.openSettings",
+        "title": "Open Settings",
+        "category": "GooseCode"
+      },
+      {
         "command": "goosecode.appcommand.minimap",
         "title": "Toggle Minimap",
         "category": "GooseCode"
@@ -81,6 +91,7 @@
       {
         "command": "goosecode.codeSources.refresh",
         "title": "Refresh Code Sources",
+        "category": "GooseCode",
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
@@ -89,6 +100,7 @@
       {
         "command": "goosecode.activeSession.delete",
         "title": "Discard Session",
+        "category": "GooseCode",
         "icon": {
           "light": "resources/light/delete.svg",
           "dark": "resources/dark/delete.svg"
@@ -97,6 +109,7 @@
       {
         "command": "goosecode.activeSession.save",
         "title": "Save Session",
+        "category": "GooseCode",
         "icon": {
           "light": "resources/light/save.svg",
           "dark": "resources/dark/save.svg"
@@ -105,6 +118,7 @@
       {
         "command": "goosecode.activeSession.regenerateLinear",
         "title": "Regenerate Session (Linear)",
+        "category": "GooseCode",
         "icon": {
           "light": "resources/light/linear.svg",
           "dark": "resources/dark/linear.svg"
@@ -113,6 +127,7 @@
       {
         "command": "goosecode.activeSession.regenerateSwimlane",
         "title": "Regenerate Session (Swimlane)",
+        "category": "GooseCode",
         "icon": {
           "light": "resources/light/swimlane.svg",
           "dark": "resources/dark/swimlane.svg"
@@ -121,6 +136,7 @@
       {
         "command": "goosecode.activeSession.step",
         "title": "Step Through Session",
+        "category": "GooseCode",
         "icon": {
           "light": "resources/light/step.svg",
           "dark": "resources/dark/step.svg"
@@ -129,6 +145,7 @@
       {
         "command": "goosecode.codeSources.enableCodeSource",
         "title": "Enable CodeSource",
+        "category": "GooseCode",
         "icon": {
           "light": "resources/light/toggle_off.svg",
           "dark": "resources/dark/toggle_off.svg"
@@ -137,6 +154,7 @@
       {
         "command": "goosecode.codeSources.disableCodeSource",
         "title": "Disable CodeSource",
+        "category": "GooseCode",
         "icon": {
           "light": "resources/light/toggle_on.svg",
           "dark": "resources/dark/toggle_on.svg"
@@ -166,13 +184,13 @@
         "category": "GooseCode"
       },
       {
-        "command": "goosecode.purgeTLS",
-        "title": "Purge TLS Certificates",
+        "command": "goosecode.regenerateCertificatesAndPassword",
+        "title": "Purge Certificates and Regenerate Password",
         "category": "GooseCode"
       },
       {
         "command": "goosecode.open",
-        "title": "Open In GooseCode",
+        "title": "Open",
         "category": "GooseCode"
       },
       {
@@ -192,6 +210,85 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "goosecode.openWalkthrough"
+        },
+        {
+          "command": "goosecode.openSettings"
+        },
+        {
+          "command": "goosecode.appcommand.minimap",
+          "when": "goosecode.connected == true"
+        },
+        {
+          "command": "goosecode.appcommand.overlay",
+          "when": "goosecode.connected == true"
+        },
+        {
+          "command": "goosecode.codeSources.refresh",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.activeSession.delete",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.activeSession.save",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.activeSession.regenerateLinear",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.activeSession.regenerateSwimlane",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.activeSession.step",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.codeSources.enableCodeSource",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.codeSources.disableCodeSource",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.start",
+          "when": "goosecode.started == false"
+        },
+        {
+          "command": "goosecode.stop",
+          "when": "goosecode.started == true"
+        },
+        {
+          "command": "goosecode.restart",
+          "when": "goosecode.started == true"
+        },
+        {
+          "command": "goosecode.regenerateCertificatesAndPassword"
+        },
+        {
+          "command": "goosecode.open",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.pin",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.snippet",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.follow",
+          "when": "false"
+        }
+      ],
       "view/title": [
         {
           "command": "goosecode.codeSources.refresh",
@@ -254,32 +351,49 @@
       ],
       "goosecode.submenu": [
         {
-          "when": "editorTextFocus",
+          "when": "editorTextFocus && goosecode.connected == true",
           "command": "goosecode.open",
           "group": "goosecode@1"
         },
         {
-          "when": "editorTextFocus",
+          "when": "editorTextFocus && goosecode.connected == true",
           "command": "goosecode.pin",
           "group": "goosecode@3"
         },
         {
-          "when": "editorHasSelection",
+          "when": "editorHasSelection && goosecode.connected == true",
           "command": "goosecode.snippet",
           "group": "goosecode@4"
         },
         {
-          "when": "editorTextFocus",
+          "when": "editorTextFocus && goosecode.connected == true",
           "command": "goosecode.follow",
           "group": "goosecode@6"
         },
         {
+          "when": "goosecode.connected == true",
           "command": "goosecode.appcommand.minimap",
           "group": "goosecode@7"
         },
         {
+          "when": "goosecode.connected == true",
           "command": "goosecode.appcommand.overlay",
           "group": "goosecode@8"
+        },
+        {
+          "when": "goosecode.connected == false && goosecode.started == false && goosecode.initialized == true",
+          "command": "goosecode.start",
+          "group": "goosecode@9"
+        },
+        {
+          "when": "goosecode.connected == false && goosecode.started == false && goosecode.initialized == false",
+          "command": "goosecode.openWalkthrough",
+          "group": "goosecode@10"
+        },
+        {
+          "when": "goosecode.connected == false && goosecode.started == true && goosecode.initialized == true",
+          "command": "goosecode.openWalkthrough",
+          "group": "goosecode@11"
         }
       ]
     },
@@ -310,12 +424,12 @@
           {
             "id": "checksettings",
             "title": "Check Extension Setting",
-            "description": "We recommend enabling 'Start Automatically'.\nView or modify your connection details used to connect with GooseCode in the next step.\n[Settings](command:getting-started-goosecode.checkSettings)",
+            "description": "We recommend enabling 'Start Automatically'.\nView or modify your connection details used to connect with GooseCode in the next step.\n[Settings](command:goosecode.openSettings)",
             "media": {
               "markdown": "media/walkthrough_settings.md"
             },
             "completionEvents": [
-              "onCommand:getting-started-goosecode.checkSettings"
+              "onCommand:goosecode.openSettings"
             ]
           },
           {
@@ -332,7 +446,7 @@
           {
             "id": "firstconnection",
             "title": "Connecting GooseCode",
-            "description": "Create a new project in GooseCode and open the IDE control pane.\nEnter your details found in [Settings](command:getting-started-goosecode.checkSettings).\n[Copy Password](command:getting-started-goosecode.copyPassword)",
+            "description": "Create a new project in GooseCode and open the IDE control pane.\nEnter your details found in [Settings](command:goosecode.openSettings).\n[Copy Password](command:getting-started-goosecode.copyPassword)",
             "media": {
               "markdown": "media/walkthrough_first_connection.md"
             },
@@ -388,7 +502,7 @@
           {
             "id": "firstcommand",
             "title": "Your First Command",
-            "description": "Open a code file.\nRight click > GooseCode > Open in GooseCode.",
+            "description": "Open a code file.\nRight click > GooseCode > Open.",
             "media": {
               "markdown": "media/walkthrough_first_command.md"
             },
@@ -445,12 +559,12 @@
           {
             "id": "minimap",
             "title": "Your Coding Minimap",
-            "description": "You can use GooseCode as a minimap for your codebase to quickly view important snippets of code.\nHit the 'm' key within GooseCode or run the Minimap command in VSCode and GooseCode will overlay your window.\nClick on your snippets within the minimap to open the relevant sections within your codebase.\nMinimap mode has a few keyboard shortcuts but be sure to focus on the floating window before pushing them.\nZoom (z): Quickly preview snippets while zoomed out so you know which one to click.\nFocus (f): Focus on the cursor, useful for navigating quickly around the map.\nYou can resize and reposition your minimap and it will restore to the original size and position on exit.\nIf you prefer a fully functional GooseCode overlayed, you can try Overlay (o) mode instead.\n[Wow](command:getting-started-goosecode.minimap)",
+            "description": "You can use GooseCode as a minimap for your codebase to quickly view important snippets of code.\nHit the 'm' key within GooseCode or run the Minimap command in VSCode and GooseCode will overlay your window.\nClick on your snippets within the minimap to open the relevant sections within your codebase.\nMinimap mode has a few keyboard shortcuts but be sure to focus on the floating window before pushing them.\nZoom (z): Quickly preview snippets while zoomed out so you know which one to click.\nFocus (f): Focus on the cursor, useful for navigating quickly around the map.\nYou can resize and reposition your minimap and it will restore to the original size and position on exit.\nIf you prefer a fully functional GooseCode overlayed, you can try Overlay (o) mode instead.\n[Try Minimap](command:goosecode.appcommand.minimap)",
             "media": {
               "markdown": "media/walkthrough_minimap.md"
             },
             "completionEvents": [
-              "onCommand:getting-started-goosecode.minimap"
+              "onCommand:goosecode.appcommand.minimap"
             ]
           }
         ]
