@@ -29,16 +29,23 @@ export class Workspace {
   }
 }
 
+type RefreshOptions = { refreshCodeSources: boolean };
 export class WorkspaceTracker {
+  constructor(
+    private readonly onRefreshed: (options: RefreshOptions) => void,
+  ) {}
   public workspaces: Workspace[] = [];
-
   private lastWorkspace: Workspace | null = null;
   private activeFile: Uri | null = null;
+
+  public activeWorkspaces(): Array<Workspace> {
+    return this.workspaces.filter((w) => w.isEnabled);
+  }
 
   public getWorkspaceFromCodeSourceID(
     codeSourceID: CodeSourceID,
   ): Workspace | null {
-    const hit = this.workspaces.find(
+    const hit = this.activeWorkspaces().find(
       (w) => w.config!.config.code_source_id === codeSourceID,
     );
     console.log(
@@ -50,7 +57,7 @@ export class WorkspaceTracker {
     return hit || null;
   }
 
-  private getWorkspaceFromFile(activeFileUri: Uri): Workspace | null {
+  public getWorkspaceFromFile(activeFileUri: Uri): Workspace | null {
     const ws = vscode.workspace.getWorkspaceFolder(activeFileUri);
     if (!ws) {
       console.log(
@@ -94,7 +101,7 @@ export class WorkspaceTracker {
   }
 
   // TODO cache
-  public refresh(filterDisabled: boolean = true): Array<Workspace> {
+  public refresh(fromCodeSources: boolean = false): Array<Workspace> {
     this.workspaces.length = 0;
     const spaces = vscode.workspace.workspaceFolders;
     if (spaces) {
@@ -112,7 +119,9 @@ export class WorkspaceTracker {
         .map((e) => e.uri.fsPath + "," + e.codeSourceID)
         .join("\n"),
     );
-    return this.workspaces.filter((w) => !filterDisabled || w.isEnabled);
+
+    this.onRefreshed({ refreshCodeSources: !fromCodeSources });
+    return this.workspaces.filter((w) => fromCodeSources || w.isEnabled);
   }
 
   // TODO what if the first file is a dependency

@@ -7,15 +7,19 @@ import { WorkspaceTracker } from "../workspace-tracker";
 export class CodeSourcesProvider
   implements vscode.TreeDataProvider<CodeSource>
 {
+  constructor(private readonly workspaceTracker: WorkspaceTracker) {}
+
   private _onDidChangeTreeData: vscode.EventEmitter<
     CodeSource | undefined | void
   > = new vscode.EventEmitter<CodeSource | undefined | void>();
   readonly onDidChangeTreeData: vscode.Event<CodeSource | undefined | void> =
     this._onDidChangeTreeData.event;
 
-  constructor(private readonly workspaceTracker: WorkspaceTracker) {}
+  private _onDidChangeView: vscode.EventEmitter<CodeSource | undefined | void> =
+    new vscode.EventEmitter<CodeSource | undefined | void>();
 
   refresh(): void {
+    console.log("Codesources refreshed");
     this._onDidChangeTreeData.fire();
   }
 
@@ -24,7 +28,7 @@ export class CodeSourcesProvider
   }
 
   getChildren(element?: CodeSource): Thenable<CodeSource[]> {
-    const workspaces = this.workspaceTracker.refresh(false);
+    const workspaces = this.workspaceTracker.refresh(true);
     if (!workspaces) {
       return Promise.resolve([]);
     }

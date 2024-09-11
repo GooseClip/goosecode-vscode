@@ -205,7 +205,7 @@
       {
         "id": "goosecode",
         "title": "GooseCode",
-        "description": "GooseCode extension to be used with [GooseCode App](https://goosecode.app) to provide IDE integration and supercharge code navigation.",
+        "description": "GooseCode extension to be used with [GooseCode App](https://goosecode.app) to supercharge code navigation.",
         "steps": [
           {
             "id": "download",
@@ -221,8 +221,8 @@
           },
           {
             "id": "checksettings",
-            "title": "Check GooseCode Setting",
-            "description": "This step will change a setting and check off when the setting has changed\n[Settings](command:getting-started-goosecode.checkSettings)",
+            "title": "Check Extension Setting",
+            "description": "We recommend enabling 'Start Automatically'.\nView or modify your connection details used to connect with GooseCode in the next step.\n[Settings](command:getting-started-goosecode.checkSettings)",
             "media": {
               "markdown": "media/settings.md"
             },
@@ -231,15 +231,139 @@
             ]
           },
           {
-            "id": "connect",
-            "title": "Test Connection",
-            "description": "This step will run a command and check off once it has been run.\n[Run Command](command:getting-started-goosecode.testConnection)",
+            "id": "startingextension",
+            "title": "Start Extension Server",
+            "description": "The GooseCode extension uses a secure https server with password protection.\nIf you have enabled 'Start Automatically' GooseCode will run every time you open Visual Studio Code.\n[Start](command:goosecode.start)",
             "media": {
               "image": "media/screenshot.png",
               "altText": "Empty image"
             },
             "completionEvents": [
-              "onCommand:getting-started-goosecode.testConnection"
+              "onContext:goosecode.started"
+            ]
+          },
+          {
+            "id": "firstconnection",
+            "title": "Connecting GooseCode",
+            "description": "Create a new project in GooseCode and open the IDE control pane.\nEnter your details found in [Settings](command:getting-started-goosecode.checkSettings).\n[Copy Password](command:getting-started-goosecode.copyPassword)",
+            "media": {
+              "image": "media/screenshot.png",
+              "altText": "Empty image"
+            },
+            "completionEvents": [
+              "onCommand:getting-started-goosecode.copyPassword",
+              "onContext:goosecode.initialized"
+            ]
+          },
+          {
+            "id": "testconnection",
+            "title": "Test Connection",
+            "description": "Waiting for connection from GooseCode.",
+            "media": {
+              "image": "media/screenshot.png",
+              "altText": "Empty image"
+            },
+            "completionEvents": [
+              "onContext:goosecode.initialized"
+            ]
+          },
+          {
+            "id": "openactivitybar",
+            "title": "Open Activity Bar",
+            "description": "Click the GooseCode icon in the left activity bar. Here you can manage your code sources and connection state.",
+            "media": {
+              "markdown": "media/settings.md"
+            },
+            "completionEvents": [
+              "onContext:goosecode.treeview.codeSources.visible"
+            ]
+          },
+          {
+            "id": "codesources",
+            "title": "About Code Sources",
+            "description": "Code sources are workspaces which have been initialized to be used with GooseCode.\nOn initialization a .goose configuration file will be created in the workspace root. This is necessary for GooseCode to continue to work when workspaces are moved or shared.\nWhen a code source is disabled, the .goose file will be deleted, and no longer resolvable via the GooseCode app.\nWe recommend adding the .goose file to your version control when working across machines or sharing projects.\n[I Understand](command:getting-started-goosecode.aboutCodeSources)",
+            "media": {
+              "markdown": "media/settings.md"
+            },
+            "completionEvents": [
+              "onCommand:getting-started-goosecode.aboutCodeSources"
+            ]
+          },
+          {
+            "id": "enablecodesource",
+            "title": "Enable a Code Source",
+            "description": "Hover over a code source entry and click the toggle button to enable it.\n[Enable All](command:getting-started-goosecode.enableAllCodeSources)",
+            "media": {
+              "markdown": "media/settings.md"
+            },
+            "completionEvents": [
+              "onContext:goosecode.hasActiveCodeSources"
+            ]
+          },
+          {
+            "id": "firstcommand",
+            "title": "Your First Command",
+            "description": "Open a code file.\nRight click > GooseCode > 'Open in GooseCode'.",
+            "media": {
+              "markdown": "media/settings.md"
+            },
+            "completionEvents": [
+              "onCommand:goosecode.open"
+            ]
+          },
+          {
+            "id": "generationcommands",
+            "title": "Generating Commands",
+            "description": "Unleash the full potential of GooseCode by using the 'follow' command. GooseCode will generate snippets of code as you navigate through your codebase.\nEither use the context menu 'follow' or the keyboard shortcut 'alt+ctrl+g' (windows) or 'cmd+option+g' (mac).\nThe works much in the same way as the built in 'go to definition' command.\nCurrently there are two strategies for generating snippets, linear and swimlane.",
+            "media": {
+              "markdown": "media/settings.md"
+            },
+            "completionEvents": [
+              "onCommand:goosecode.follow"
+            ]
+          },
+          {
+            "id": "linearstrategy",
+            "title": "Linear Strategy",
+            "description": "Linear generation strategy will generate in a row as you navigate through your codebase. Snippets from the same file will stack until a new file is added.\nWhen a file is revisited, it will add a new column rather than returning to previous references.\nThis enables us to sequentially track code execution as well as include relevant references to interesting bits of code.\n[I Understand](command:getting-started-goosecode.linearStrategy)",
+            "media": {
+              "markdown": "media/settings.md"
+            },
+            "completionEvents": [
+              "onCommand:getting-started-goosecode.linearStrategy"
+            ]
+          },
+          {
+            "id": "swimlanestrategy",
+            "title": "Swimlane Strategy",
+            "description": "Swimlane generation strategy will generate in columns according to the containing file. This is great for understanding inter-file dependencies in a familiar format.\nCurrently swimlane doesn't support references as they're hard to understand in this format.\n[I Understand](command:getting-started-goosecode.swimlaneStrategy)",
+            "media": {
+              "markdown": "media/settings.md"
+            },
+            "completionEvents": [
+              "onCommand:getting-started-goosecode.swimlaneStrategy"
+            ]
+          },
+          {
+            "id": "generationcontrols",
+            "title": "About Generation",
+            "description": "When you first generate using the 'follow' command, a 'session' is started.\nThe benefit of this is we can update our generation preferences in GooseCode and regenerate.\nWe can also step back through the flow incrementally to review, or remove events before regenerating. You can even swap between linear and swimlane.\nWhen you're satisfied with the result, hit the save button or discard the session to delete all snippets.\n[I Understand](command:getting-started-goosecode.aboutGeneration)",
+            "media": {
+              "markdown": "media/settings.md"
+            },
+            "completionEvents": [
+              "onCommand:getting-started-goosecode.aboutGeneration"
+            ]
+          },
+          {
+            "id": "minimap",
+            "title": "Your Coding Minimap",
+            "description": "You can use GooseCode as a minimap for your codebase to quickly view important snippets of code.\nHit the 'm' key within GooseCode or run the Minimap command in VSCode and GooseCode will overlay your window.\nClick on your snippets within the minimap to open the relevant sections within your codebase.\nMinimap mode has a few keyboard shortcuts but be sure to focus on the floating window before pushing them.\nZoom (z): Quickly preview snippets while zoomed out so you know which one to click.\nFocus (f): Focus on the cursor, useful for navigating quickly around the map.\nYou can resize and reposition your minimap and it will restore to the original size and position on exit.\nIf you prefer a fully functional GooseCode overlayed, you can try Overlay (o) mode instead.\n[Wow](command:getting-started-goosecode.minimap)",
+            "media": {
+              "markdown": "media/settings.md"
+            },
+            "completionEvents": [
+              "onCommand:getting-started-goosecode.minimap"
             ]
           }
         ]

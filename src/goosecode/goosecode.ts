@@ -21,8 +21,12 @@ import Location = idepb.Location;
 import ReferenceFollow = idepb.ReferenceFollow;
 import SnippetContext = idepb.SnippetContext;
 import LocationWithContext = idepb.LocationWithContext;
+import { loadWorkspaceConfiguration } from "../config";
 
-function guard(gooseCodeServer: GooseCodeServer | null): boolean {
+async function guard(
+  gooseCodeServer: GooseCodeServer | null,
+  workspaceTracker: WorkspaceTracker,
+): Promise<boolean> {
   if (!gooseCodeServer) {
     vscode.window.showErrorMessage("GooseCode server is not running");
     return false;
@@ -33,7 +37,40 @@ function guard(gooseCodeServer: GooseCodeServer | null): boolean {
     return false;
   }
 
-  if (!vscode.window.activeTextEditor) {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    vscode.window.showWarningMessage("Command requires active editor");
+    return false;
+  }
+
+  var workspace = workspaceTracker.getWorkspaceFromFile(editor.document.uri);
+  if (!workspace) {
+    vscode.window.showErrorMessage(
+      "No code source to associate with external dependency",
+    );
+    return false;
+  }
+  if (!workspace.isEnabled) {
+    const selection = await vscode.window.showErrorMessage(
+      "The current file workspace isn't a GooseCode code source. Do you want to enable it?",
+      { modal: true },
+      "Yes",
+      "No",
+    );
+
+    if (selection === "Yes") {
+      // Handle yes
+      console.log("User wants to enable");
+      loadWorkspaceConfiguration(workspace!.uri.fsPath, true);
+      vscode.window.showInformationMessage("Code source enabled");
+      const workspaces = workspaceTracker.refresh();
+      gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
+      workspaceTracker.onActiveFileChanged(editor.document.uri);
+      // Wait a bit
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      return true;
+    }
+    vscode.window.showInformationMessage("GooseCode follow not executed");
     return false;
   }
 
@@ -47,10 +84,12 @@ export function registerGooseCodeCommands(
   const subscriptions: Array<Disposable> = [];
 
   // Show file
-  var sub = vscode.commands.registerCommand("goosecode.open", () => {
-    if (!guard(gooseCodeServer)) {
+  var sub = vscode.commands.registerCommand("goosecode.open", async () => {
+    if (!(await guard(gooseCodeServer, workspaceTracker))) {
+      console.log("GUARD FAILED");
       return;
     }
+    console.log("OPEN IN GOOSECODE");
     const editor = vscode.window.activeTextEditor!;
     gooseCodeServer?.push(
       new PushMessage({
@@ -65,8 +104,8 @@ export function registerGooseCodeCommands(
   subscriptions.push(sub);
 
   // Create Snippet
-  sub = vscode.commands.registerCommand("goosecode.snippet", () => {
-    if (!guard(gooseCodeServer)) {
+  sub = vscode.commands.registerCommand("goosecode.snippet", async () => {
+    if (!(await guard(gooseCodeServer, workspaceTracker))) {
       return;
     }
     const editor = vscode.window.activeTextEditor!;
@@ -89,8 +128,8 @@ export function registerGooseCodeCommands(
   subscriptions.push(sub);
 
   // Pin File
-  sub = vscode.commands.registerCommand("goosecode.pin", () => {
-    if (!guard(gooseCodeServer)) {
+  sub = vscode.commands.registerCommand("goosecode.pin", async () => {
+    if (!(await guard(gooseCodeServer, workspaceTracker))) {
       return;
     }
     gooseCodeServer?.push(
@@ -125,7 +164,7 @@ export function registerGooseCodeCommands(
 
   // Highlight
   sub = vscode.commands.registerCommand("goosecode.follow", async () => {
-    if (!guard(gooseCodeServer)) {
+    if (!(await guard(gooseCodeServer, workspaceTracker))) {
       return;
     }
     const editor = vscode.window.activeTextEditor!;

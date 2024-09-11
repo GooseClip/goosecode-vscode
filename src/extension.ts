@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-import { ConfigurationTarget } from "vscode";
+import { ConfigurationTarget, workspace } from "vscode";
 import { GooseCodeServer } from "./goosecode/server/server";
 import { CodeSource, CodeSourcesProvider } from "./views/code-sources";
 import { purge } from "./tls";
@@ -17,7 +17,7 @@ import { WorkspaceTracker } from "./workspace-tracker";
 import { registerGooseCodeCommands } from "./goosecode/goosecode";
 import { ConnectionProvider } from "./views/connection";
 
-const workspaceTracker = new WorkspaceTracker();
+var workspaceTracker: WorkspaceTracker | null = null;
 var gooseCodeServer: GooseCodeServer | null = null;
 var goosecodeSubscriptions: Array<vscode.Disposable> = [];
 var codeSourcesProvider: CodeSourcesProvider | null = null;
@@ -29,11 +29,11 @@ async function startServer(
 ) {
   console.log("Starting server, password: ", config.settings.password);
   gooseCodeServer = new GooseCodeServer(
-    workspaceTracker,
+    workspaceTracker!,
     config,
     () => {
       // Store context to not show welcome view again
-      context.globalState.update("goosecode.initialize", true);
+      context.globalState.update("goosecode.initialized", true);
       vscode.commands.executeCommand(
         "setContext",
         "goosecode.initialized",
@@ -52,7 +52,7 @@ async function startServer(
   goosecodeSubscriptions = [];
   goosecodeSubscriptions = registerGooseCodeCommands(
     gooseCodeServer,
-    workspaceTracker,
+    workspaceTracker!,
   );
   connectionProvider?.refresh();
   console.log("Started == true");
@@ -66,7 +66,7 @@ async function stopServer(context: vscode.ExtensionContext) {
   // Register dummy commands
   goosecodeSubscriptions.forEach((s) => s.dispose());
   goosecodeSubscriptions = [];
-  goosecodeSubscriptions = registerGooseCodeCommands(null, workspaceTracker);
+  goosecodeSubscriptions = registerGooseCodeCommands(null, workspaceTracker!);
   connectionProvider?.refresh();
 
   vscode.commands.executeCommand("setContext", "goosecode.started", false);
@@ -135,7 +135,7 @@ async function persistentCommands(
 
   sub = vscode.window.onDidChangeActiveTextEditor((editor) => {
     if (editor) {
-      workspaceTracker.onActiveFileChanged(editor.document.uri);
+      workspaceTracker!.onActiveFileChanged(editor.document.uri);
     }
   });
   subscriptions.push(sub);
@@ -149,19 +149,40 @@ function createTreeProviders(
   const subscriptions: Array<vscode.Disposable> = [];
 
   // Code sources provider
-  codeSourcesProvider = new CodeSourcesProvider(workspaceTracker);
-  var sub = vscode.window.registerTreeDataProvider(
-    "goosecode.codeSources",
-    codeSourcesProvider,
-  );
+  codeSourcesProvider = new CodeSourcesProvider(workspaceTracker!);
+  const treeView = vscode.window.createTreeView("goosecode.codeSources", {
+    treeDataProvider: codeSourcesProvider,
+  });
+
+  var sub = treeView.onDidChangeVisibility((e) => {
+    console.log("Visibility changed", e.visible);
+    vscode.commands.executeCommand(
+      "setContext",
+      "goosecode.treeview.codeSources.visible",
+      e.visible,
+    );
+  });
+  // codeSourcesProvider = new CodeSourcesProvider(workspaceTracker!);
+  // var sub = vscode.window.registerTreeDataProvider(
+  //   "goosecode.codeSources",
+  //   codeSourcesProvider,
+  // );
+  subscriptions.push(treeView);
   subscriptions.push(sub);
+
+  // codeSourcesProvider.onDidChangeTreeData(e => {
+  //   if (e.visible) {
+  //     // Your view has been opened
+  //   } else {
+  //     // Your view has been closed
+  //   }
+  // });
 
   sub = vscode.commands.registerCommand(
     "goosecode.codeSources.refresh",
     async () => {
       console.log("Refreshing code sources");
-      const workspaces = workspaceTracker.refresh();
-      codeSourcesProvider!.refresh();
+      const workspaces = workspaceTracker!.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
     },
   );
@@ -174,8 +195,7 @@ function createTreeProviders(
         const root = codeSource.resourceUri!.fsPath;
         console.log(`Enabling goosecode: ${root}`);
         loadWorkspaceConfiguration(root, true);
-        const workspaces = workspaceTracker.refresh();
-        codeSourcesProvider!.refresh();
+        const workspaces = workspaceTracker!.refresh();
         gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
       } catch (e) {
         console.error(e);
@@ -191,8 +211,7 @@ function createTreeProviders(
         codeSource.resourceUri!.fsPath,
       );
       console.log(`Disable goosecode: ${codeSourceID}`);
-      const workspaces = workspaceTracker.refresh();
-      codeSourcesProvider!.refresh();
+      const workspaces = workspaceTracker!.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces, {
         workspace_root: codeSource.resourceUri!.fsPath,
         code_source_id: codeSourceID!,
@@ -205,7 +224,7 @@ function createTreeProviders(
   // Connection provider
   connectionProvider = new ConnectionProvider(
     () => gooseCodeServer,
-    () => context.globalState.get("goosecode.initialize") ?? false,
+    () => context.globalState.get("goosecode.initialized") ?? false,
   );
   sub = vscode.window.registerTreeDataProvider(
     "goosecode.connection",
@@ -217,8 +236,20 @@ function createTreeProviders(
 }
 
 export async function activate(context: vscode.ExtensionContext) {
+  workspaceTracker = new WorkspaceTracker((options) => {
+    console.log("Workspaces refreshed");
+    if (options.refreshCodeSources) {
+      codeSourcesProvider!.refresh();
+    }
+    vscode.commands.executeCommand(
+      "setContext",
+      "goosecode.hasActiveCodeSources",
+      workspaceTracker!.activeWorkspaces().length > 0 ? true : false,
+    );
+  });
   // Store context to not show welcome view again
-  if (context.globalState.get("goosecode.initialize")) {
+  const initialized = context.globalState.get("goosecode.initialized");
+  if (initialized) {
     vscode.commands.executeCommand("setContext", "goosecode.initialized", true);
   }
 
@@ -228,10 +259,12 @@ export async function activate(context: vscode.ExtensionContext) {
   } else {
     console.log("Started == false");
     vscode.commands.executeCommand("setContext", "goosecode.started", false);
-    // Show warning
-    vscode.window.showWarningMessage(
-      "GooseCode is not running. You can start it from the command palette. To start automatically, enable the setting 'GooseCode: Start Automatically'",
-    );
+    if (initialized) {
+      // Show warning
+      vscode.window.showWarningMessage(
+        "GooseCode is not running. You can start it from the command palette. To start automatically, enable the setting 'GooseCode: Start Automatically'",
+      );
+    }
   }
 
   const treeSubscriptions = createTreeProviders(context);
@@ -247,8 +280,7 @@ export async function activate(context: vscode.ExtensionContext) {
         console.log(`Workspace folder removed: ${folder.uri.fsPath}`);
       });
 
-      const workspaces = workspaceTracker.refresh();
-      codeSourcesProvider?.refresh();
+      const workspaces = workspaceTracker!.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
     });
   context.subscriptions.push(workspaceChangeSubscription);
@@ -273,7 +305,14 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(...persistentCommandSubscriptions);
 
   // Getting started commands
-  const gettingStartedCommandSubscriptions = gettingStarted(context);
+  const gettingStartedCommandSubscriptions = gettingStarted(context, () => {
+    workspaceTracker!.workspaces.forEach((workspace) => {
+      loadWorkspaceConfiguration(workspace.uri.fsPath, true);
+    });
+    workspaceTracker!.refresh();
+    codeSourcesProvider?.refresh();
+    gooseCodeServer?.pushWorkspacesToGooseCode(workspaceTracker!.workspaces);
+  });
   context.subscriptions.push(...gettingStartedCommandSubscriptions);
 
   context.subscriptions.push({
