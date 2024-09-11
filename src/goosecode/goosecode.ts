@@ -58,13 +58,8 @@ async function guard(
   }
 
   var workspace = workspaceTracker.getWorkspaceFromFile(editor.document.uri);
-  if (!workspace) {
-    vscode.window.showErrorMessage(
-      "No code source to associate with external dependency",
-    );
-    return false;
-  }
-  if (!workspace.isEnabled) {
+
+  if (workspace && !workspace.isEnabled) {
     const selection = await vscode.window.showErrorMessage(
       "The current file workspace isn't a GooseCode code source. Do you want to enable it?",
       { modal: true },
@@ -85,6 +80,14 @@ async function guard(
     }
     vscode.window.showInformationMessage("GooseCode follow not executed");
     return false;
+  }
+
+  // External dependency
+  if (!workspace) {
+    // vscode.window.showErrorMessage(
+    //     "No code source to associate with external dependency",
+    // );
+    return true;
   }
 
   return true;
