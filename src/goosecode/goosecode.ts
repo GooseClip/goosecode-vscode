@@ -9,6 +9,7 @@ import {
 } from "./commands/commands";
 import { convertRange } from "../util";
 import { WorkspaceTracker } from "../workspace-tracker";
+import { loadWorkspaceConfiguration } from "../config";
 import PushMessage = idepb.PushMessage;
 import OpenFilePush = idepb.OpenFilePush;
 import Range = idepb.Range;
@@ -21,11 +22,13 @@ import Location = idepb.Location;
 import ReferenceFollow = idepb.ReferenceFollow;
 import SnippetContext = idepb.SnippetContext;
 import LocationWithContext = idepb.LocationWithContext;
-import { loadWorkspaceConfiguration } from "../config";
+import AppCommandPush = idepb.AppCommandPush;
+import AppCommandType = idepb.AppCommandType;
 
 async function guard(
   gooseCodeServer: GooseCodeServer | null,
   workspaceTracker: WorkspaceTracker,
+  { appCommand }: { appCommand?: boolean } = { appCommand: false },
 ): Promise<boolean> {
   if (!gooseCodeServer) {
     vscode.window.showErrorMessage("GooseCode server is not running");
@@ -35,6 +38,10 @@ async function guard(
   if (!gooseCodeServer!.connected) {
     vscode.window.showErrorMessage("GooseCode server is not connected");
     return false;
+  }
+
+  if (appCommand) {
+    return true;
   }
 
   const editor = vscode.window.activeTextEditor;
@@ -81,6 +88,48 @@ export function registerGooseCodeCommands(
   workspaceTracker: WorkspaceTracker,
 ): Array<Disposable> {
   const subscriptions: Array<Disposable> = [];
+
+  // Toggle minimap
+  var sub = vscode.commands.registerCommand(
+    "goosecode.appcommand.minimap",
+    async () => {
+      if (
+        !(await guard(gooseCodeServer, workspaceTracker, { appCommand: true }))
+      ) {
+        return;
+      }
+      gooseCodeServer?.push(
+        new PushMessage({
+          type: idepb.PushType.PUSH_APP_COMMAND,
+          app_command: new AppCommandPush({
+            type: AppCommandType.APP_COMMAND_MINIMAP,
+          }),
+        }),
+      );
+    },
+  );
+  subscriptions.push(sub);
+
+  // Toggle overlay
+  var sub = vscode.commands.registerCommand(
+    "goosecode.appcommand.overlay",
+    async () => {
+      if (
+        !(await guard(gooseCodeServer, workspaceTracker, { appCommand: true }))
+      ) {
+        return;
+      }
+      gooseCodeServer?.push(
+        new PushMessage({
+          type: idepb.PushType.PUSH_APP_COMMAND,
+          app_command: new AppCommandPush({
+            type: AppCommandType.APP_COMMAND_OVERLAY,
+          }),
+        }),
+      );
+    },
+  );
+  subscriptions.push(sub);
 
   // Show file
   var sub = vscode.commands.registerCommand("goosecode.open", async () => {

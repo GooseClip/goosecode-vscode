@@ -64,6 +64,16 @@
     ],
     "commands": [
       {
+        "command": "goosecode.appcommand.minimap",
+        "title": "Toggle Minimap",
+        "category": "GooseCode"
+      },
+      {
+        "command": "goosecode.appcommand.overlay",
+        "title": "Toggle Overlay",
+        "category": "GooseCode"
+      },
+      {
         "command": "goosecode.codeSources.refresh",
         "title": "Refresh Code Sources",
         "icon": {
@@ -192,6 +202,14 @@
           "when": "editorTextFocus",
           "command": "goosecode.follow",
           "group": "goosecode@6"
+        },
+        {
+          "command": "goosecode.appcommand.minimap",
+          "group": "goosecode@7"
+        },
+        {
+          "command": "goosecode.appcommand.overlay",
+          "group": "goosecode@8"
         }
       ]
     },

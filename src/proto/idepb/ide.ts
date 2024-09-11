@@ -62,17 +62,23 @@ export namespace idepb {
     }
     export enum PushType {
         PUSH_INVALID = 0,
-        PUSH_WORKSPACES = 1,
-        PUSH_OPEN_FILE = 2,
-        PUSH_CREATE_SNIPPET = 3,
-        PUSH_PIN_FILE = 4,
-        PUSH_HIGHLIGHT = 5,
-        PUSH_FOLLOW = 6
+        PUSH_APP_COMMAND = 1,
+        PUSH_WORKSPACES = 2,
+        PUSH_OPEN_FILE = 3,
+        PUSH_CREATE_SNIPPET = 4,
+        PUSH_PIN_FILE = 5,
+        PUSH_HIGHLIGHT = 6,
+        PUSH_FOLLOW = 7
     }
     export enum FollowType {
         FOLLOW_INVALID = 0,
         FOLLOW_DEFINITION = 1,
         FOLLOW_REFERENCE = 2
+    }
+    export enum AppCommandType {
+        APP_COMMAND_INVALID = 0,
+        APP_COMMAND_MINIMAP = 1,
+        APP_COMMAND_OVERLAY = 2
     }
     export class CodeSourceIDRequest extends pb_1.Message {
         #one_of_decls: number[][] = [];
@@ -4074,11 +4080,87 @@ export namespace idepb {
             return WorkspacesPush.deserialize(bytes);
         }
     }
+    export class AppCommandPush extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {
+            type?: AppCommandType;
+        }) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("type" in data && data.type != undefined) {
+                    this.type = data.type;
+                }
+            }
+        }
+        get type() {
+            return pb_1.Message.getFieldWithDefault(this, 1, AppCommandType.APP_COMMAND_INVALID) as AppCommandType;
+        }
+        set type(value: AppCommandType) {
+            pb_1.Message.setField(this, 1, value);
+        }
+        static fromObject(data: {
+            type?: AppCommandType;
+        }): AppCommandPush {
+            const message = new AppCommandPush({});
+            if (data.type != null) {
+                message.type = data.type;
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                type?: AppCommandType;
+            } = {};
+            if (this.type != null) {
+                data.type = this.type;
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.type != AppCommandType.APP_COMMAND_INVALID)
+                writer.writeEnum(1, this.type);
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AppCommandPush {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AppCommandPush();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        message.type = reader.readEnum();
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): AppCommandPush {
+            return AppCommandPush.deserialize(bytes);
+        }
+    }
     export class PushMessage extends pb_1.Message {
-        #one_of_decls: number[][] = [[4, 5, 6, 7, 8, 9], [2], [3]];
+        #one_of_decls: number[][] = [[4, 5, 6, 7, 8, 9, 10], [2], [3]];
         constructor(data?: any[] | ({
             type?: PushType;
         } & (({
+            app_command?: AppCommandPush;
+            workspaces?: never;
+            open_file?: never;
+            create_snippet?: never;
+            pin_file?: never;
+            highlight?: never;
+            follow?: never;
+        } | {
+            app_command?: never;
             workspaces?: WorkspacesPush;
             open_file?: never;
             create_snippet?: never;
@@ -4086,6 +4168,7 @@ export namespace idepb {
             highlight?: never;
             follow?: never;
         } | {
+            app_command?: never;
             workspaces?: never;
             open_file?: OpenFilePush;
             create_snippet?: never;
@@ -4093,6 +4176,7 @@ export namespace idepb {
             highlight?: never;
             follow?: never;
         } | {
+            app_command?: never;
             workspaces?: never;
             open_file?: never;
             create_snippet?: CreateSnippetPush;
@@ -4100,6 +4184,7 @@ export namespace idepb {
             highlight?: never;
             follow?: never;
         } | {
+            app_command?: never;
             workspaces?: never;
             open_file?: never;
             create_snippet?: never;
@@ -4107,6 +4192,7 @@ export namespace idepb {
             highlight?: never;
             follow?: never;
         } | {
+            app_command?: never;
             workspaces?: never;
             open_file?: never;
             create_snippet?: never;
@@ -4114,6 +4200,7 @@ export namespace idepb {
             highlight?: HighlightPush;
             follow?: never;
         } | {
+            app_command?: never;
             workspaces?: never;
             open_file?: never;
             create_snippet?: never;
@@ -4136,6 +4223,9 @@ export namespace idepb {
                 }
                 if ("workspace_root" in data && data.workspace_root != undefined) {
                     this.workspace_root = data.workspace_root;
+                }
+                if ("app_command" in data && data.app_command != undefined) {
+                    this.app_command = data.app_command;
                 }
                 if ("workspaces" in data && data.workspaces != undefined) {
                     this.workspaces = data.workspaces;
@@ -4181,73 +4271,83 @@ export namespace idepb {
         get has_workspace_root() {
             return pb_1.Message.getField(this, 3) != null;
         }
-        get workspaces() {
-            return pb_1.Message.getWrapperField(this, WorkspacesPush, 4) as WorkspacesPush;
+        get app_command() {
+            return pb_1.Message.getWrapperField(this, AppCommandPush, 4) as AppCommandPush;
         }
-        set workspaces(value: WorkspacesPush) {
+        set app_command(value: AppCommandPush) {
             pb_1.Message.setOneofWrapperField(this, 4, this.#one_of_decls[0], value);
         }
-        get has_workspaces() {
+        get has_app_command() {
             return pb_1.Message.getField(this, 4) != null;
         }
-        get open_file() {
-            return pb_1.Message.getWrapperField(this, OpenFilePush, 5) as OpenFilePush;
+        get workspaces() {
+            return pb_1.Message.getWrapperField(this, WorkspacesPush, 5) as WorkspacesPush;
         }
-        set open_file(value: OpenFilePush) {
+        set workspaces(value: WorkspacesPush) {
             pb_1.Message.setOneofWrapperField(this, 5, this.#one_of_decls[0], value);
         }
-        get has_open_file() {
+        get has_workspaces() {
             return pb_1.Message.getField(this, 5) != null;
         }
-        get create_snippet() {
-            return pb_1.Message.getWrapperField(this, CreateSnippetPush, 6) as CreateSnippetPush;
+        get open_file() {
+            return pb_1.Message.getWrapperField(this, OpenFilePush, 6) as OpenFilePush;
         }
-        set create_snippet(value: CreateSnippetPush) {
+        set open_file(value: OpenFilePush) {
             pb_1.Message.setOneofWrapperField(this, 6, this.#one_of_decls[0], value);
         }
-        get has_create_snippet() {
+        get has_open_file() {
             return pb_1.Message.getField(this, 6) != null;
         }
-        get pin_file() {
-            return pb_1.Message.getWrapperField(this, PinFilePush, 7) as PinFilePush;
+        get create_snippet() {
+            return pb_1.Message.getWrapperField(this, CreateSnippetPush, 7) as CreateSnippetPush;
         }
-        set pin_file(value: PinFilePush) {
+        set create_snippet(value: CreateSnippetPush) {
             pb_1.Message.setOneofWrapperField(this, 7, this.#one_of_decls[0], value);
         }
-        get has_pin_file() {
+        get has_create_snippet() {
             return pb_1.Message.getField(this, 7) != null;
         }
-        get highlight() {
-            return pb_1.Message.getWrapperField(this, HighlightPush, 8) as HighlightPush;
+        get pin_file() {
+            return pb_1.Message.getWrapperField(this, PinFilePush, 8) as PinFilePush;
         }
-        set highlight(value: HighlightPush) {
+        set pin_file(value: PinFilePush) {
             pb_1.Message.setOneofWrapperField(this, 8, this.#one_of_decls[0], value);
         }
-        get has_highlight() {
+        get has_pin_file() {
             return pb_1.Message.getField(this, 8) != null;
         }
-        get follow() {
-            return pb_1.Message.getWrapperField(this, FollowPush, 9) as FollowPush;
+        get highlight() {
+            return pb_1.Message.getWrapperField(this, HighlightPush, 9) as HighlightPush;
         }
-        set follow(value: FollowPush) {
+        set highlight(value: HighlightPush) {
             pb_1.Message.setOneofWrapperField(this, 9, this.#one_of_decls[0], value);
         }
-        get has_follow() {
+        get has_highlight() {
             return pb_1.Message.getField(this, 9) != null;
+        }
+        get follow() {
+            return pb_1.Message.getWrapperField(this, FollowPush, 10) as FollowPush;
+        }
+        set follow(value: FollowPush) {
+            pb_1.Message.setOneofWrapperField(this, 10, this.#one_of_decls[0], value);
+        }
+        get has_follow() {
+            return pb_1.Message.getField(this, 10) != null;
         }
         get data() {
             const cases: {
-                [index: number]: "none" | "workspaces" | "open_file" | "create_snippet" | "pin_file" | "highlight" | "follow";
+                [index: number]: "none" | "app_command" | "workspaces" | "open_file" | "create_snippet" | "pin_file" | "highlight" | "follow";
             } = {
                 0: "none",
-                4: "workspaces",
-                5: "open_file",
-                6: "create_snippet",
-                7: "pin_file",
-                8: "highlight",
-                9: "follow"
+                4: "app_command",
+                5: "workspaces",
+                6: "open_file",
+                7: "create_snippet",
+                8: "pin_file",
+                9: "highlight",
+                10: "follow"
             };
-            return cases[pb_1.Message.computeOneofCase(this, [4, 5, 6, 7, 8, 9])];
+            return cases[pb_1.Message.computeOneofCase(this, [4, 5, 6, 7, 8, 9, 10])];
         }
         get _code_source_id() {
             const cases: {
@@ -4271,6 +4371,7 @@ export namespace idepb {
             type?: PushType;
             code_source_id?: string;
             workspace_root?: string;
+            app_command?: ReturnType<typeof AppCommandPush.prototype.toObject>;
             workspaces?: ReturnType<typeof WorkspacesPush.prototype.toObject>;
             open_file?: ReturnType<typeof OpenFilePush.prototype.toObject>;
             create_snippet?: ReturnType<typeof CreateSnippetPush.prototype.toObject>;
@@ -4287,6 +4388,9 @@ export namespace idepb {
             }
             if (data.workspace_root != null) {
                 message.workspace_root = data.workspace_root;
+            }
+            if (data.app_command != null) {
+                message.app_command = AppCommandPush.fromObject(data.app_command);
             }
             if (data.workspaces != null) {
                 message.workspaces = WorkspacesPush.fromObject(data.workspaces);
@@ -4313,6 +4417,7 @@ export namespace idepb {
                 type?: PushType;
                 code_source_id?: string;
                 workspace_root?: string;
+                app_command?: ReturnType<typeof AppCommandPush.prototype.toObject>;
                 workspaces?: ReturnType<typeof WorkspacesPush.prototype.toObject>;
                 open_file?: ReturnType<typeof OpenFilePush.prototype.toObject>;
                 create_snippet?: ReturnType<typeof CreateSnippetPush.prototype.toObject>;
@@ -4328,6 +4433,9 @@ export namespace idepb {
             }
             if (this.workspace_root != null) {
                 data.workspace_root = this.workspace_root;
+            }
+            if (this.app_command != null) {
+                data.app_command = this.app_command.toObject();
             }
             if (this.workspaces != null) {
                 data.workspaces = this.workspaces.toObject();
@@ -4359,18 +4467,20 @@ export namespace idepb {
                 writer.writeString(2, this.code_source_id);
             if (this.has_workspace_root)
                 writer.writeString(3, this.workspace_root);
+            if (this.has_app_command)
+                writer.writeMessage(4, this.app_command, () => this.app_command.serialize(writer));
             if (this.has_workspaces)
-                writer.writeMessage(4, this.workspaces, () => this.workspaces.serialize(writer));
+                writer.writeMessage(5, this.workspaces, () => this.workspaces.serialize(writer));
             if (this.has_open_file)
-                writer.writeMessage(5, this.open_file, () => this.open_file.serialize(writer));
+                writer.writeMessage(6, this.open_file, () => this.open_file.serialize(writer));
             if (this.has_create_snippet)
-                writer.writeMessage(6, this.create_snippet, () => this.create_snippet.serialize(writer));
+                writer.writeMessage(7, this.create_snippet, () => this.create_snippet.serialize(writer));
             if (this.has_pin_file)
-                writer.writeMessage(7, this.pin_file, () => this.pin_file.serialize(writer));
+                writer.writeMessage(8, this.pin_file, () => this.pin_file.serialize(writer));
             if (this.has_highlight)
-                writer.writeMessage(8, this.highlight, () => this.highlight.serialize(writer));
+                writer.writeMessage(9, this.highlight, () => this.highlight.serialize(writer));
             if (this.has_follow)
-                writer.writeMessage(9, this.follow, () => this.follow.serialize(writer));
+                writer.writeMessage(10, this.follow, () => this.follow.serialize(writer));
             if (!w)
                 return writer.getResultBuffer();
         }
@@ -4390,21 +4500,24 @@ export namespace idepb {
                         message.workspace_root = reader.readString();
                         break;
                     case 4:
-                        reader.readMessage(message.workspaces, () => message.workspaces = WorkspacesPush.deserialize(reader));
+                        reader.readMessage(message.app_command, () => message.app_command = AppCommandPush.deserialize(reader));
                         break;
                     case 5:
-                        reader.readMessage(message.open_file, () => message.open_file = OpenFilePush.deserialize(reader));
+                        reader.readMessage(message.workspaces, () => message.workspaces = WorkspacesPush.deserialize(reader));
                         break;
                     case 6:
-                        reader.readMessage(message.create_snippet, () => message.create_snippet = CreateSnippetPush.deserialize(reader));
+                        reader.readMessage(message.open_file, () => message.open_file = OpenFilePush.deserialize(reader));
                         break;
                     case 7:
-                        reader.readMessage(message.pin_file, () => message.pin_file = PinFilePush.deserialize(reader));
+                        reader.readMessage(message.create_snippet, () => message.create_snippet = CreateSnippetPush.deserialize(reader));
                         break;
                     case 8:
-                        reader.readMessage(message.highlight, () => message.highlight = HighlightPush.deserialize(reader));
+                        reader.readMessage(message.pin_file, () => message.pin_file = PinFilePush.deserialize(reader));
                         break;
                     case 9:
+                        reader.readMessage(message.highlight, () => message.highlight = HighlightPush.deserialize(reader));
+                        break;
+                    case 10:
                         reader.readMessage(message.follow, () => message.follow = FollowPush.deserialize(reader));
                         break;
                     default: reader.skipField();

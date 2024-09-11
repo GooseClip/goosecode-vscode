@@ -283,7 +283,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const settingsChangeSubscription = vscode.workspace.onDidChangeConfiguration(
     async (event) => {
       if (event.affectsConfiguration("goosecode")) {
-        console.log("GooseCode settings changed");
         const currentlyRunning = gooseCodeServer !== null;
         if (currentlyRunning) {
           await restartServer(context);

@@ -44,7 +44,10 @@ export class GooseCodeServer {
     }
 
     console.log("[PUSH]", msg.type);
-    if (msg.type !== PushType.PUSH_WORKSPACES) {
+    if (
+      msg.type !== PushType.PUSH_WORKSPACES &&
+      msg.type !== PushType.PUSH_APP_COMMAND
+    ) {
       const activeWorkspace =
         this.workspaceTracker.getLastActiveGooseCodeWorkspace();
       if (!activeWorkspace) {
