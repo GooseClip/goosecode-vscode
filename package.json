@@ -1,17 +1,41 @@
 {
   "name": "goosecode",
-  "displayName": "goosecode",
-  "description": "Companion AI powered infinity canvas app",
+  "displayName": "GooseCode",
+  "description": "Your codebase minimap and more.",
   "version": "0.0.1",
-  "publisher": "GooseClip",
+  "publisher": "gooseclip",
   "engines": {
     "vscode": "^1.77.0"
   },
+  "license": "UNLICENSED",
   "private": true,
   "categories": [
-    "Other"
+    "Other",
+    "Visualization"
   ],
-  "__comment1__": "// TODO remove the * activation event in prod, it only exists for testing purposes",
+  "keywords": [
+    "goosecode",
+    "minimap",
+    "overlay",
+    "code",
+    "navigation",
+    "snippet",
+    "generation",
+    "visualize"
+  ],
+  "preview": true,
+  "homepage": "https://goosecode.app",
+  "qna": "https://github.com/GooseClip/goosecode-issues/issues",
+  "icon": "resources/icon_transparent.png",
+  "galleryBanner": {
+    "color": "#3B3F47",
+    "theme": "dark"
+  },
+  "bugs": {
+    "url": "https://github.com/GooseClip/goosecode-issues/issues",
+    "email": "support@gooseclip.com"
+  },
+  "pricing": "Free",
   "activationEvents": [
     "*"
   ],

@@ -155,7 +155,7 @@ async function persistentCommands(
     async () => {
       vscode.commands.executeCommand(
         "workbench.action.openWalkthrough",
-        "GooseClip.goosecode#goosecode",
+        "gooseclip.goosecode#goosecode",
         false,
       );
     },
