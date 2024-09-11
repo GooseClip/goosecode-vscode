@@ -25,11 +25,17 @@ import LocationWithContext = idepb.LocationWithContext;
 import AppCommandPush = idepb.AppCommandPush;
 import AppCommandType = idepb.AppCommandType;
 import FileCommandPush = idepb.FileCommandPush;
+import ActiveSessionPush = idepb.ActiveSessionPush;
+import ActiveSessionType = idepb.ActiveSessionType;
+import RegeneratePush = idepb.RegeneratePush;
+import RegenerateType = idepb.RegenerateType;
 
 async function guard(
   gooseCodeServer: GooseCodeServer | null,
   workspaceTracker: WorkspaceTracker,
-  { appCommand }: { appCommand?: boolean } = { appCommand: false },
+  { workspaceIndependent }: { workspaceIndependent?: boolean } = {
+    workspaceIndependent: false,
+  },
 ): Promise<boolean> {
   if (!gooseCodeServer) {
     vscode.window.showErrorMessage("GooseCode server is not running");
@@ -41,7 +47,7 @@ async function guard(
     return false;
   }
 
-  if (appCommand) {
+  if (workspaceIndependent) {
     return true;
   }
 
@@ -90,12 +96,142 @@ export function registerGooseCodeCommands(
 ): Array<Disposable> {
   const subscriptions: Array<Disposable> = [];
 
+  // Active session commands
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.activeSession.delete",
+    async () => {
+      console.log("Delete active session");
+      if (
+        !(await guard(gooseCodeServer, workspaceTracker, {
+          workspaceIndependent: true,
+        }))
+      ) {
+        return;
+      }
+
+      gooseCodeServer?.push(
+        new PushMessage({
+          type: idepb.PushType.PUSH_ACTIVE_SESSION,
+          active_session: new ActiveSessionPush({
+            type: ActiveSessionType.ACTIVE_SESSION_DELETE,
+          }),
+        }),
+      );
+    },
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.activeSession.save",
+    async () => {
+      console.log("Save active session");
+      if (
+        !(await guard(gooseCodeServer, workspaceTracker, {
+          workspaceIndependent: true,
+        }))
+      ) {
+        return;
+      }
+
+      gooseCodeServer?.push(
+        new PushMessage({
+          type: idepb.PushType.PUSH_ACTIVE_SESSION,
+          active_session: new ActiveSessionPush({
+            type: ActiveSessionType.ACTIVE_SESSION_SAVE,
+          }),
+        }),
+      );
+    },
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.activeSession.regenerateLinear",
+    async () => {
+      console.log("Regenerate active session");
+      if (
+        !(await guard(gooseCodeServer, workspaceTracker, {
+          workspaceIndependent: true,
+        }))
+      ) {
+        return;
+      }
+
+      gooseCodeServer?.push(
+        new PushMessage({
+          type: idepb.PushType.PUSH_ACTIVE_SESSION,
+          active_session: new ActiveSessionPush({
+            type: ActiveSessionType.ACTIVE_SESSION_REGENERATE,
+            regenerate: new RegeneratePush({
+              type: RegenerateType.REGENERATE_LINEAR,
+            }),
+          }),
+        }),
+      );
+    },
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.activeSession.regenerateSwimlane",
+    async () => {
+      console.log("Regenerate active session");
+      if (
+        !(await guard(gooseCodeServer, workspaceTracker, {
+          workspaceIndependent: true,
+        }))
+      ) {
+        return;
+      }
+
+      gooseCodeServer?.push(
+        new PushMessage({
+          type: idepb.PushType.PUSH_ACTIVE_SESSION,
+          active_session: new ActiveSessionPush({
+            type: ActiveSessionType.ACTIVE_SESSION_REGENERATE,
+            regenerate: new RegeneratePush({
+              type: RegenerateType.REGENERATE_SWIMLANE,
+            }),
+          }),
+        }),
+      );
+    },
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.activeSession.step",
+    async () => {
+      console.log("Step active session");
+      if (
+        !(await guard(gooseCodeServer, workspaceTracker, {
+          workspaceIndependent: true,
+        }))
+      ) {
+        return;
+      }
+
+      gooseCodeServer?.push(
+        new PushMessage({
+          type: idepb.PushType.PUSH_ACTIVE_SESSION,
+          active_session: new ActiveSessionPush({
+            type: ActiveSessionType.ACTIVE_SESSION_STEP,
+          }),
+        }),
+      );
+    },
+  );
+  subscriptions.push(sub);
+
   // Toggle minimap
   var sub = vscode.commands.registerCommand(
     "goosecode.appcommand.minimap",
     async () => {
       if (
-        !(await guard(gooseCodeServer, workspaceTracker, { appCommand: true }))
+        !(await guard(gooseCodeServer, workspaceTracker, {
+          workspaceIndependent: true,
+        }))
       ) {
         return;
       }
@@ -116,7 +252,9 @@ export function registerGooseCodeCommands(
     "goosecode.appcommand.overlay",
     async () => {
       if (
-        !(await guard(gooseCodeServer, workspaceTracker, { appCommand: true }))
+        !(await guard(gooseCodeServer, workspaceTracker, {
+          workspaceIndependent: true,
+        }))
       ) {
         return;
       }

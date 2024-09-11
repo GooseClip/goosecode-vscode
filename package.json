@@ -103,11 +103,19 @@
         }
       },
       {
-        "command": "goosecode.activeSession.regenerate",
-        "title": "Regenerate Session",
+        "command": "goosecode.activeSession.regenerateLinear",
+        "title": "Regenerate Session (Linear)",
         "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
+          "light": "resources/light/linear.svg",
+          "dark": "resources/dark/linear.svg"
+        }
+      },
+      {
+        "command": "goosecode.activeSession.regenerateSwimlane",
+        "title": "Regenerate Session (Swimlane)",
+        "icon": {
+          "light": "resources/light/swimlane.svg",
+          "dark": "resources/dark/swimlane.svg"
         }
       },
       {
@@ -201,13 +209,18 @@
           "when": "view == goosecode.activeSession"
         },
         {
-          "command": "goosecode.activeSession.regenerate",
+          "command": "goosecode.activeSession.regenerateLinear",
           "group": "navigation@3",
           "when": "view == goosecode.activeSession"
         },
         {
-          "command": "goosecode.activeSession.step",
+          "command": "goosecode.activeSession.regenerateSwimlane",
           "group": "navigation@4",
+          "when": "view == goosecode.activeSession"
+        },
+        {
+          "command": "goosecode.activeSession.step",
+          "group": "navigation@5",
           "when": "view == goosecode.activeSession"
         }
       ],

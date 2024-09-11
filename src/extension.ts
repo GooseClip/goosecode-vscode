@@ -156,38 +156,6 @@ function createTreeProviders(
   );
   subscriptions.push(sub);
 
-  sub = vscode.commands.registerCommand(
-    "goosecode.activeSession.delete",
-    async () => {
-      console.log("Delete active session");
-    },
-  );
-  subscriptions.push(sub);
-
-  sub = vscode.commands.registerCommand(
-    "goosecode.activeSession.save",
-    async () => {
-      console.log("Save active session");
-    },
-  );
-  subscriptions.push(sub);
-
-  sub = vscode.commands.registerCommand(
-    "goosecode.activeSession.regenerate",
-    async () => {
-      console.log("Regenerate active session");
-    },
-  );
-  subscriptions.push(sub);
-
-  sub = vscode.commands.registerCommand(
-    "goosecode.activeSession.step",
-    async () => {
-      console.log("Step active session");
-    },
-  );
-  subscriptions.push(sub);
-
   // Code sources provider
   codeSourcesProvider = new CodeSourcesProvider(workspaceTracker!);
   const treeView = vscode.window.createTreeView("goosecode.codeSources", {
