@@ -95,12 +95,18 @@ async function persistentCommands(
   const subscriptions: Array<vscode.Disposable> = [];
 
   var sub = vscode.commands.registerCommand("goosecode.start", async () => {
+    if (gooseCodeServer !== null) {
+      return;
+    }
     await startServer(context, await loadGlobalConfigurations(context));
     vscode.window.showInformationMessage("GooseCode server started");
   });
   subscriptions.push(sub);
 
   sub = vscode.commands.registerCommand("goosecode.stop", async () => {
+    if (gooseCodeServer === null) {
+      return;
+    }
     await stopServer(context);
     vscode.window.showInformationMessage("GooseCode server stopped");
   });
