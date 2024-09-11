@@ -64,11 +64,8 @@ export namespace idepb {
         PUSH_INVALID = 0,
         PUSH_APP_COMMAND = 1,
         PUSH_WORKSPACES = 2,
-        PUSH_OPEN_FILE = 3,
-        PUSH_CREATE_SNIPPET = 4,
-        PUSH_PIN_FILE = 5,
-        PUSH_HIGHLIGHT = 6,
-        PUSH_FOLLOW = 7
+        PUSH_ACTIVE_SESSION = 3,
+        PUSH_FILE_COMMAND = 4
     }
     export enum FollowType {
         FOLLOW_INVALID = 0,
@@ -79,6 +76,26 @@ export namespace idepb {
         APP_COMMAND_INVALID = 0,
         APP_COMMAND_MINIMAP = 1,
         APP_COMMAND_OVERLAY = 2
+    }
+    export enum ActiveSessionType {
+        ACTIVE_SESSION_INVALID = 0,
+        ACTIVE_SESSION_DELETE = 1,
+        ACTIVE_SESSION_SAVE = 2,
+        ACTIVE_SESSION_REGENERATE = 3,
+        ACTIVE_SESSION_STEP = 4
+    }
+    export enum RegenerateType {
+        REGENERATE_INVALID = 0,
+        REGENERATE_LINEAR = 1,
+        REGENERATE_SWIMLANE = 2
+    }
+    export enum FileCommandType {
+        FILE_COMMAND_INVALID = 0,
+        FILE_COMMAND_OPEN_FILE = 10,
+        FILE_COMMAND_CREATE_SNIPPET = 11,
+        FILE_COMMAND_PIN_FILE = 12,
+        FILE_COMMAND_HIGHLIGHT = 13,
+        FILE_COMMAND_FOLLOW = 14
     }
     export class CodeSourceIDRequest extends pb_1.Message {
         #one_of_decls: number[][] = [];
@@ -4147,70 +4164,212 @@ export namespace idepb {
             return AppCommandPush.deserialize(bytes);
         }
     }
-    export class PushMessage extends pb_1.Message {
-        #one_of_decls: number[][] = [[4, 5, 6, 7, 8, 9, 10], [2], [3]];
+    export class RegeneratePush extends pb_1.Message {
+        #one_of_decls: number[][] = [];
+        constructor(data?: any[] | {
+            type?: RegenerateType;
+        }) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("type" in data && data.type != undefined) {
+                    this.type = data.type;
+                }
+            }
+        }
+        get type() {
+            return pb_1.Message.getFieldWithDefault(this, 1, RegenerateType.REGENERATE_INVALID) as RegenerateType;
+        }
+        set type(value: RegenerateType) {
+            pb_1.Message.setField(this, 1, value);
+        }
+        static fromObject(data: {
+            type?: RegenerateType;
+        }): RegeneratePush {
+            const message = new RegeneratePush({});
+            if (data.type != null) {
+                message.type = data.type;
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                type?: RegenerateType;
+            } = {};
+            if (this.type != null) {
+                data.type = this.type;
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.type != RegenerateType.REGENERATE_INVALID)
+                writer.writeEnum(1, this.type);
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): RegeneratePush {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new RegeneratePush();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        message.type = reader.readEnum();
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): RegeneratePush {
+            return RegeneratePush.deserialize(bytes);
+        }
+    }
+    export class ActiveSessionPush extends pb_1.Message {
+        #one_of_decls: number[][] = [[2]];
         constructor(data?: any[] | ({
-            type?: PushType;
+            type?: ActiveSessionType;
         } & (({
-            app_command?: AppCommandPush;
-            workspaces?: never;
-            open_file?: never;
-            create_snippet?: never;
-            pin_file?: never;
-            highlight?: never;
-            follow?: never;
-        } | {
-            app_command?: never;
-            workspaces?: WorkspacesPush;
-            open_file?: never;
-            create_snippet?: never;
-            pin_file?: never;
-            highlight?: never;
-            follow?: never;
-        } | {
-            app_command?: never;
-            workspaces?: never;
+            regenerate?: RegeneratePush;
+        })))) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("type" in data && data.type != undefined) {
+                    this.type = data.type;
+                }
+                if ("regenerate" in data && data.regenerate != undefined) {
+                    this.regenerate = data.regenerate;
+                }
+            }
+        }
+        get type() {
+            return pb_1.Message.getFieldWithDefault(this, 1, ActiveSessionType.ACTIVE_SESSION_INVALID) as ActiveSessionType;
+        }
+        set type(value: ActiveSessionType) {
+            pb_1.Message.setField(this, 1, value);
+        }
+        get regenerate() {
+            return pb_1.Message.getWrapperField(this, RegeneratePush, 2) as RegeneratePush;
+        }
+        set regenerate(value: RegeneratePush) {
+            pb_1.Message.setOneofWrapperField(this, 2, this.#one_of_decls[0], value);
+        }
+        get has_regenerate() {
+            return pb_1.Message.getField(this, 2) != null;
+        }
+        get data() {
+            const cases: {
+                [index: number]: "none" | "regenerate";
+            } = {
+                0: "none",
+                2: "regenerate"
+            };
+            return cases[pb_1.Message.computeOneofCase(this, [2])];
+        }
+        static fromObject(data: {
+            type?: ActiveSessionType;
+            regenerate?: ReturnType<typeof RegeneratePush.prototype.toObject>;
+        }): ActiveSessionPush {
+            const message = new ActiveSessionPush({});
+            if (data.type != null) {
+                message.type = data.type;
+            }
+            if (data.regenerate != null) {
+                message.regenerate = RegeneratePush.fromObject(data.regenerate);
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                type?: ActiveSessionType;
+                regenerate?: ReturnType<typeof RegeneratePush.prototype.toObject>;
+            } = {};
+            if (this.type != null) {
+                data.type = this.type;
+            }
+            if (this.regenerate != null) {
+                data.regenerate = this.regenerate.toObject();
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.type != ActiveSessionType.ACTIVE_SESSION_INVALID)
+                writer.writeEnum(1, this.type);
+            if (this.has_regenerate)
+                writer.writeMessage(2, this.regenerate, () => this.regenerate.serialize(writer));
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ActiveSessionPush {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ActiveSessionPush();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        message.type = reader.readEnum();
+                        break;
+                    case 2:
+                        reader.readMessage(message.regenerate, () => message.regenerate = RegeneratePush.deserialize(reader));
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): ActiveSessionPush {
+            return ActiveSessionPush.deserialize(bytes);
+        }
+    }
+    export class FileCommandPush extends pb_1.Message {
+        #one_of_decls: number[][] = [[4, 5, 6, 7, 8]];
+        constructor(data?: any[] | ({
+            type?: FileCommandType;
+            code_source_id?: string;
+            workspace_root?: string;
+        } & (({
             open_file?: OpenFilePush;
             create_snippet?: never;
             pin_file?: never;
             highlight?: never;
             follow?: never;
         } | {
-            app_command?: never;
-            workspaces?: never;
             open_file?: never;
             create_snippet?: CreateSnippetPush;
             pin_file?: never;
             highlight?: never;
             follow?: never;
         } | {
-            app_command?: never;
-            workspaces?: never;
             open_file?: never;
             create_snippet?: never;
             pin_file?: PinFilePush;
             highlight?: never;
             follow?: never;
         } | {
-            app_command?: never;
-            workspaces?: never;
             open_file?: never;
             create_snippet?: never;
             pin_file?: never;
             highlight?: HighlightPush;
             follow?: never;
         } | {
-            app_command?: never;
-            workspaces?: never;
             open_file?: never;
             create_snippet?: never;
             pin_file?: never;
             highlight?: never;
             follow?: FollowPush;
-        }) | ({
-            code_source_id?: string;
-        }) | ({
-            workspace_root?: string;
         })))) {
             super();
             pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -4223,12 +4382,6 @@ export namespace idepb {
                 }
                 if ("workspace_root" in data && data.workspace_root != undefined) {
                     this.workspace_root = data.workspace_root;
-                }
-                if ("app_command" in data && data.app_command != undefined) {
-                    this.app_command = data.app_command;
-                }
-                if ("workspaces" in data && data.workspaces != undefined) {
-                    this.workspaces = data.workspaces;
                 }
                 if ("open_file" in data && data.open_file != undefined) {
                     this.open_file = data.open_file;
@@ -4248,138 +4401,92 @@ export namespace idepb {
             }
         }
         get type() {
-            return pb_1.Message.getFieldWithDefault(this, 1, PushType.PUSH_INVALID) as PushType;
+            return pb_1.Message.getFieldWithDefault(this, 1, FileCommandType.FILE_COMMAND_INVALID) as FileCommandType;
         }
-        set type(value: PushType) {
+        set type(value: FileCommandType) {
             pb_1.Message.setField(this, 1, value);
         }
         get code_source_id() {
             return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
         }
         set code_source_id(value: string) {
-            pb_1.Message.setOneofField(this, 2, this.#one_of_decls[1], value);
-        }
-        get has_code_source_id() {
-            return pb_1.Message.getField(this, 2) != null;
+            pb_1.Message.setField(this, 2, value);
         }
         get workspace_root() {
             return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
         }
         set workspace_root(value: string) {
-            pb_1.Message.setOneofField(this, 3, this.#one_of_decls[2], value);
-        }
-        get has_workspace_root() {
-            return pb_1.Message.getField(this, 3) != null;
-        }
-        get app_command() {
-            return pb_1.Message.getWrapperField(this, AppCommandPush, 4) as AppCommandPush;
-        }
-        set app_command(value: AppCommandPush) {
-            pb_1.Message.setOneofWrapperField(this, 4, this.#one_of_decls[0], value);
-        }
-        get has_app_command() {
-            return pb_1.Message.getField(this, 4) != null;
-        }
-        get workspaces() {
-            return pb_1.Message.getWrapperField(this, WorkspacesPush, 5) as WorkspacesPush;
-        }
-        set workspaces(value: WorkspacesPush) {
-            pb_1.Message.setOneofWrapperField(this, 5, this.#one_of_decls[0], value);
-        }
-        get has_workspaces() {
-            return pb_1.Message.getField(this, 5) != null;
+            pb_1.Message.setField(this, 3, value);
         }
         get open_file() {
-            return pb_1.Message.getWrapperField(this, OpenFilePush, 6) as OpenFilePush;
+            return pb_1.Message.getWrapperField(this, OpenFilePush, 4) as OpenFilePush;
         }
         set open_file(value: OpenFilePush) {
-            pb_1.Message.setOneofWrapperField(this, 6, this.#one_of_decls[0], value);
+            pb_1.Message.setOneofWrapperField(this, 4, this.#one_of_decls[0], value);
         }
         get has_open_file() {
-            return pb_1.Message.getField(this, 6) != null;
+            return pb_1.Message.getField(this, 4) != null;
         }
         get create_snippet() {
-            return pb_1.Message.getWrapperField(this, CreateSnippetPush, 7) as CreateSnippetPush;
+            return pb_1.Message.getWrapperField(this, CreateSnippetPush, 5) as CreateSnippetPush;
         }
         set create_snippet(value: CreateSnippetPush) {
-            pb_1.Message.setOneofWrapperField(this, 7, this.#one_of_decls[0], value);
+            pb_1.Message.setOneofWrapperField(this, 5, this.#one_of_decls[0], value);
         }
         get has_create_snippet() {
-            return pb_1.Message.getField(this, 7) != null;
+            return pb_1.Message.getField(this, 5) != null;
         }
         get pin_file() {
-            return pb_1.Message.getWrapperField(this, PinFilePush, 8) as PinFilePush;
+            return pb_1.Message.getWrapperField(this, PinFilePush, 6) as PinFilePush;
         }
         set pin_file(value: PinFilePush) {
-            pb_1.Message.setOneofWrapperField(this, 8, this.#one_of_decls[0], value);
+            pb_1.Message.setOneofWrapperField(this, 6, this.#one_of_decls[0], value);
         }
         get has_pin_file() {
-            return pb_1.Message.getField(this, 8) != null;
+            return pb_1.Message.getField(this, 6) != null;
         }
         get highlight() {
-            return pb_1.Message.getWrapperField(this, HighlightPush, 9) as HighlightPush;
+            return pb_1.Message.getWrapperField(this, HighlightPush, 7) as HighlightPush;
         }
         set highlight(value: HighlightPush) {
-            pb_1.Message.setOneofWrapperField(this, 9, this.#one_of_decls[0], value);
+            pb_1.Message.setOneofWrapperField(this, 7, this.#one_of_decls[0], value);
         }
         get has_highlight() {
-            return pb_1.Message.getField(this, 9) != null;
+            return pb_1.Message.getField(this, 7) != null;
         }
         get follow() {
-            return pb_1.Message.getWrapperField(this, FollowPush, 10) as FollowPush;
+            return pb_1.Message.getWrapperField(this, FollowPush, 8) as FollowPush;
         }
         set follow(value: FollowPush) {
-            pb_1.Message.setOneofWrapperField(this, 10, this.#one_of_decls[0], value);
+            pb_1.Message.setOneofWrapperField(this, 8, this.#one_of_decls[0], value);
         }
         get has_follow() {
-            return pb_1.Message.getField(this, 10) != null;
+            return pb_1.Message.getField(this, 8) != null;
         }
         get data() {
             const cases: {
-                [index: number]: "none" | "app_command" | "workspaces" | "open_file" | "create_snippet" | "pin_file" | "highlight" | "follow";
+                [index: number]: "none" | "open_file" | "create_snippet" | "pin_file" | "highlight" | "follow";
             } = {
                 0: "none",
-                4: "app_command",
-                5: "workspaces",
-                6: "open_file",
-                7: "create_snippet",
-                8: "pin_file",
-                9: "highlight",
-                10: "follow"
+                4: "open_file",
+                5: "create_snippet",
+                6: "pin_file",
+                7: "highlight",
+                8: "follow"
             };
-            return cases[pb_1.Message.computeOneofCase(this, [4, 5, 6, 7, 8, 9, 10])];
-        }
-        get _code_source_id() {
-            const cases: {
-                [index: number]: "none" | "code_source_id";
-            } = {
-                0: "none",
-                2: "code_source_id"
-            };
-            return cases[pb_1.Message.computeOneofCase(this, [2])];
-        }
-        get _workspace_root() {
-            const cases: {
-                [index: number]: "none" | "workspace_root";
-            } = {
-                0: "none",
-                3: "workspace_root"
-            };
-            return cases[pb_1.Message.computeOneofCase(this, [3])];
+            return cases[pb_1.Message.computeOneofCase(this, [4, 5, 6, 7, 8])];
         }
         static fromObject(data: {
-            type?: PushType;
+            type?: FileCommandType;
             code_source_id?: string;
             workspace_root?: string;
-            app_command?: ReturnType<typeof AppCommandPush.prototype.toObject>;
-            workspaces?: ReturnType<typeof WorkspacesPush.prototype.toObject>;
             open_file?: ReturnType<typeof OpenFilePush.prototype.toObject>;
             create_snippet?: ReturnType<typeof CreateSnippetPush.prototype.toObject>;
             pin_file?: ReturnType<typeof PinFilePush.prototype.toObject>;
             highlight?: ReturnType<typeof HighlightPush.prototype.toObject>;
             follow?: ReturnType<typeof FollowPush.prototype.toObject>;
-        }): PushMessage {
-            const message = new PushMessage({});
+        }): FileCommandPush {
+            const message = new FileCommandPush({});
             if (data.type != null) {
                 message.type = data.type;
             }
@@ -4388,12 +4495,6 @@ export namespace idepb {
             }
             if (data.workspace_root != null) {
                 message.workspace_root = data.workspace_root;
-            }
-            if (data.app_command != null) {
-                message.app_command = AppCommandPush.fromObject(data.app_command);
-            }
-            if (data.workspaces != null) {
-                message.workspaces = WorkspacesPush.fromObject(data.workspaces);
             }
             if (data.open_file != null) {
                 message.open_file = OpenFilePush.fromObject(data.open_file);
@@ -4414,11 +4515,9 @@ export namespace idepb {
         }
         toObject() {
             const data: {
-                type?: PushType;
+                type?: FileCommandType;
                 code_source_id?: string;
                 workspace_root?: string;
-                app_command?: ReturnType<typeof AppCommandPush.prototype.toObject>;
-                workspaces?: ReturnType<typeof WorkspacesPush.prototype.toObject>;
                 open_file?: ReturnType<typeof OpenFilePush.prototype.toObject>;
                 create_snippet?: ReturnType<typeof CreateSnippetPush.prototype.toObject>;
                 pin_file?: ReturnType<typeof PinFilePush.prototype.toObject>;
@@ -4433,12 +4532,6 @@ export namespace idepb {
             }
             if (this.workspace_root != null) {
                 data.workspace_root = this.workspace_root;
-            }
-            if (this.app_command != null) {
-                data.app_command = this.app_command.toObject();
-            }
-            if (this.workspaces != null) {
-                data.workspaces = this.workspaces.toObject();
             }
             if (this.open_file != null) {
                 data.open_file = this.open_file.toObject();
@@ -4461,31 +4554,27 @@ export namespace idepb {
         serialize(w: pb_1.BinaryWriter): void;
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
-            if (this.type != PushType.PUSH_INVALID)
+            if (this.type != FileCommandType.FILE_COMMAND_INVALID)
                 writer.writeEnum(1, this.type);
-            if (this.has_code_source_id)
+            if (this.code_source_id.length)
                 writer.writeString(2, this.code_source_id);
-            if (this.has_workspace_root)
+            if (this.workspace_root.length)
                 writer.writeString(3, this.workspace_root);
-            if (this.has_app_command)
-                writer.writeMessage(4, this.app_command, () => this.app_command.serialize(writer));
-            if (this.has_workspaces)
-                writer.writeMessage(5, this.workspaces, () => this.workspaces.serialize(writer));
             if (this.has_open_file)
-                writer.writeMessage(6, this.open_file, () => this.open_file.serialize(writer));
+                writer.writeMessage(4, this.open_file, () => this.open_file.serialize(writer));
             if (this.has_create_snippet)
-                writer.writeMessage(7, this.create_snippet, () => this.create_snippet.serialize(writer));
+                writer.writeMessage(5, this.create_snippet, () => this.create_snippet.serialize(writer));
             if (this.has_pin_file)
-                writer.writeMessage(8, this.pin_file, () => this.pin_file.serialize(writer));
+                writer.writeMessage(6, this.pin_file, () => this.pin_file.serialize(writer));
             if (this.has_highlight)
-                writer.writeMessage(9, this.highlight, () => this.highlight.serialize(writer));
+                writer.writeMessage(7, this.highlight, () => this.highlight.serialize(writer));
             if (this.has_follow)
-                writer.writeMessage(10, this.follow, () => this.follow.serialize(writer));
+                writer.writeMessage(8, this.follow, () => this.follow.serialize(writer));
             if (!w)
                 return writer.getResultBuffer();
         }
-        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): PushMessage {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new PushMessage();
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): FileCommandPush {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new FileCommandPush();
             while (reader.nextField()) {
                 if (reader.isEndGroup())
                     break;
@@ -4500,25 +4589,218 @@ export namespace idepb {
                         message.workspace_root = reader.readString();
                         break;
                     case 4:
+                        reader.readMessage(message.open_file, () => message.open_file = OpenFilePush.deserialize(reader));
+                        break;
+                    case 5:
+                        reader.readMessage(message.create_snippet, () => message.create_snippet = CreateSnippetPush.deserialize(reader));
+                        break;
+                    case 6:
+                        reader.readMessage(message.pin_file, () => message.pin_file = PinFilePush.deserialize(reader));
+                        break;
+                    case 7:
+                        reader.readMessage(message.highlight, () => message.highlight = HighlightPush.deserialize(reader));
+                        break;
+                    case 8:
+                        reader.readMessage(message.follow, () => message.follow = FollowPush.deserialize(reader));
+                        break;
+                    default: reader.skipField();
+                }
+            }
+            return message;
+        }
+        serializeBinary(): Uint8Array {
+            return this.serialize();
+        }
+        static deserializeBinary(bytes: Uint8Array): FileCommandPush {
+            return FileCommandPush.deserialize(bytes);
+        }
+    }
+    export class PushMessage extends pb_1.Message {
+        #one_of_decls: number[][] = [[4, 5, 6, 7]];
+        constructor(data?: any[] | ({
+            type?: PushType;
+        } & (({
+            app_command?: AppCommandPush;
+            workspaces?: never;
+            active_session?: never;
+            file_command?: never;
+        } | {
+            app_command?: never;
+            workspaces?: WorkspacesPush;
+            active_session?: never;
+            file_command?: never;
+        } | {
+            app_command?: never;
+            workspaces?: never;
+            active_session?: ActiveSessionPush;
+            file_command?: never;
+        } | {
+            app_command?: never;
+            workspaces?: never;
+            active_session?: never;
+            file_command?: FileCommandPush;
+        })))) {
+            super();
+            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+            if (!Array.isArray(data) && typeof data == "object") {
+                if ("type" in data && data.type != undefined) {
+                    this.type = data.type;
+                }
+                if ("app_command" in data && data.app_command != undefined) {
+                    this.app_command = data.app_command;
+                }
+                if ("workspaces" in data && data.workspaces != undefined) {
+                    this.workspaces = data.workspaces;
+                }
+                if ("active_session" in data && data.active_session != undefined) {
+                    this.active_session = data.active_session;
+                }
+                if ("file_command" in data && data.file_command != undefined) {
+                    this.file_command = data.file_command;
+                }
+            }
+        }
+        get type() {
+            return pb_1.Message.getFieldWithDefault(this, 1, PushType.PUSH_INVALID) as PushType;
+        }
+        set type(value: PushType) {
+            pb_1.Message.setField(this, 1, value);
+        }
+        get app_command() {
+            return pb_1.Message.getWrapperField(this, AppCommandPush, 4) as AppCommandPush;
+        }
+        set app_command(value: AppCommandPush) {
+            pb_1.Message.setOneofWrapperField(this, 4, this.#one_of_decls[0], value);
+        }
+        get has_app_command() {
+            return pb_1.Message.getField(this, 4) != null;
+        }
+        get workspaces() {
+            return pb_1.Message.getWrapperField(this, WorkspacesPush, 5) as WorkspacesPush;
+        }
+        set workspaces(value: WorkspacesPush) {
+            pb_1.Message.setOneofWrapperField(this, 5, this.#one_of_decls[0], value);
+        }
+        get has_workspaces() {
+            return pb_1.Message.getField(this, 5) != null;
+        }
+        get active_session() {
+            return pb_1.Message.getWrapperField(this, ActiveSessionPush, 6) as ActiveSessionPush;
+        }
+        set active_session(value: ActiveSessionPush) {
+            pb_1.Message.setOneofWrapperField(this, 6, this.#one_of_decls[0], value);
+        }
+        get has_active_session() {
+            return pb_1.Message.getField(this, 6) != null;
+        }
+        get file_command() {
+            return pb_1.Message.getWrapperField(this, FileCommandPush, 7) as FileCommandPush;
+        }
+        set file_command(value: FileCommandPush) {
+            pb_1.Message.setOneofWrapperField(this, 7, this.#one_of_decls[0], value);
+        }
+        get has_file_command() {
+            return pb_1.Message.getField(this, 7) != null;
+        }
+        get data() {
+            const cases: {
+                [index: number]: "none" | "app_command" | "workspaces" | "active_session" | "file_command";
+            } = {
+                0: "none",
+                4: "app_command",
+                5: "workspaces",
+                6: "active_session",
+                7: "file_command"
+            };
+            return cases[pb_1.Message.computeOneofCase(this, [4, 5, 6, 7])];
+        }
+        static fromObject(data: {
+            type?: PushType;
+            app_command?: ReturnType<typeof AppCommandPush.prototype.toObject>;
+            workspaces?: ReturnType<typeof WorkspacesPush.prototype.toObject>;
+            active_session?: ReturnType<typeof ActiveSessionPush.prototype.toObject>;
+            file_command?: ReturnType<typeof FileCommandPush.prototype.toObject>;
+        }): PushMessage {
+            const message = new PushMessage({});
+            if (data.type != null) {
+                message.type = data.type;
+            }
+            if (data.app_command != null) {
+                message.app_command = AppCommandPush.fromObject(data.app_command);
+            }
+            if (data.workspaces != null) {
+                message.workspaces = WorkspacesPush.fromObject(data.workspaces);
+            }
+            if (data.active_session != null) {
+                message.active_session = ActiveSessionPush.fromObject(data.active_session);
+            }
+            if (data.file_command != null) {
+                message.file_command = FileCommandPush.fromObject(data.file_command);
+            }
+            return message;
+        }
+        toObject() {
+            const data: {
+                type?: PushType;
+                app_command?: ReturnType<typeof AppCommandPush.prototype.toObject>;
+                workspaces?: ReturnType<typeof WorkspacesPush.prototype.toObject>;
+                active_session?: ReturnType<typeof ActiveSessionPush.prototype.toObject>;
+                file_command?: ReturnType<typeof FileCommandPush.prototype.toObject>;
+            } = {};
+            if (this.type != null) {
+                data.type = this.type;
+            }
+            if (this.app_command != null) {
+                data.app_command = this.app_command.toObject();
+            }
+            if (this.workspaces != null) {
+                data.workspaces = this.workspaces.toObject();
+            }
+            if (this.active_session != null) {
+                data.active_session = this.active_session.toObject();
+            }
+            if (this.file_command != null) {
+                data.file_command = this.file_command.toObject();
+            }
+            return data;
+        }
+        serialize(): Uint8Array;
+        serialize(w: pb_1.BinaryWriter): void;
+        serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+            const writer = w || new pb_1.BinaryWriter();
+            if (this.type != PushType.PUSH_INVALID)
+                writer.writeEnum(1, this.type);
+            if (this.has_app_command)
+                writer.writeMessage(4, this.app_command, () => this.app_command.serialize(writer));
+            if (this.has_workspaces)
+                writer.writeMessage(5, this.workspaces, () => this.workspaces.serialize(writer));
+            if (this.has_active_session)
+                writer.writeMessage(6, this.active_session, () => this.active_session.serialize(writer));
+            if (this.has_file_command)
+                writer.writeMessage(7, this.file_command, () => this.file_command.serialize(writer));
+            if (!w)
+                return writer.getResultBuffer();
+        }
+        static deserialize(bytes: Uint8Array | pb_1.BinaryReader): PushMessage {
+            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new PushMessage();
+            while (reader.nextField()) {
+                if (reader.isEndGroup())
+                    break;
+                switch (reader.getFieldNumber()) {
+                    case 1:
+                        message.type = reader.readEnum();
+                        break;
+                    case 4:
                         reader.readMessage(message.app_command, () => message.app_command = AppCommandPush.deserialize(reader));
                         break;
                     case 5:
                         reader.readMessage(message.workspaces, () => message.workspaces = WorkspacesPush.deserialize(reader));
                         break;
                     case 6:
-                        reader.readMessage(message.open_file, () => message.open_file = OpenFilePush.deserialize(reader));
+                        reader.readMessage(message.active_session, () => message.active_session = ActiveSessionPush.deserialize(reader));
                         break;
                     case 7:
-                        reader.readMessage(message.create_snippet, () => message.create_snippet = CreateSnippetPush.deserialize(reader));
-                        break;
-                    case 8:
-                        reader.readMessage(message.pin_file, () => message.pin_file = PinFilePush.deserialize(reader));
-                        break;
-                    case 9:
-                        reader.readMessage(message.highlight, () => message.highlight = HighlightPush.deserialize(reader));
-                        break;
-                    case 10:
-                        reader.readMessage(message.follow, () => message.follow = FollowPush.deserialize(reader));
+                        reader.readMessage(message.file_command, () => message.file_command = FileCommandPush.deserialize(reader));
                         break;
                     default: reader.skipField();
                 }

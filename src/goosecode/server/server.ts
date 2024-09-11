@@ -33,6 +33,7 @@ export class GooseCodeServer {
 
   public websocket: WebSocket | null = null;
   public server: Server | null = null;
+
   public get connected(): boolean {
     return this.websocket !== null;
   }
@@ -44,18 +45,15 @@ export class GooseCodeServer {
     }
 
     console.log("[PUSH]", msg.type);
-    if (
-      msg.type !== PushType.PUSH_WORKSPACES &&
-      msg.type !== PushType.PUSH_APP_COMMAND
-    ) {
+    if (msg.type === PushType.PUSH_FILE_COMMAND) {
       const activeWorkspace =
         this.workspaceTracker.getLastActiveGooseCodeWorkspace();
       if (!activeWorkspace) {
         console.error("[PUSH]", "No active workspace found");
         return;
       }
-      msg.workspace_root = activeWorkspace.uri.fsPath;
-      msg.code_source_id = activeWorkspace.codeSourceID!;
+      msg.file_command.workspace_root = activeWorkspace.uri.fsPath;
+      msg.file_command.code_source_id = activeWorkspace.codeSourceID!;
     }
     this.websocket.send(msg.serializeBinary());
   }

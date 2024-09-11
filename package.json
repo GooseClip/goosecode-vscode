@@ -51,6 +51,11 @@
         {
           "id": "goosecode.codeSources",
           "name": "Code Sources"
+        },
+        {
+          "id": "goosecode.activeSession",
+          "name": "Active Session",
+          "when": "goosecode.initialized == true"
         }
       ]
     },
@@ -79,6 +84,38 @@
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "goosecode.activeSession.delete",
+        "title": "Discard Session",
+        "icon": {
+          "light": "resources/light/delete.svg",
+          "dark": "resources/dark/delete.svg"
+        }
+      },
+      {
+        "command": "goosecode.activeSession.save",
+        "title": "Save Session",
+        "icon": {
+          "light": "resources/light/save.svg",
+          "dark": "resources/dark/save.svg"
+        }
+      },
+      {
+        "command": "goosecode.activeSession.regenerate",
+        "title": "Regenerate Session",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "goosecode.activeSession.step",
+        "title": "Step Through Session",
+        "icon": {
+          "light": "resources/light/step.svg",
+          "dark": "resources/dark/step.svg"
         }
       },
       {
@@ -152,6 +189,26 @@
           "command": "goosecode.codeSources.refresh",
           "group": "navigation",
           "when": "view == goosecode.codeSources"
+        },
+        {
+          "command": "goosecode.activeSession.delete",
+          "group": "navigation@1",
+          "when": "view == goosecode.activeSession"
+        },
+        {
+          "command": "goosecode.activeSession.save",
+          "group": "navigation@2",
+          "when": "view == goosecode.activeSession"
+        },
+        {
+          "command": "goosecode.activeSession.regenerate",
+          "group": "navigation@3",
+          "when": "view == goosecode.activeSession"
+        },
+        {
+          "command": "goosecode.activeSession.step",
+          "group": "navigation@4",
+          "when": "view == goosecode.activeSession"
         }
       ],
       "view/item/context": [

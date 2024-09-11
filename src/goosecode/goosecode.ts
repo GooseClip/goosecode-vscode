@@ -24,6 +24,7 @@ import SnippetContext = idepb.SnippetContext;
 import LocationWithContext = idepb.LocationWithContext;
 import AppCommandPush = idepb.AppCommandPush;
 import AppCommandType = idepb.AppCommandType;
+import FileCommandPush = idepb.FileCommandPush;
 
 async function guard(
   gooseCodeServer: GooseCodeServer | null,
@@ -139,10 +140,13 @@ export function registerGooseCodeCommands(
     const editor = vscode.window.activeTextEditor!;
     gooseCodeServer?.push(
       new PushMessage({
-        type: idepb.PushType.PUSH_OPEN_FILE,
-        open_file: new OpenFilePush({
-          path: workspaceTracker.currentFilePath(),
-          range: selectedRange(editor),
+        type: idepb.PushType.PUSH_FILE_COMMAND,
+        file_command: new FileCommandPush({
+          type: idepb.FileCommandType.FILE_COMMAND_OPEN_FILE,
+          open_file: new OpenFilePush({
+            path: workspaceTracker.currentFilePath(),
+            range: selectedRange(editor),
+          }),
         }),
       }),
     );
@@ -157,15 +161,18 @@ export function registerGooseCodeCommands(
     const editor = vscode.window.activeTextEditor!;
     gooseCodeServer?.push(
       new PushMessage({
-        type: idepb.PushType.PUSH_CREATE_SNIPPET,
-        create_snippet: new CreateSnippetPush({
-          location: new Location({
-            path: workspaceTracker.currentFilePath(),
-            range: selectedRange(editor),
-          }),
-          context: new SnippetContext({
-            before: 10,
-            after: 10,
+        type: idepb.PushType.PUSH_FILE_COMMAND,
+        file_command: new FileCommandPush({
+          type: idepb.FileCommandType.FILE_COMMAND_CREATE_SNIPPET,
+          create_snippet: new CreateSnippetPush({
+            location: new Location({
+              path: workspaceTracker.currentFilePath(),
+              range: selectedRange(editor),
+            }),
+            context: new SnippetContext({
+              before: 10,
+              after: 10,
+            }),
           }),
         }),
       }),
@@ -180,9 +187,12 @@ export function registerGooseCodeCommands(
     }
     gooseCodeServer?.push(
       new PushMessage({
-        type: idepb.PushType.PUSH_PIN_FILE,
-        pin_file: new PinFilePush({
-          path: workspaceTracker.currentFilePath(),
+        type: idepb.PushType.PUSH_FILE_COMMAND,
+        file_command: new FileCommandPush({
+          type: idepb.FileCommandType.FILE_COMMAND_PIN_FILE,
+          pin_file: new PinFilePush({
+            path: workspaceTracker.currentFilePath(),
+          }),
         }),
       }),
     );
@@ -239,27 +249,30 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: idepb.PushType.PUSH_FOLLOW,
-          follow: new FollowPush({
-            type: idepb.FollowType.FOLLOW_DEFINITION,
-            definition: new DefinitionFollow({
-              from: new LocationWithContext({
-                location: new Location({
-                  path: workspaceTracker.relativePath(
-                    editor.document.uri.fsPath,
-                  ),
-                  range: convertRange(definitions[0].originSelectionRange!),
+          type: idepb.PushType.PUSH_FILE_COMMAND,
+          file_command: new FileCommandPush({
+            type: idepb.FileCommandType.FILE_COMMAND_FOLLOW,
+            follow: new FollowPush({
+              type: idepb.FollowType.FOLLOW_DEFINITION,
+              definition: new DefinitionFollow({
+                from: new LocationWithContext({
+                  location: new Location({
+                    path: workspaceTracker.relativePath(
+                      editor.document.uri.fsPath,
+                    ),
+                    range: convertRange(definitions[0].originSelectionRange!),
+                  }),
                 }),
-              }),
-              to: new LocationWithContext({
-                location: new Location({
-                  path: workspaceTracker.relativePath(
-                    definitions[0].targetUri.fsPath,
-                  ),
-                  range: convertRange(definitions[0].targetSelectionRange!),
-                }),
-                context: new SnippetContext({
-                  full_range: convertRange(definitions[0].targetRange),
+                to: new LocationWithContext({
+                  location: new Location({
+                    path: workspaceTracker.relativePath(
+                      definitions[0].targetUri.fsPath,
+                    ),
+                    range: convertRange(definitions[0].targetSelectionRange!),
+                  }),
+                  context: new SnippetContext({
+                    full_range: convertRange(definitions[0].targetRange),
+                  }),
                 }),
               }),
             }),
@@ -292,30 +305,33 @@ export function registerGooseCodeCommands(
     if (refs.length > 0) {
       gooseCodeServer?.push(
         new PushMessage({
-          type: idepb.PushType.PUSH_FOLLOW,
-          follow: new FollowPush({
-            type: idepb.FollowType.FOLLOW_REFERENCE,
-            reference: new ReferenceFollow({
-              from: new LocationWithContext({
-                location: new Location({
-                  path: workspaceTracker.relativePath(
-                    currentLocation!.uri.fsPath,
-                  ),
-                  range: convertRange(currentLocation!.range),
-                }),
-                context: new SnippetContext({
-                  full_range: convertRange(currentDefinition!.targetRange),
-                }),
-              }),
-              to: refs.map(
-                (ref) =>
-                  new LocationWithContext({
-                    location: new Location({
-                      path: workspaceTracker.relativePath(ref.uri.fsPath),
-                      range: convertRange(ref.range),
-                    }),
+          type: idepb.PushType.PUSH_FILE_COMMAND,
+          file_command: new FileCommandPush({
+            type: idepb.FileCommandType.FILE_COMMAND_FOLLOW,
+            follow: new FollowPush({
+              type: idepb.FollowType.FOLLOW_REFERENCE,
+              reference: new ReferenceFollow({
+                from: new LocationWithContext({
+                  location: new Location({
+                    path: workspaceTracker.relativePath(
+                      currentLocation!.uri.fsPath,
+                    ),
+                    range: convertRange(currentLocation!.range),
                   }),
-              ),
+                  context: new SnippetContext({
+                    full_range: convertRange(currentDefinition!.targetRange),
+                  }),
+                }),
+                to: refs.map(
+                  (ref) =>
+                    new LocationWithContext({
+                      location: new Location({
+                        path: workspaceTracker.relativePath(ref.uri.fsPath),
+                        range: convertRange(ref.range),
+                      }),
+                    }),
+                ),
+              }),
             }),
           }),
         }),

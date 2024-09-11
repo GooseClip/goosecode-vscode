@@ -16,12 +16,14 @@ import { idepb } from "./proto/idepb/ide";
 import { WorkspaceTracker } from "./workspace-tracker";
 import { registerGooseCodeCommands } from "./goosecode/goosecode";
 import { ConnectionProvider } from "./views/connection";
+import { ActiveSessionProvider } from "./views/active-session";
 
 var workspaceTracker: WorkspaceTracker | null = null;
 var gooseCodeServer: GooseCodeServer | null = null;
 var goosecodeSubscriptions: Array<vscode.Disposable> = [];
 var codeSourcesProvider: CodeSourcesProvider | null = null;
 var connectionProvider: ConnectionProvider | null = null;
+var activeSessionProvider: ActiveSessionProvider | null = null;
 
 async function startServer(
   context: vscode.ExtensionContext,
@@ -145,34 +147,62 @@ function createTreeProviders(
 ): Array<vscode.Disposable> {
   const subscriptions: Array<vscode.Disposable> = [];
 
+  // Active session provider
+  activeSessionProvider = new ActiveSessionProvider();
+
+  var sub = vscode.window.registerTreeDataProvider(
+    "goosecode.activeSession",
+    activeSessionProvider,
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.activeSession.delete",
+    async () => {
+      console.log("Delete active session");
+    },
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.activeSession.save",
+    async () => {
+      console.log("Save active session");
+    },
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.activeSession.regenerate",
+    async () => {
+      console.log("Regenerate active session");
+    },
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.activeSession.step",
+    async () => {
+      console.log("Step active session");
+    },
+  );
+  subscriptions.push(sub);
+
   // Code sources provider
   codeSourcesProvider = new CodeSourcesProvider(workspaceTracker!);
   const treeView = vscode.window.createTreeView("goosecode.codeSources", {
     treeDataProvider: codeSourcesProvider,
   });
 
-  var sub = treeView.onDidChangeVisibility((e) => {
+  sub = treeView.onDidChangeVisibility((e) => {
     vscode.commands.executeCommand(
       "setContext",
       "goosecode.treeview.codeSources.visible",
       e.visible,
     );
   });
-  // codeSourcesProvider = new CodeSourcesProvider(workspaceTracker!);
-  // var sub = vscode.window.registerTreeDataProvider(
-  //   "goosecode.codeSources",
-  //   codeSourcesProvider,
-  // );
   subscriptions.push(treeView);
   subscriptions.push(sub);
-
-  // codeSourcesProvider.onDidChangeTreeData(e => {
-  //   if (e.visible) {
-  //     // Your view has been opened
-  //   } else {
-  //     // Your view has been closed
-  //   }
-  // });
 
   sub = vscode.commands.registerCommand(
     "goosecode.codeSources.refresh",
