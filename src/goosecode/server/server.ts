@@ -94,21 +94,24 @@ export class GooseCodeServer {
         res: express.Response,
         next: express.NextFunction,
       ) => {
-        console.log("GET FILES REQUEST");
         const request: RequestMessage = req.body as RequestMessage;
-        const workspace = this.workspaceTracker.getWorkspaceFromCodeSourceID(
-          request.code_source_id,
-        );
-
         console.log(
-          "Using workspace",
-          workspace?.uri.fsPath,
-          workspace?.codeSourceID,
+          `Get files: ${request.code_source_id} ${request.get_files_request.file_paths}`,
         );
+        try {
+          const workspace = this.workspaceTracker.getWorkspaceFromCodeSourceID(
+            request.code_source_id,
+          );
+          if (workspace === null) {
+            throw new ApiError("Workspace not found", 422);
+          }
 
-        await handleGetFilesRequest(request, workspace!.uri!, (m) =>
-          this.send(res, m),
-        ).catch((e) => next(e));
+          await handleGetFilesRequest(request, workspace!.uri!, (m) =>
+            this.send(res, m),
+          );
+        } catch (e) {
+          next(e);
+        }
       },
     );
 
