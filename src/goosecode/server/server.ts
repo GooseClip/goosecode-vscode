@@ -31,14 +31,8 @@ export class GooseCodeServer {
 
   public websocket: WebSocket | null = null;
   public server: Server | null = null;
-  private subscriptions: Array<vscode.Disposable> = [];
-
-  public stop() {
-    this.subscriptions.forEach((s) => s.dispose());
-    this.websocket?.close();
-    this.server?.close(() => {
-      // console.log("HTTP server stopped");
-    });
+  public get connected(): boolean {
+    return this.websocket !== null;
   }
 
   public push(msg: PushMessage) {
@@ -70,12 +64,12 @@ export class GooseCodeServer {
     res.send(buffer);
   }
 
-  // private codeSourceID(): CodeSourceID | null {
-  //   if(!this.workspaceConfig){
-  //     return null;
-  //   }
-  //   return this.workspaceConfig!.config.code_source_id;
-  // }
+  public stop() {
+    this.websocket?.close();
+    this.server?.close(() => {
+      // console.log("HTTP server stopped");
+    });
+  }
 
   public async start() {
     if (this.server !== null) {
@@ -158,6 +152,7 @@ export class GooseCodeServer {
       });
 
       socket.on("close", (code, reason) => {
+        this.websocket = null;
         console.log(
           "WebSocket connection closed, code:",
           code,
@@ -216,10 +211,6 @@ export class GooseCodeServer {
     this.server!.listen(port, ip, () => {
       console.log(`Listening on ${ip}:${port}`);
     });
-
-    this.subscriptions.push(
-      ...registerGooseCodeCommands(this, this.workspaceTracker),
-    );
   }
 
   public pushWorkspacesToGooseCode(

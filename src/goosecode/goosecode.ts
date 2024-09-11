@@ -1,58 +1,76 @@
 import * as vscode from "vscode";
-import { Disposable, workspace } from "vscode";
+import { Disposable } from "vscode";
 import { GooseCodeServer } from "./server/server";
 import { idepb } from "../proto/idepb/ide";
+import {
+  getDefinitions,
+  getReferences,
+  goToDefinition,
+} from "./commands/commands";
+import { convertRange } from "../util";
+import { WorkspaceTracker } from "../workspace-tracker";
 import PushMessage = idepb.PushMessage;
 import OpenFilePush = idepb.OpenFilePush;
 import Range = idepb.Range;
 import Position = idepb.Position;
 import CreateSnippetPush = idepb.CreateSnippetPush;
 import PinFilePush = idepb.PinFilePush;
-import {
-  getReferences,
-  getDefinitions,
-  goToDefinition,
-} from "./commands/commands";
 import FollowPush = idepb.FollowPush;
 import DefinitionFollow = idepb.DefinitionFollow;
 import Location = idepb.Location;
-import { convertRange } from "../util";
 import ReferenceFollow = idepb.ReferenceFollow;
 import SnippetContext = idepb.SnippetContext;
 import LocationWithContext = idepb.LocationWithContext;
-import * as path from "node:path";
-import { WorkspaceTracker } from "../workspace-tracker";
+
+function guard(gooseCodeServer: GooseCodeServer | null): boolean {
+  if (!gooseCodeServer) {
+    vscode.window.showErrorMessage("GooseCode server is not running");
+    return false;
+  }
+
+  if (!gooseCodeServer!.connected) {
+    vscode.window.showErrorMessage("GooseCode server is not connected");
+    return false;
+  }
+
+  if (!vscode.window.activeTextEditor) {
+    return false;
+  }
+
+  return true;
+}
 
 export function registerGooseCodeCommands(
-  gooseCodeServer: GooseCodeServer,
+  gooseCodeServer: GooseCodeServer | null,
   workspaceTracker: WorkspaceTracker,
 ): Array<Disposable> {
   const subscriptions: Array<Disposable> = [];
 
   // Show file
   var sub = vscode.commands.registerCommand("goosecode.open", () => {
-    const editor = vscode.window.activeTextEditor;
-    if (editor) {
-      gooseCodeServer.push(
-        new PushMessage({
-          type: idepb.PushType.PUSH_OPEN_FILE,
-          open_file: new OpenFilePush({
-            path: workspaceTracker.currentFilePath(),
-            range: selectedRange(editor),
-          }),
-        }),
-      );
+    if (!guard(gooseCodeServer)) {
+      return;
     }
+    const editor = vscode.window.activeTextEditor!;
+    gooseCodeServer?.push(
+      new PushMessage({
+        type: idepb.PushType.PUSH_OPEN_FILE,
+        open_file: new OpenFilePush({
+          path: workspaceTracker.currentFilePath(),
+          range: selectedRange(editor),
+        }),
+      }),
+    );
   });
   subscriptions.push(sub);
 
   // Create Snippet
   sub = vscode.commands.registerCommand("goosecode.snippet", () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
+    if (!guard(gooseCodeServer)) {
       return;
     }
-    gooseCodeServer.push(
+    const editor = vscode.window.activeTextEditor!;
+    gooseCodeServer?.push(
       new PushMessage({
         type: idepb.PushType.PUSH_CREATE_SNIPPET,
         create_snippet: new CreateSnippetPush({
@@ -72,11 +90,10 @@ export function registerGooseCodeCommands(
 
   // Pin File
   sub = vscode.commands.registerCommand("goosecode.pin", () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
+    if (!guard(gooseCodeServer)) {
       return;
     }
-    gooseCodeServer.push(
+    gooseCodeServer?.push(
       new PushMessage({
         type: idepb.PushType.PUSH_PIN_FILE,
         pin_file: new PinFilePush({
@@ -108,11 +125,10 @@ export function registerGooseCodeCommands(
 
   // Highlight
   sub = vscode.commands.registerCommand("goosecode.follow", async () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
+    if (!guard(gooseCodeServer)) {
       return;
     }
-
+    const editor = vscode.window.activeTextEditor!;
     const workspace = workspaceTracker.getLastActiveGooseCodeWorkspace();
     if (workspace === null) {
       console.error("No active workspace found");
@@ -142,7 +158,7 @@ export function registerGooseCodeCommands(
 
       // TODO check if the definition is the current range
 
-      gooseCodeServer.push(
+      gooseCodeServer?.push(
         new PushMessage({
           type: idepb.PushType.PUSH_FOLLOW,
           follow: new FollowPush({
@@ -199,7 +215,7 @@ export function registerGooseCodeCommands(
     if (refs.length > 0) {
       console.log("-------REFERENCES------");
       console.log(refs);
-      gooseCodeServer.push(
+      gooseCodeServer?.push(
         new PushMessage({
           type: idepb.PushType.PUSH_FOLLOW,
           follow: new FollowPush({

@@ -81,11 +81,6 @@
         }
       },
       {
-        "command": "goosecode.initialize",
-        "title": "Initialize Workspace",
-        "category": "GooseCode"
-      },
-      {
         "command": "goosecode.start",
         "title": "Start",
         "category": "GooseCode"

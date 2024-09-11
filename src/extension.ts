@@ -16,9 +16,11 @@ import { idepb } from "./proto/idepb/ide";
 import PushMessage = idepb.PushMessage;
 import { GenerateSessionProvider } from "./views/generate-session";
 import { WorkspaceTracker } from "./workspace-tracker";
+import { registerGooseCodeCommands } from "./goosecode/goosecode";
 
 var gooseCodeServer: GooseCodeServer | null = null;
 const workspaceTracker = new WorkspaceTracker();
+var goosecodeSubscriptions: Array<vscode.Disposable> = [];
 
 async function startServer(
   context: vscode.ExtensionContext,
@@ -27,11 +29,24 @@ async function startServer(
   console.log("Starting server, password: ", config.settings.password);
   gooseCodeServer = new GooseCodeServer(workspaceTracker, config);
   await gooseCodeServer.start();
+
+  // Register real commands
+  goosecodeSubscriptions.forEach((s) => s.dispose());
+  goosecodeSubscriptions = [];
+  goosecodeSubscriptions = registerGooseCodeCommands(
+    gooseCodeServer,
+    workspaceTracker,
+  );
 }
 
 async function stopServer() {
   gooseCodeServer?.stop();
   gooseCodeServer = null;
+
+  // Register dummy commands
+  goosecodeSubscriptions.forEach((s) => s.dispose());
+  goosecodeSubscriptions = [];
+  goosecodeSubscriptions = registerGooseCodeCommands(null, workspaceTracker);
 }
 
 async function restartServer(context: vscode.ExtensionContext) {
@@ -44,12 +59,6 @@ async function persistentCommands(
   context: vscode.ExtensionContext,
 ): Promise<Array<vscode.Disposable>> {
   const subscriptions: Array<vscode.Disposable> = [];
-
-  subscriptions.push(
-    vscode.commands.registerCommand("goosecode.initialize", async () => {
-      gooseCodeServer!.push(new PushMessage());
-    }),
-  );
 
   subscriptions.push(
     vscode.commands.registerCommand("goosecode.start", async () => {
