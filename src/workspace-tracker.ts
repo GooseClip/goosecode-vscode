@@ -2,10 +2,12 @@ import * as vscode from "vscode";
 import { Uri } from "vscode";
 import * as path from "path";
 import {
-  CodeSourceID,
+  RepositorySnapshotFingerprint,
   GooseCodeWorkspaceConfig,
   loadWorkspaceConfiguration,
+  updateWorkspaceConfiguration,
 } from "./config";
+import { onDidChangeCommit } from "./git";
 
 export class Workspace {
   constructor(
@@ -20,8 +22,8 @@ export class Workspace {
     return this.workspace.uri;
   }
 
-  get codeSourceID(): CodeSourceID | null {
-    return this.config?.config.code_source_id ?? null;
+  get fingerprint(): RepositorySnapshotFingerprint | null {
+    return this.config?.config.fingerprint ?? null;
   }
 
   get isEnabled(): boolean {
@@ -37,16 +39,17 @@ export class WorkspaceTracker {
   public workspaces: Workspace[] = [];
   private lastWorkspace: Workspace | null = null;
   private activeFile: Uri | null = null;
+  private commitSubscriptions: vscode.Disposable[] = [];
 
   public activeWorkspaces(): Array<Workspace> {
     return this.workspaces.filter((w) => w.isEnabled);
   }
 
-  public getWorkspaceFromCodeSourceID(
-    codeSourceID: CodeSourceID,
+  public getWorkspaceFromFingerprint(
+    fingerprint: RepositorySnapshotFingerprint,
   ): Workspace | null {
     const hit = this.activeWorkspaces().find(
-      (w) => w.config!.config.code_source_id === codeSourceID,
+      (w) => w.config!.config.fingerprint === fingerprint,
     );
     return hit || null;
   }
@@ -71,18 +74,41 @@ export class WorkspaceTracker {
     }
   }
 
+
   // TODO cache
-  public refresh(fromCodeSources: boolean = false): Array<Workspace> {
+  public async refresh(fromCodeSources: boolean = false): Promise<Array<Workspace>> {
     this.workspaces.length = 0;
     const spaces = vscode.workspace.workspaceFolders;
     if (spaces) {
       for (const workspace of spaces) {
-        const config = loadWorkspaceConfiguration(workspace.uri.fsPath, false);
+        const config = await loadWorkspaceConfiguration(workspace.uri.fsPath, false);
         this.workspaces.push(new Workspace(workspace, config));
       }
     }
 
+    // Don't refresh code sources if we're coming from the code sources view
+    // otherwise we'll end up in an infinite loop.
     this.onRefreshed({ refreshCodeSources: !fromCodeSources });
+
+
+    // Remove old subscriptions
+    this.commitSubscriptions.forEach((s) => s.dispose());
+    this.commitSubscriptions.length = 0;
+
+    // Subscribe to commit changes
+    for(var i = 0; i < this.workspaces.length; i++){
+      const workspace = this.workspaces[i];
+      const subscription = await onDidChangeCommit(workspace.uri, async (commit, branch) => {
+        console.log(`[DEBUG][COMMIT CHANGE] ${workspace.uri.fsPath} ${commit} ${branch}`);
+        const config = await updateWorkspaceConfiguration(workspace.config!, workspace.uri.fsPath, commit, branch);
+        this.workspaces[i].config!.config = config.GooseCode;
+        this.onRefreshed({ refreshCodeSources: true });
+      });
+      if (subscription) {
+        this.commitSubscriptions.push(subscription);
+      }
+    }
+
     return this.workspaces.filter((w) => fromCodeSources || w.isEnabled);
   }
 

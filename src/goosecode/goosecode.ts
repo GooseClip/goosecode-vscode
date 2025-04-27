@@ -74,7 +74,7 @@ async function guard(
       // Handle yes
       loadWorkspaceConfiguration(workspace!.uri.fsPath, true);
       vscode.window.showInformationMessage("Code source enabled");
-      const workspaces = workspaceTracker.refresh();
+      const workspaces = await workspaceTracker.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
       workspaceTracker.onActiveFileChanged(editor.document.uri);
       // Wait a bit

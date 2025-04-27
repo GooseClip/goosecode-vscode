@@ -26,10 +26,10 @@ export class CodeSourcesProvider
     return element;
   }
 
-  getChildren(element?: CodeSource): Thenable<CodeSource[]> {
-    const workspaces = this.workspaceTracker.refresh(true);
+  async getChildren(element?: CodeSource): Promise<CodeSource[]> {
+    const workspaces = await this.workspaceTracker.refresh(true);
     if (!workspaces) {
-      return Promise.resolve([]);
+      return [];
     }
 
     const dependencies: Array<CodeSource> = [];
@@ -43,7 +43,7 @@ export class CodeSourcesProvider
         ),
       );
     }
-    return Promise.resolve(dependencies);
+    return dependencies;
   }
 }
 

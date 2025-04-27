@@ -208,7 +208,7 @@ function createTreeProviders(
   sub = vscode.commands.registerCommand(
     "goosecode.codeSources.refresh",
     async () => {
-      const workspaces = workspaceTracker!.refresh();
+      const workspaces = await workspaceTracker!.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
     },
   );
@@ -221,7 +221,7 @@ function createTreeProviders(
         const root = codeSource.resourceUri!.fsPath;
         console.log(`Enabling goosecode: ${root}`);
         loadWorkspaceConfiguration(root, true);
-        const workspaces = workspaceTracker!.refresh();
+        const workspaces = await workspaceTracker!.refresh();
         gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
       } catch (e) {
         console.error(e);
@@ -233,11 +233,11 @@ function createTreeProviders(
   sub = vscode.commands.registerCommand(
     "goosecode.codeSources.disableCodeSource",
     async (codeSource: CodeSource) => {
-      const codeSourceID = removeWorkspaceConfiguration(
+      const codeSourceID = await removeWorkspaceConfiguration(
         codeSource.resourceUri!.fsPath,
       );
       console.log(`Disable goosecode: ${codeSourceID}`);
-      const workspaces = workspaceTracker!.refresh();
+      const workspaces = await workspaceTracker!.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces, new WorkspaceDetails({
         workspace_root: codeSource.resourceUri!.fsPath,
         repository_snapshot_fingerprint: codeSourceID!,
@@ -319,7 +319,7 @@ export async function activate(context: vscode.ExtensionContext) {
         console.log(`Workspace folder removed: ${folder.uri.fsPath}`);
       });
 
-      const workspaces = workspaceTracker!.refresh();
+      const workspaces = await workspaceTracker!.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
     });
   context.subscriptions.push(workspaceChangeSubscription);

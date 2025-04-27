@@ -9,14 +9,19 @@ import * as vscode from "vscode";
 import { ServerOptions } from "https";
 import { createTLSOptions } from "./tls";
 import * as path from "node:path";
+import { getGitInfoFromVscodeApi } from "./git";
+import { Uri } from "vscode";
 
 const configFileName = ".goose";
 
-export type CodeSourceID = string;
+export type RepositorySnapshotFingerprint = string;
 
 // Define the GooseCode type
 type GooseCodeWorkspace = {
-  code_source_id: CodeSourceID;
+  repositoryFullName: string;
+  branch: string;
+  commit: string;
+  fingerprint: RepositorySnapshotFingerprint;
 };
 
 // Define the outer structure with GooseCode
@@ -41,22 +46,47 @@ export type GooseCodeExtensionConfig = {
   tlsOptions: ServerOptions;
 };
 
-export function removeWorkspaceConfiguration(
+export async function updateWorkspaceConfiguration(
+  config: GooseCodeWorkspaceConfig,
   root: string,
-): CodeSourceID | null {
+  commit: string,
+  branch?: string,
+): Promise<GooseClipConfig> {
+
+  const fingerprint = Buffer.from(`${config?.config?.repositoryFullName}@${commit}`).toString('base64');
+  const c: GooseClipConfig = {
+    GooseCode: {
+      repositoryFullName: config?.config?.repositoryFullName ?? "",
+      branch: branch ?? "",
+      commit: commit,
+      fingerprint: fingerprint,
+    },
+  };
+  const t = stringify(c);
+
   const p = path.join(root, configFileName);
-  const config = loadWorkspaceConfiguration(root, false);
+  console.log(`[DEBUG][UPDATE CONFIG] ${p} ${t}`);
+  fs.writeFileSync(p, t);
+
+  return c;
+}
+
+export async function removeWorkspaceConfiguration(
+  root: string,
+): Promise<RepositorySnapshotFingerprint | null> {
+  const p = path.join(root, configFileName);
+  const config = await loadWorkspaceConfiguration(root, false);
   const exists = fs.existsSync(p);
   if (exists) {
     fs.unlinkSync(p);
   }
-  return config?.config.code_source_id ?? null;
+  return config?.config.fingerprint ?? null;
 }
 
-export function loadWorkspaceConfiguration(
+export async function loadWorkspaceConfiguration(
   root: string,
   create: boolean,
-): GooseCodeWorkspaceConfig | null {
+): Promise<GooseCodeWorkspaceConfig | null> {
   const p = path.join(root, configFileName);
   const exists = fs.existsSync(p);
 
@@ -66,12 +96,19 @@ export function loadWorkspaceConfiguration(
   // If file doesn't exist, create it
   if (!exists) {
     // Generate a uuid
-    const uuid = uuidv4();
-    const t = stringify({
+    const gitInfo = await getGitInfoFromVscodeApi(Uri.file(root));
+    // dart: base64Encode(utf8.encode("${repository.fullName}@${commit}"))
+    const valid = gitInfo?.repositoryFullName && gitInfo?.commit;
+    const fingerprint = valid ? Buffer.from(`${gitInfo?.repositoryFullName}@${gitInfo?.commit}`).toString('base64') : uuidv4();
+    const c: GooseClipConfig = {
       GooseCode: {
-        code_source_id: uuid,
+        repositoryFullName: gitInfo?.repositoryFullName ?? "",
+        branch: gitInfo?.branch ?? "",
+        commit: gitInfo?.commit ?? "",
+        fingerprint: fingerprint,
       },
-    });
+    };
+    const t = stringify(c);
     fs.writeFileSync(p, t);
   }
 

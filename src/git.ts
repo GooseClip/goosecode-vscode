@@ -47,7 +47,7 @@ function parseRepoFullName(url: string): string | null {
 // export async function getGitInfo(cwd: string): Promise<GitInfo | null> {
 //     try {
 //         const repositoryRoot = await runGitCommand('git rev-parse --show-toplevel', cwd);
-        
+
 //         let repositoryFullName: string | null = null;
 //         try {
 //             const remoteUrl = await runGitCommand('git remote get-url origin', repositoryRoot);
@@ -78,7 +78,7 @@ function parseRepoFullName(url: string): string | null {
 //                 const parts = filePath.split(' -> ');
 //                 filePath = parts[parts.length - 1]; // Take the new path if rename/copy
 //             }
-            
+
 //             const absoluteFilePath = path.join(repositoryRoot, filePath);
 
 //             const indexStatus = status[0];
@@ -130,7 +130,7 @@ export async function getGitInfoFromVscodeApi(resourceUri: vscode.Uri): Promise<
             console.warn('VS Code Git extension not found.');
             return null;
         }
-        
+
         // Activate the extension if needed
         if (!extension.isActive) {
             await extension.activate();
@@ -180,6 +180,66 @@ export async function getGitInfoFromVscodeApi(resourceUri: vscode.Uri): Promise<
 
     } catch (error: any) {
         console.error('Failed to get Git info using VS Code API:', error);
+        return null;
+    }
+}
+
+/**
+ * Watches for changes to the HEAD commit of the Git repository containing the resourceUri.
+ *
+ * @param resourceUri A URI within the repository to watch.
+ * @param callback A function to call when the HEAD commit hash changes. It receives the new commit hash.
+ * @returns A Promise resolving to a vscode.Disposable that can be used to stop watching, or null if the repository/API cannot be found.
+ */
+export async function onDidChangeCommit(
+    resourceUri: vscode.Uri,
+    callback: (commitSHA: string, branch?: string) => void
+): Promise<vscode.Disposable | null> {
+    try {
+        // Get the extension object first
+        const extension = vscode.extensions.getExtension('vscode.git');
+        if (!extension) {
+            console.warn('VS Code Git extension not found.');
+            return null;
+        }
+
+        // Activate the extension if needed
+        if (!extension.isActive) {
+            await extension.activate();
+        }
+
+        // Type the exports object as GitExtension and get the API
+        const gitExtensionExports = extension.exports as git.GitExtension;
+        const gitApi: git.API | undefined = gitExtensionExports.getAPI(1);
+        if (!gitApi) {
+            console.warn('Could not get Git API (version 1).');
+            return null;
+        }
+
+        const repo: git.Repository | null = gitApi.getRepository(resourceUri);
+        if (!repo) {
+            console.log('No Git repository found containing resource:', resourceUri.fsPath);
+            return null;
+        }
+
+        let previousCommitHash: string | undefined = repo.state.HEAD?.commit;
+        let previousBranch: string | undefined = repo.state.HEAD?.name;
+
+        const disposable = repo.state.onDidChange(() => {
+            const sha = repo.state.HEAD?.commit;
+            const branch = repo.state.HEAD?.name;
+
+            if (previousCommitHash !== sha || previousBranch !== branch) {
+                previousCommitHash = sha;
+                previousBranch = branch;
+                callback(sha ?? '', branch ?? '');
+            }
+        });
+
+        return disposable;
+
+    } catch (error: any) {
+        console.error('Failed to set up commit change watcher:', error);
         return null;
     }
 }

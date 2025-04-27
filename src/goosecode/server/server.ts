@@ -8,7 +8,7 @@ import { convertBodyToProtoMiddleware } from "./middleware/proto-binary";
 
 
 import { ApiError } from "../errors";
-import { CodeSourceID, GooseCodeExtensionConfig } from "../../config";
+import { RepositorySnapshotFingerprint, GooseCodeExtensionConfig } from "../../config";
 import * as https from "https";
 import { Server } from "https";
 import { authMiddleware } from "./middleware/auth";
@@ -127,7 +127,7 @@ export class GooseCodeServer {
           `Get files: ${request.repository_snapshot_fingerprint} ${request.get_files_request.file_paths}`,
         );
         try {
-          const workspace = this.workspaceTracker.getWorkspaceFromCodeSourceID(
+          const workspace = this.workspaceTracker.getWorkspaceFromFingerprint(
             request.repository_snapshot_fingerprint,
           );
           if (workspace === null) {
@@ -153,7 +153,7 @@ export class GooseCodeServer {
         console.log("GO TO DEFINITION REQUEST");
         try {
           const request: RequestMessage = req.body as RequestMessage;
-          const workspace = this.workspaceTracker.getWorkspaceFromCodeSourceID(
+          const workspace = this.workspaceTracker.getWorkspaceFromFingerprint(
             request.repository_snapshot_fingerprint,
           );
           await handleGoToDefinition(req.body, workspace!.uri!, (m) =>
@@ -166,7 +166,7 @@ export class GooseCodeServer {
     );
 
     // Start a websocket server
-    wsApp.app.ws("/connect", (socket, req) => {
+    wsApp.app.ws("/connect", async (socket, req) => {
       if (
         req.headers.authorization !== this.extensionConfig.settings.password
       ) {
@@ -198,7 +198,7 @@ export class GooseCodeServer {
         console.error("WebSocket error:", error);
       });
 
-      const workspaces = this.workspaceTracker.refresh();
+      const workspaces = await this.workspaceTracker.refresh();
       // After delay, send refresh
       setTimeout(() => {
         this.pushWorkspacesToGooseCode(workspaces);
@@ -256,7 +256,7 @@ export class GooseCodeServer {
       for (const workspace of workspaces) {
         toSend.push(new WorkspaceDetails({
           workspace_root: workspace.uri.fsPath,
-          repository_snapshot_fingerprint: workspace.config!.config.code_source_id,
+          repository_snapshot_fingerprint: workspace.config!.config.fingerprint,
           deleted: false,
         }));
       }
