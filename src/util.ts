@@ -1,13 +1,14 @@
 import * as vscode from "vscode";
 import { RawData } from "ws";
-import { idepb } from "./proto/idepb/ide";
-import Location = idepb.Location;
-import Position = idepb.Position;
-import SymbolKind = idepb.SymbolKind;
-import Range = idepb.Range;
-import DocumentSymbol = idepb.DocumentSymbol;
-import RequestMessage = idepb.RequestMessage;
-import { Uri } from "vscode";
+
+
+import { goosecode } from "./proto/ide/ide";
+import Location = goosecode.v2.app.source.ide.Location;
+import Position = goosecode.v2.app.source.ide.Position;
+import SymbolKind = goosecode.v2.app.source.ide.SymbolKind;
+import Range = goosecode.v2.app.source.ide.Range;
+import DocumentSymbol = goosecode.v2.app.source.ide.DocumentSymbol;
+import RequestMessage = goosecode.v2.app.source.ide.RequestMessage;
 
 function isEntireWord(selection: vscode.Selection): boolean {
   const document = vscode.window.activeTextEditor?.document;

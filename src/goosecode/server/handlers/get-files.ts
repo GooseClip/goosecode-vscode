@@ -1,10 +1,12 @@
 import { getFileContents } from "../../commands/commands";
-import { idepb } from "../../../proto/idepb/ide";
-import RequestMessage = idepb.RequestMessage;
-import ResponseMessage = idepb.ResponseMessage;
-import GetFilesResponse = idepb.GetFilesResponse;
-import ResponseType = idepb.ResponseType;
+
 import { Uri } from "vscode";
+
+import { goosecode } from "../../../proto/ide/ide";
+import RequestMessage = goosecode.v2.app.source.ide.RequestMessage;
+import ResponseMessage = goosecode.v2.app.source.ide.ResponseMessage;
+import GetFilesResponse = goosecode.v2.app.source.ide.GetFilesResponse;
+import ResponseType = goosecode.v2.app.source.ide.ResponseType;
 
 async function handleGetFilesRequest(
   request: RequestMessage,
@@ -17,7 +19,7 @@ async function handleGetFilesRequest(
   );
   const response = new ResponseMessage({
     type: ResponseType.RESPONSE_GET_FILES,
-    code_source_id: request.code_source_id,
+    repository_snapshot_fingerprint: request.repository_snapshot_fingerprint,
     get_files_response: new GetFilesResponse({
       file_contents: contents,
     }),

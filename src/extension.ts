@@ -12,11 +12,12 @@ import {
   removeWorkspaceConfiguration,
 } from "./config";
 import { gettingStarted, openSettingsPage } from "./getting-started";
-import { idepb } from "./proto/idepb/ide";
 import { WorkspaceTracker } from "./workspace-tracker";
 import { registerGooseCodeCommands } from "./goosecode/goosecode";
 import { ConnectionProvider } from "./views/connection";
 import { ActiveSessionProvider } from "./views/active-session";
+
+import { goosecode } from "./proto/ide/ide";
 
 var workspaceTracker: WorkspaceTracker | null = null;
 var gooseCodeServer: GooseCodeServer | null = null;
@@ -24,6 +25,8 @@ var goosecodeSubscriptions: Array<vscode.Disposable> = [];
 var codeSourcesProvider: CodeSourcesProvider | null = null;
 var connectionProvider: ConnectionProvider | null = null;
 var activeSessionProvider: ActiveSessionProvider | null = null;
+
+import WorkspaceDetails = goosecode.v2.app.source.ide.WorkspaceDetails;
 
 async function startServer(
   context: vscode.ExtensionContext,
@@ -235,11 +238,11 @@ function createTreeProviders(
       );
       console.log(`Disable goosecode: ${codeSourceID}`);
       const workspaces = workspaceTracker!.refresh();
-      gooseCodeServer?.pushWorkspacesToGooseCode(workspaces, {
+      gooseCodeServer?.pushWorkspacesToGooseCode(workspaces, new WorkspaceDetails({
         workspace_root: codeSource.resourceUri!.fsPath,
-        code_source_id: codeSourceID!,
+        repository_snapshot_fingerprint: codeSourceID!,
         deleted: true,
-      });
+      }));
     },
   );
   subscriptions.push(sub);

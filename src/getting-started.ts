@@ -1,7 +1,5 @@
 import * as vscode from "vscode";
-import { Disposable, workspace } from "vscode";
-import { WorkspaceTracker } from "./workspace-tracker";
-import { loadWorkspaceConfiguration } from "./config";
+import { Disposable } from "vscode";
 
 export function openSettingsPage() {
   vscode.commands.executeCommand("workbench.action.openSettings", "goosecode.");

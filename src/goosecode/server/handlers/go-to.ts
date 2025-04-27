@@ -1,11 +1,13 @@
-import { goToDefinition } from "../../commands/commands";
-import { idepb } from "../../../proto/idepb/ide";
-import RequestMessage = idepb.RequestMessage;
-import ResponseMessage = idepb.ResponseMessage;
-import ResponseType = idepb.ResponseType;
-import GoToDefinitionResponse = idepb.GoToDefinitionResponse;
-import { ApiError } from "../../errors";
 import { Uri } from "vscode";
+import { goToDefinition } from "../../commands/commands";
+import { ApiError } from "../../errors";
+import { goosecode } from "../../../proto/ide/ide";
+
+import RequestMessage = goosecode.v2.app.source.ide.RequestMessage;
+import ResponseMessage = goosecode.v2.app.source.ide.ResponseMessage;
+import ResponseType = goosecode.v2.app.source.ide.ResponseType;
+import GoToDefinitionResponse = goosecode.v2.app.source.ide.GoToDefinitionResponse;
+
 
 async function handleGoToDefinition(
   request: RequestMessage,
@@ -22,7 +24,7 @@ async function handleGoToDefinition(
 
   const response = new ResponseMessage({
     type: ResponseType.RESPONSE_GO_TO_DEFINITION,
-    code_source_id: request.code_source_id,
+    repository_snapshot_fingerprint: request.repository_snapshot_fingerprint,
     go_to_definition_response: new GoToDefinitionResponse({}),
   });
 

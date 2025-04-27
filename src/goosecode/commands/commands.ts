@@ -1,8 +1,12 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { idepb } from "../../proto/idepb/ide";
+import { goosecode } from "../../proto/ide/ide";
+
 import { Uri } from "vscode";
+
+import Location = goosecode.v2.app.source.ide.Location;
+
 
 const defaultExclusions = [
   "**/node_modules/**",
@@ -113,7 +117,7 @@ export async function getReferences(): Promise<vscode.Location[]> {
 
 export async function goToDefinition(
   workspaceUri: Uri,
-  loc: idepb.Location,
+  loc: Location,
   select: boolean,
 ): Promise<boolean> {
   const activeEditor = vscode.window.activeTextEditor;

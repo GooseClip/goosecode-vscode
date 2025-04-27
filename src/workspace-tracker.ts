@@ -108,6 +108,10 @@ export class WorkspaceTracker {
   }
 
   public currentFilePath(): string {
+    return vscode.window.activeTextEditor!.document.uri.fsPath;
+  }
+
+  public currentRelativeFilePath(): string {
     const path = this.relativePath(
       vscode.window.activeTextEditor!.document.uri.fsPath,
     );

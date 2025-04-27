@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { Disposable } from "vscode";
 import { GooseCodeServer } from "./server/server";
-import { idepb } from "../proto/idepb/ide";
 import {
   getDefinitions,
   getReferences,
@@ -10,25 +9,29 @@ import {
 import { convertRange } from "../util";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { loadWorkspaceConfiguration } from "../config";
-import PushMessage = idepb.PushMessage;
-import OpenFilePush = idepb.OpenFilePush;
-import Range = idepb.Range;
-import Position = idepb.Position;
-import CreateSnippetPush = idepb.CreateSnippetPush;
-import PinFilePush = idepb.PinFilePush;
-import FollowPush = idepb.FollowPush;
-import DefinitionFollow = idepb.DefinitionFollow;
-import Location = idepb.Location;
-import ReferenceFollow = idepb.ReferenceFollow;
-import SnippetContext = idepb.SnippetContext;
-import LocationWithContext = idepb.LocationWithContext;
-import AppCommandPush = idepb.AppCommandPush;
-import AppCommandType = idepb.AppCommandType;
-import FileCommandPush = idepb.FileCommandPush;
-import ActiveSessionPush = idepb.ActiveSessionPush;
-import ActiveSessionType = idepb.ActiveSessionType;
-import RegeneratePush = idepb.RegeneratePush;
-import RegenerateType = idepb.RegenerateType;
+
+import { goosecode } from "../proto/ide/ide";
+import PushMessage = goosecode.v2.app.source.ide.PushMessage;
+import PushType = goosecode.v2.app.source.ide.PushType;
+import ActiveSessionPush = goosecode.v2.app.source.ide.ActiveSessionPush;
+import ActiveSessionType = goosecode.v2.app.source.ide.ActiveSessionType;
+import RegeneratePush = goosecode.v2.app.source.ide.RegeneratePush;
+import RegenerateType = goosecode.v2.app.source.ide.RegenerateType;
+import FileCommandPush = goosecode.v2.app.source.ide.FileCommandPush;
+import FileCommandType = goosecode.v2.app.source.ide.FileCommandType;
+import OpenPush = goosecode.v2.app.source.ide.OpenPush;
+import Location = goosecode.v2.app.source.ide.Location;
+import Range = goosecode.v2.app.source.ide.Range;
+import Position = goosecode.v2.app.source.ide.Position;
+import AppCommandPush = goosecode.v2.app.source.ide.AppCommandPush;
+import AppCommandType = goosecode.v2.app.source.ide.AppCommandType;
+import BookmarkPush = goosecode.v2.app.source.ide.BookmarkPush;
+import FollowPush = goosecode.v2.app.source.ide.FollowPush;
+import FollowType = goosecode.v2.app.source.ide.FollowType;
+import DefinitionFollow = goosecode.v2.app.source.ide.DefinitionFollow;
+import LocationWithContext = goosecode.v2.app.source.ide.LocationWithContext;
+import SnippetContext = goosecode.v2.app.source.ide.SnippetContext;
+import ReferenceFollow = goosecode.v2.app.source.ide.ReferenceFollow;
 
 async function guard(
   gooseCodeServer: GooseCodeServer | null,
@@ -115,7 +118,7 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: idepb.PushType.PUSH_ACTIVE_SESSION,
+          type: PushType.PUSH_ACTIVE_SESSION,
           active_session: new ActiveSessionPush({
             type: ActiveSessionType.ACTIVE_SESSION_DELETE,
           }),
@@ -139,7 +142,7 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: idepb.PushType.PUSH_ACTIVE_SESSION,
+          type: PushType.PUSH_ACTIVE_SESSION,
           active_session: new ActiveSessionPush({
             type: ActiveSessionType.ACTIVE_SESSION_SAVE,
           }),
@@ -163,7 +166,7 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: idepb.PushType.PUSH_ACTIVE_SESSION,
+          type: PushType.PUSH_ACTIVE_SESSION,
           active_session: new ActiveSessionPush({
             type: ActiveSessionType.ACTIVE_SESSION_REGENERATE,
             regenerate: new RegeneratePush({
@@ -190,7 +193,7 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: idepb.PushType.PUSH_ACTIVE_SESSION,
+          type: PushType.PUSH_ACTIVE_SESSION,
           active_session: new ActiveSessionPush({
             type: ActiveSessionType.ACTIVE_SESSION_REGENERATE,
             regenerate: new RegeneratePush({
@@ -217,7 +220,7 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: idepb.PushType.PUSH_ACTIVE_SESSION,
+          type: PushType.PUSH_ACTIVE_SESSION,
           active_session: new ActiveSessionPush({
             type: ActiveSessionType.ACTIVE_SESSION_STEP,
           }),
@@ -240,7 +243,7 @@ export function registerGooseCodeCommands(
       }
       gooseCodeServer?.push(
         new PushMessage({
-          type: idepb.PushType.PUSH_APP_COMMAND,
+          type: PushType.PUSH_APP_COMMAND,
           app_command: new AppCommandPush({
             type: AppCommandType.APP_COMMAND_MINIMAP,
           }),
@@ -263,7 +266,7 @@ export function registerGooseCodeCommands(
       }
       gooseCodeServer?.push(
         new PushMessage({
-          type: idepb.PushType.PUSH_APP_COMMAND,
+          type: PushType.PUSH_APP_COMMAND,
           app_command: new AppCommandPush({
             type: AppCommandType.APP_COMMAND_OVERLAY,
           }),
@@ -281,11 +284,11 @@ export function registerGooseCodeCommands(
     const editor = vscode.window.activeTextEditor!;
     gooseCodeServer?.push(
       new PushMessage({
-        type: idepb.PushType.PUSH_FILE_COMMAND,
+        type: PushType.PUSH_FILE_COMMAND,
         file_command: new FileCommandPush({
-          type: idepb.FileCommandType.FILE_COMMAND_OPEN_FILE,
-          open_file: new OpenFilePush({
-            path: workspaceTracker.currentFilePath(),
+          type: FileCommandType.FILE_COMMAND_OPEN_FILE,
+          open_file: new OpenPush({
+            path: workspaceTracker.currentRelativeFilePath(),
             range: selectedRange(editor),
           }),
         }),
@@ -295,31 +298,38 @@ export function registerGooseCodeCommands(
   subscriptions.push(sub);
 
   // Create Snippet
-  sub = vscode.commands.registerCommand("goosecode.snippet", async () => {
-    if (!(await guard(gooseCodeServer, workspaceTracker))) {
-      return;
-    }
-    const editor = vscode.window.activeTextEditor!;
-    gooseCodeServer?.push(
-      new PushMessage({
-        type: idepb.PushType.PUSH_FILE_COMMAND,
-        file_command: new FileCommandPush({
-          type: idepb.FileCommandType.FILE_COMMAND_CREATE_SNIPPET,
-          create_snippet: new CreateSnippetPush({
-            location: new Location({
-              path: workspaceTracker.currentFilePath(),
-              range: selectedRange(editor),
-            }),
-            context: new SnippetContext({
-              before: 10,
-              after: 10,
-            }),
-          }),
-        }),
-      }),
-    );
-  });
-  subscriptions.push(sub);
+  // sub = vscode.commands.registerCommand("goosecode.snippet", async () => {
+  //   if (!(await guard(gooseCodeServer, workspaceTracker))) {
+  //     return;
+  //   }
+  //   const editor = vscode.window.activeTextEditor!;
+  //   gooseCodeServer?.push(
+  //     new idedb.PushMessage({
+  //       type: idedb.PushType.PUSH_FILE_COMMAND,
+  //       file_command: new idedb.FileCommandPush({
+  //         type: idedb.FileCommandType.FILE_COMMAND_CREATE_SNIPPET,
+  //         version_control: new idedb.VersionControlInfo({
+  //           repository_full_name: "goosecode/goosecode",
+  //           branch: "main",
+  //           commit: "1234567890",
+  //           staged_files: [],
+  //           unstaged_files: [],
+  //         }),
+  //         create_snippet: new idedb.CreateSnippetPush({
+  //           location: new idedb.Location({
+  //             path: workspaceTracker.currentFilePath(),
+  //             range: selectedRange(editor),
+  //           }),
+  //           context: new idedb.SnippetContext({
+  //             before: 10,
+  //             after: 10,
+  //           }),
+  //         }),
+  //       }),
+  //     }),
+  //   );
+  // });
+  // subscriptions.push(sub);
 
   // Pin File
   sub = vscode.commands.registerCommand("goosecode.pin", async () => {
@@ -328,11 +338,11 @@ export function registerGooseCodeCommands(
     }
     gooseCodeServer?.push(
       new PushMessage({
-        type: idepb.PushType.PUSH_FILE_COMMAND,
+        type: PushType.PUSH_FILE_COMMAND,
         file_command: new FileCommandPush({
-          type: idepb.FileCommandType.FILE_COMMAND_PIN_FILE,
-          pin_file: new PinFilePush({
-            path: workspaceTracker.currentFilePath(),
+          type: FileCommandType.FILE_COMMAND_PIN_FILE,
+          bookmark: new BookmarkPush({
+            path: workspaceTracker.currentRelativeFilePath(),
           }),
         }),
       }),
@@ -390,11 +400,11 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: idepb.PushType.PUSH_FILE_COMMAND,
+          type: PushType.PUSH_FILE_COMMAND,
           file_command: new FileCommandPush({
-            type: idepb.FileCommandType.FILE_COMMAND_FOLLOW,
+            type: FileCommandType.FILE_COMMAND_FOLLOW,
             follow: new FollowPush({
-              type: idepb.FollowType.FOLLOW_DEFINITION,
+              type: FollowType.FOLLOW_DEFINITION,
               definition: new DefinitionFollow({
                 from: new LocationWithContext({
                   location: new Location({
@@ -446,11 +456,11 @@ export function registerGooseCodeCommands(
     if (refs.length > 0) {
       gooseCodeServer?.push(
         new PushMessage({
-          type: idepb.PushType.PUSH_FILE_COMMAND,
+          type: PushType.PUSH_FILE_COMMAND,
           file_command: new FileCommandPush({
-            type: idepb.FileCommandType.FILE_COMMAND_FOLLOW,
+            type: FileCommandType.FILE_COMMAND_FOLLOW,
             follow: new FollowPush({
-              type: idepb.FollowType.FOLLOW_REFERENCE,
+              type: FollowType.FOLLOW_REFERENCE,
               reference: new ReferenceFollow({
                 from: new LocationWithContext({
                   location: new Location({
