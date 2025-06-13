@@ -7,8 +7,8 @@ import * as gc from "../../../gen/ide";
 async function handleGetFilesRequest(
   request: gc.GetFilesRequest,
   workspaceUri: Uri,
-  send: (msg: gc.GetFilesResponse) => void,
-) {
+
+): Promise<gc.GetFilesResponse> {
   // TODO GET THE COMMIT CONTENTS AND THE DELTA
   const contents = await getFileContents(
     workspaceUri,
@@ -21,11 +21,11 @@ async function handleGetFilesRequest(
   // );
 
   const response = gc.GetFilesResponse.create({
-    fileContents: [], 
+    fileContents: [],
     // fileContents: contents,
   });
 
-  send(response);
+  return response;
 }
 
 export { handleGetFilesRequest };

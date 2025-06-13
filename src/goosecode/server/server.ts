@@ -1,7 +1,7 @@
 import * as grpc from '@grpc/grpc-js';
 import * as gc from "../../gen/ide";
 import { adaptService } from "@protobuf-ts/grpc-backend";
-import { IIDEService } from '../../gen/ide/v1/api.grpc-server';
+import * as rpc from "@protobuf-ts/runtime-rpc";
 import { GooseCodeExtensionConfig } from '../../config';
 import { handleGetFilesRequest } from './handlers/get-files';
 import { ApiError } from '../errors';
@@ -21,11 +21,12 @@ export class GooseCodeServer {
     return this.server !== null;
   }
 
-  private pushStream: grpc.ServerWritableStream<gc.PushRequest, gc.PushResponse> | null = null;
+  private pushStream: rpc.RpcInputStream<gc.PushResponse> | null = null;
 
 
   public async push(message: gc.PushResponse) {
     if (this.pushStream) {
+      console.log("PUSH STREAM", typeof this.pushStream);
 
       console.log("[PUSH]", message.type);
       if (message.type === gc.PushType.FILE_COMMAND) {
@@ -60,7 +61,7 @@ export class GooseCodeServer {
 
       }
 
-      this.pushStream.write(message);
+      this.pushStream.send(message);
     } else {
       console.warn("Cannot push message: no client connected to the push stream.");
     }
@@ -102,59 +103,71 @@ export class GooseCodeServer {
 
 
 
-  private ideService: IIDEService = {
+  private ideService: gc.IIDEService = {
     // how can you:
     // - send no messages, just an error status *with trailer metadata*
-    push: async (call: grpc.ServerWritableStream<gc.PushRequest, gc.PushResponse>): Promise<void> => {
+    push: async (request: gc.PushRequest, responses: rpc.RpcInputStream<gc.PushResponse>, context: rpc.ServerCallContext): Promise<void> => {
+      console.log("NEW CONNECTION");
+
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
+
+      context.trailers = {
+        'status': '...done'
+      };
       if (this.pushStream) {
         console.warn('A client is already connected to the push stream. Rejecting new connection.');
         const error = {
-          code: grpc.status.RESOURCE_EXHAUSTED,
-          details: 'A client is already connected.',
+          code: grpc.status.CANCELLED,
+          details: 'Connection replaced.',
         };
-        call.destroy(new Error(error.details));
+
+        this.pushStream.complete();
         return;
       }
 
       console.log('Client connected to push stream.');
-      this.pushStream = call;
+      this.pushStream = responses;
       this.onConnected();
 
-      const workspaces = await this.workspaceTracker.refresh();
-      // After delay, send refresh
-      setTimeout(() => {
-        this.pushWorkspacesToGooseCode(workspaces);
-      }, 1000);
+      console.log("WRITING UNSPECIFIED");
+      try {
+        responses.send(gc.PushResponse.create({
+          type: gc.PushType.UNSPECIFIED,
+        }));
+      } catch (e) {
+        console.log("ERROR", e);
+      }
+      console.log("AFTER WRITE UNSPECIFIED");
+      // this.pushStream.complete();
 
-      call.on('error', (err: Error) => {
-        console.error('Push stream error:', err);
-        if (this.pushStream === call) {
-          this.pushStream = null;
-          this.onClosed();
-        }
-      });
+      // const workspaces = await this.workspaceTracker.refresh();
+      // // After delay, send refresh
+      // setTimeout(() => {
+      //   this.pushWorkspacesToGooseCode(workspaces);
+      // }, 1000);
 
-      call.on('cancelled', () => {
+
+      context.onCancel(() => {
         console.log('Push stream cancelled by client.');
-        if (this.pushStream === call) {
+        if (this.pushStream === responses) {
           this.pushStream = null;
           this.onClosed();
         }
       });
     },
 
-    getFiles: async (call: grpc.ServerUnaryCall<gc.GetFilesRequest, gc.GetFilesResponse>, callback: grpc.sendUnaryData<gc.GetFilesResponse>): Promise<void> => {
+    getFiles: async (request: gc.GetFilesRequest, context: rpc.ServerCallContext): Promise<gc.GetFilesResponse> => {
 
-      call.on('error', args => {
-        console.log("goosecode getFiles() got error:", args)
-      })
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
 
-      const responseHeaders = new grpc.Metadata();
-      call.sendMetadata(responseHeaders);
+      context.trailers = {
+        'status': '...done'
+      };
 
-      const trailers = new grpc.Metadata();
-
-      const request = call.request;
 
       console.log(
         `Get files: ${request.context!.repositorySnapshotFingerprint} ${request.filePaths}`,
@@ -167,69 +180,39 @@ export class GooseCodeServer {
           throw new ApiError("Workspace not found", 422);
         }
 
-        await handleGetFilesRequest(request, workspace!.uri!, (m) =>
-          callback(
-            null,
-            {
-              fileContents: [],
-            },
-            trailers
-          )
-        );
+        const res = await handleGetFilesRequest(request, workspace!.uri!);
+        return res;
       } catch (e) {
-        callback({
-          code: grpc.status.INTERNAL,
-          details: e instanceof Error ? e.message : "Unknown error",
-        },);
+        throw new ApiError("Internal error", 500);
       }
-
-      // wait for the requested amount of milliseconds
-
     },
 
-    listFiles: (call: grpc.ServerUnaryCall<gc.ListFilesRequest, gc.ListFilesResponse>, callback: grpc.sendUnaryData<gc.ListFilesResponse>): void => {
-      call.on('error', args => {
-        console.log("goosecode listFiles() got error:", args)
-      })
+    listFiles: async (request: gc.ListFilesRequest, context: rpc.ServerCallContext): Promise<gc.ListFilesResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
 
-      const responseHeaders = new grpc.Metadata();
-      call.sendMetadata(responseHeaders);
-
-      const trailers = new grpc.Metadata();
-
-      // wait for the requested amount of milliseconds
-      callback(
-        null,
-        {
-          filePaths: [],
-        },
-        trailers
-      );
+      context.trailers = {
+        'status': '...done'
+      };
+      return gc.ListFilesResponse.create({
+        filePaths: [],
+      });
     },
 
-    select: (call: grpc.ServerUnaryCall<gc.SelectRequest, gc.SelectResponse>, callback: grpc.sendUnaryData<gc.SelectResponse>): void => {
-      call.on('error', args => {
-        console.log("goosecode select() got error:", args)
-      })
+    select: async (request: gc.SelectRequest, context: rpc.ServerCallContext): Promise<gc.SelectResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
 
-      const responseHeaders = new grpc.Metadata();
-      call.sendMetadata(responseHeaders);
-
-      const trailers = new grpc.Metadata();
-
-      // wait for the requested amount of milliseconds
-      callback(null, null, trailers);
+      context.trailers = {
+        'status': '...done'
+      };
+      return gc.SelectResponse.create({
+      });
     },
 
-    navigate: (call: grpc.ServerUnaryCall<gc.NavigateRequest, gc.NavigateResponse>, callback: grpc.sendUnaryData<gc.NavigateResponse>): void => {
-      call.on('error', args => {
-        console.log("goosecode navigate() got error:", args)
-      })
-
-      const responseHeaders = new grpc.Metadata();
-      call.sendMetadata(responseHeaders);
-
-      const trailers = new grpc.Metadata();
+    navigate: async (request: gc.NavigateRequest, context: rpc.ServerCallContext): Promise<gc.NavigateResponse> => {
       /*
        console.log("GO TO DEFINITION REQUEST");
         try {
@@ -245,114 +228,148 @@ export class GooseCodeServer {
         }*/
 
       // wait for the requested amount of milliseconds
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
+
+      context.trailers = {
+        'status': '...done'
+      };
+      return gc.NavigateResponse.create({
+      });
     },
 
-    search: (call: grpc.ServerUnaryCall<gc.SearchRequest, gc.SearchResponse>, callback: grpc.sendUnaryData<gc.SearchResponse>): void => {
-      call.on('error', args => {
-        console.log("goosecode search() got error:", args)
-      })
+    search: async (request: gc.SearchRequest, context: rpc.ServerCallContext): Promise<gc.SearchResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
 
-      const responseHeaders = new grpc.Metadata();
-      call.sendMetadata(responseHeaders);
+      context.trailers = {
+        'status': '...done'
+      };
+      return gc.SearchResponse.create({
+      });
+    },
 
-      const trailers = new grpc.Metadata();
+    probe: async (request: gc.ProbeRequest, context: rpc.ServerCallContext): Promise<gc.ProbeResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
+
+      context.trailers = {
+        'status': '...done'
+      };
+      // wait for the requested amount of milliseconds
+      return gc.ProbeResponse.create({
+      });
+    },
+
+    refactor: async (request: gc.RefactorRequest, context: rpc.ServerCallContext): Promise<gc.RefactorResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
+
+      context.trailers = {
+        'status': '...done'
+      };
 
       // wait for the requested amount of milliseconds
+      return gc.RefactorResponse.create({
+      });
     },
 
-    probe: (call: grpc.ServerUnaryCall<gc.ProbeRequest, gc.ProbeResponse>, callback: grpc.sendUnaryData<gc.ProbeResponse>): void => {
-      call.on('error', args => {
-        console.log("goosecode probe() got error:", args)
-      })
+    versionControlDetails: async (request: gc.VersionControlDetailsRequest, context: rpc.ServerCallContext): Promise<gc.VersionControlDetailsResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
 
-      const responseHeaders = new grpc.Metadata();
-      call.sendMetadata(responseHeaders);
-
-      const trailers = new grpc.Metadata();
+      context.trailers = {
+        'status': '...done'
+      };
 
       // wait for the requested amount of milliseconds
-      callback(null, null, trailers);
+      return gc.VersionControlDetailsResponse.create({
+      });
     },
 
-    refactor: (call: grpc.ServerUnaryCall<gc.RefactorRequest, gc.RefactorResponse>, callback: grpc.sendUnaryData<gc.RefactorResponse>): void => {
-      call.on('error', args => {
-        console.log("goosecode refactor() got error:", args)
-      })
+    lint: async (request: gc.LintRequest, context: rpc.ServerCallContext): Promise<gc.LintResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
 
-      const responseHeaders = new grpc.Metadata();
-      call.sendMetadata(responseHeaders);
-
-      const trailers = new grpc.Metadata();
-
-      // wait for the requested amount of milliseconds
-      callback(null, null, trailers);
-    },
-
-    versionControlDetails: (call: grpc.ServerUnaryCall<gc.VersionControlDetailsRequest, gc.VersionControlDetailsResponse>, callback: grpc.sendUnaryData<gc.VersionControlDetailsResponse>): void => {
-      call.on('error', args => {
-        console.log("goosecode versionControlDetails() got error:", args)
-      })
-
-      const responseHeaders = new grpc.Metadata();
-      call.sendMetadata(responseHeaders);
-
-      const trailers = new grpc.Metadata();
-
-      // wait for the requested amount of milliseconds
-      callback(null, null, trailers);
-    },
-
-    lint: (call: grpc.ServerUnaryCall<gc.LintRequest, gc.LintResponse>, callback: grpc.sendUnaryData<gc.LintResponse>): void => {
-      call.on('error', args => {
-        console.log("goosecode lint() got error:", args)
-      })
-
-      const responseHeaders = new grpc.Metadata();
-      call.sendMetadata(responseHeaders);
-
-      const trailers = new grpc.Metadata();
+      context.trailers = {
+        'status': '...done'
+      };
 
       // wait for the requested amount of milliseconds  
-      callback(null, null, trailers);
+      return gc.LintResponse.create({
+      });
     },
   }
 
 
   public async start() {
-    if (require.main === module) {
-      /*
-          const app = express();
-        this.server = https.createServer(this.extensionConfig.tlsOptions, app);
-        const wsApp = expressWs(app as any, this.server!);
-      */
+    this.extensionConfig.tlsOptions;
 
-      const port = this.extensionConfig.settings.port;
-      const ip = this.extensionConfig.settings.localhostOnly
-        ? "127.0.0.1"
-        : "0.0.0.0";
-      const host = `${ip}:${port}`;
+    const port = this.extensionConfig.settings.port;
+    const ip = this.extensionConfig.settings.localhostOnly
+      ? "127.0.0.1"
+      : "0.0.0.0";
+    const host = `${ip}:${port}`;
 
-      const server = this.getServer();
-      server.bindAsync(
-        host,
-        grpc.ServerCredentials.createInsecure(), // TODO
-        (err: Error | null, port: number) => {
-          if (err) {
-            console.error(`Server error: ${err.message}`);
-          } else {
-            console.log(`Server bound on port: ${port}`);
-            server.start();
-          }
-        }
-      );
+    const server = this.getServer();
+
+    if (!this.extensionConfig.tlsOptions.key || !this.extensionConfig.tlsOptions.cert) {
+      throw new Error('TLS key or certificate is missing');
     }
+
+    // Convert key and cert to Buffer if they're strings
+    let privateKey: Buffer;
+    if (Buffer.isBuffer(this.extensionConfig.tlsOptions.key)) {
+      privateKey = this.extensionConfig.tlsOptions.key;
+    } else if (typeof this.extensionConfig.tlsOptions.key === 'string') {
+      privateKey = Buffer.from(this.extensionConfig.tlsOptions.key, 'utf-8');
+    } else {
+      throw new Error('Invalid TLS key format');
+    }
+
+    let certChain: Buffer;
+    if (Buffer.isBuffer(this.extensionConfig.tlsOptions.cert)) {
+      certChain = this.extensionConfig.tlsOptions.cert;
+    } else if (typeof this.extensionConfig.tlsOptions.cert === 'string') {
+      certChain = Buffer.from(this.extensionConfig.tlsOptions.cert, 'utf-8');
+    } else {
+      throw new Error('Invalid TLS certificate format');
+    }
+
+    server.bindAsync(
+      host,
+      grpc.ServerCredentials.createInsecure(),
+      // grpc.ServerCredentials.createSsl(
+      //   null, // rootCerts - null since we're not validating client certs
+      //   [{
+      //     private_key: privateKey,
+      //     cert_chain: certChain
+      //   }],
+      //   false // checkClientCertificate - matches rejectUnauthorized setting
+      // ),
+      (err: Error | null, port: number) => {
+        if (err) {
+          console.error(`Server error: ${err.message}`);
+        } else {
+          console.log(`Server bound on port: ${port}`);
+        }
+      }
+    );
+
+    console.log("Server started: ", host);
   }
 
   public stop() {
-    this.pushStream?.end();
+    this.pushStream?.complete();
+    this.pushStream = null;
     this.server?.forceShutdown();
     this.server = null;
-    this.pushStream = null;
   }
 
 
@@ -361,7 +378,7 @@ export class GooseCodeServer {
     this.server = new grpc.Server(
       {
         interceptors: [
-          authInterceptorFactory(this.extensionConfig.settings.password)
+          authInterceptorFactory(this.extensionConfig.settings.password),
         ],
       }
     );
@@ -369,6 +386,7 @@ export class GooseCodeServer {
     return this.server;
   }
 }
+
 
 
 function validateAuthorizationMetadata(metadata: grpc.Metadata, password: string) {
@@ -383,12 +401,16 @@ function authInterceptorFactory(password: string): grpc.ServerInterceptor {
   return (methodDescriptor: grpc.ServerMethodDefinition<any, any>, call: grpc.ServerInterceptingCallInterface) => {
     const listener = (new grpc.ServerListenerBuilder())
       .withOnReceiveMetadata((metadata, next) => {
+        console.log("Received metadata: ", metadata);
+        console.log("Method: ", methodDescriptor.path);
         if (validateAuthorizationMetadata(metadata, password)) {
+          console.log("Authenticated");
           next(metadata);
         } else {
+          console.error("Not authenticated");
           call.sendStatus({
             code: grpc.status.UNAUTHENTICATED,
-            details: 'Auth metadata not correct'
+            details: 'Not authenticated'
           });
         }
       }).build();
@@ -399,26 +421,3 @@ function authInterceptorFactory(password: string): grpc.ServerInterceptor {
     return new grpc.ServerInterceptingCall(call, responder);
   };
 }
-
-/*
-
-function authMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-  password: string,
-) {
-  if (req.path === "/connect/.websocket") {
-    next();
-    return;
-  }
-
-  if (req.headers.authorization !== password) {
-    next(new ApiError(`Unauthorized, path: ${req.path}`, 401));
-    return;
-  }
-  next();
-}
-
-export { authMiddleware };
-*/

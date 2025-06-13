@@ -134,42 +134,6 @@
         }
       },
       {
-        "command": "goosecode.activeSession.save",
-        "title": "Save Session",
-        "category": "GooseCode",
-        "icon": {
-          "light": "resources/light/save.svg",
-          "dark": "resources/dark/save.svg"
-        }
-      },
-      {
-        "command": "goosecode.activeSession.regenerateLinear",
-        "title": "Regenerate Session (Linear)",
-        "category": "GooseCode",
-        "icon": {
-          "light": "resources/light/linear.svg",
-          "dark": "resources/dark/linear.svg"
-        }
-      },
-      {
-        "command": "goosecode.activeSession.regenerateSwimlane",
-        "title": "Regenerate Session (Swimlane)",
-        "category": "GooseCode",
-        "icon": {
-          "light": "resources/light/swimlane.svg",
-          "dark": "resources/dark/swimlane.svg"
-        }
-      },
-      {
-        "command": "goosecode.activeSession.step",
-        "title": "Step Through Session",
-        "category": "GooseCode",
-        "icon": {
-          "light": "resources/light/step.svg",
-          "dark": "resources/dark/step.svg"
-        }
-      },
-      {
         "command": "goosecode.codeSources.enableCodeSource",
         "title": "Enable CodeSource",
         "category": "GooseCode",
@@ -257,26 +221,6 @@
           "when": "false"
         },
         {
-          "command": "goosecode.activeSession.delete",
-          "when": "false"
-        },
-        {
-          "command": "goosecode.activeSession.save",
-          "when": "false"
-        },
-        {
-          "command": "goosecode.activeSession.regenerateLinear",
-          "when": "false"
-        },
-        {
-          "command": "goosecode.activeSession.regenerateSwimlane",
-          "when": "false"
-        },
-        {
-          "command": "goosecode.activeSession.step",
-          "when": "false"
-        },
-        {
           "command": "goosecode.codeSources.enableCodeSource",
           "when": "false"
         },
@@ -321,31 +265,6 @@
           "command": "goosecode.codeSources.refresh",
           "group": "navigation",
           "when": "view == goosecode.codeSources"
-        },
-        {
-          "command": "goosecode.activeSession.delete",
-          "group": "navigation@1",
-          "when": "view == goosecode.activeSession"
-        },
-        {
-          "command": "goosecode.activeSession.save",
-          "group": "navigation@2",
-          "when": "view == goosecode.activeSession"
-        },
-        {
-          "command": "goosecode.activeSession.regenerateLinear",
-          "group": "navigation@3",
-          "when": "view == goosecode.activeSession"
-        },
-        {
-          "command": "goosecode.activeSession.regenerateSwimlane",
-          "group": "navigation@4",
-          "when": "view == goosecode.activeSession"
-        },
-        {
-          "command": "goosecode.activeSession.step",
-          "group": "navigation@5",
-          "when": "view == goosecode.activeSession"
         }
       ],
       "view/item/context": [
@@ -549,33 +468,9 @@
             ]
           },
           {
-            "id": "linearstrategy",
-            "title": "Linear Strategy",
-            "description": "Linear generation strategy will generate in a row as you navigate through your codebase. Snippets from the same file will stack until a new file is added.\nWhen a file is revisited, it will add a new column rather than returning to previous references.\nThis enables us to sequentially track code execution as well as include relevant references to interesting bits of code.\n[I Understand](command:getting-started-goosecode.linearStrategy)",
-            "media": {
-              "image": "media/walkthrough_linear_strategy.png",
-              "altText": "Image demonstrating linear generation strategy"
-            },
-            "completionEvents": [
-              "onCommand:getting-started-goosecode.linearStrategy"
-            ]
-          },
-          {
-            "id": "swimlanestrategy",
-            "title": "Swimlane Strategy",
-            "description": "Swimlane generation strategy will generate in columns according to the containing file. This is great for understanding inter-file dependencies in a familiar format.\nCurrently swimlane doesn't support references as they're hard to understand in this format.\n[I Understand](command:getting-started-goosecode.swimlaneStrategy)",
-            "media": {
-              "image": "media/walkthrough_swimlane_strategy.png",
-              "altText": "Image demonstrating swimlane generation strategy"
-            },
-            "completionEvents": [
-              "onCommand:getting-started-goosecode.swimlaneStrategy"
-            ]
-          },
-          {
             "id": "generationcontrols",
             "title": "About Generation",
-            "description": "When you first generate using the 'follow' command, a 'session' is started.\nThe benefit of this is we can update our generation preferences in GooseCode and regenerate.\nWe can also step back through the flow incrementally to review, or remove events before regenerating. You can even swap between linear and swimlane.\nWhen you're satisfied with the result, hit the save button or discard the session to delete all snippets.\n[I Understand](command:getting-started-goosecode.aboutGeneration)",
+            "description": "When you first generate using the 'follow' command, a 'session' is started.\n[I Understand](command:getting-started-goosecode.aboutGeneration)",
             "media": {
               "markdown": "media/walkthrough_generation_controls.md"
             },
