@@ -1,24 +1,13 @@
 import * as vscode from "vscode";
 import { getWordAtPosition, targetFullRangeFromLocation, targetRangeFromLocation, uriFromLocation } from "./vscode_extension_helpers";
-import { gooseclip } from "../proto/ide/v1/ide";
-import Range = gooseclip.goosecode.ide.v1.Range;
-import Position = gooseclip.goosecode.ide.v1.Position;
-import DefinitionFollow = gooseclip.goosecode.ide.v1.DefinitionFollow;
-import PushMessage = gooseclip.goosecode.ide.v1.PushMessage;
-import PushType = gooseclip.goosecode.ide.v1.PushType;
-import FileCommandPush = gooseclip.goosecode.ide.v1.FileCommandPush;
-import FileCommandType = gooseclip.goosecode.ide.v1.FileCommandType;
-import FollowPush = gooseclip.goosecode.ide.v1.FollowPush;
-import FollowType = gooseclip.goosecode.ide.v1.FollowType;
-import ReferenceFollow = gooseclip.goosecode.ide.v1.ReferenceFollow;
-import LocationWithContext = gooseclip.goosecode.ide.v1.LocationWithContext;
-import Location = gooseclip.goosecode.ide.v1.Location;
-import SnippetContext = gooseclip.goosecode.ide.v1.SnippetContext;
+import * as gc from "../gen/ide";
+import { getSelectedOneofValue, setOneofValue } from "@protobuf-ts/runtime";
 
 import { convertRange } from "../util";
 import { LocationOrLocationLink } from "@/types";
 import { getReferences } from "./commands/commands";
 import { WorkspaceTracker } from "@/workspace-tracker";
+import { selectLbConfigFromList } from "@grpc/grpc-js/build/src/load-balancer";
 
 // If the user clicks on where something is defined, we return the symbol that was clicked.
 export async function testDefinitionClicked(definitions: LocationOrLocationLink[], selection: vscode.Selection): Promise<LocationOrLocationLink | undefined> {
@@ -39,28 +28,28 @@ export async function testDefinitionClicked(definitions: LocationOrLocationLink[
     }
 }
 
-export function getDefinitionsWithoutCurrentPosition(definitions: LocationOrLocationLink[], selection: vscode.Selection){
+export function getDefinitionsWithoutCurrentPosition(definitions: LocationOrLocationLink[], selection: vscode.Selection) {
     return definitions.filter((def) => {
         if (def instanceof vscode.Location) {
-          if ( def.range.intersection(selection)) {
-            return false;
-          }
+            if (def.range.intersection(selection)) {
+                return false;
+            }
         }
-  
+
         const ll = def as vscode.LocationLink;
         if (ll.targetSelectionRange && ll.originSelectionRange?.intersection(ll.targetSelectionRange)) {
-          return false;
+            return false;
         }
-  
+
         return true;
-      });
+    });
 }
 
 export async function getDefinitionsOfSelection(
     workspaceTracker: WorkspaceTracker,
-    fromMsg: LocationWithContext,
+    fromMsg: gc.LocationWithContext,
     definitions: LocationOrLocationLink[],
-): Promise<PushMessage | undefined> {
+): Promise<gc.PushResponse | undefined> {
     const definition = definitions[0];
 
 
@@ -70,21 +59,21 @@ export async function getDefinitionsOfSelection(
     const toRange = convertRange(targetRangeFromLocation(definition));
     // The full range - e.g. the function
     const fullRange = convertRange(targetFullRangeFromLocation(definition));
-    
-    const toMsg = new LocationWithContext({
-      location: new Location({
-        path: workspaceTracker.relativePath(
-          uri.fsPath,
-        ),
-        range: toRange,
-      }),
-      context: new SnippetContext({
-        full_range: fullRange,
-      }),
+
+    const toMsg = gc.LocationWithContext.create({
+        location: gc.Location.create({
+            path: workspaceTracker.relativePath(
+                uri.fsPath,
+            ),
+            range: toRange,
+        }),
+        context: gc.SnippetContext.create({
+            fullRange: fullRange,
+        }),
     });
-    const defMsg = new DefinitionFollow({
-      from: fromMsg,
-      to: toMsg,
+    const defMsg = gc.DefinitionFollow.create({
+        from: fromMsg,
+        to: toMsg,
     });
 
     console.log("FOLLOW DEFINITION", definitions);
@@ -94,9 +83,9 @@ export async function getDefinitionsOfSelection(
 
 export async function getReferencesToSelection(workspaceTracker: WorkspaceTracker,
     selection: vscode.Selection,
-    fromMsg: LocationWithContext,
+    fromMsg: gc.LocationWithContext,
     clickedDefinitionRef: LocationOrLocationLink
-): Promise<PushMessage | undefined> {
+): Promise<gc.PushResponse | undefined> {
 
     // Filter out references that are in the current selection
     let refs = (await getReferences()).filter((ref) => {
@@ -111,17 +100,17 @@ export async function getReferencesToSelection(workspaceTracker: WorkspaceTracke
     console.log("FOLLOW REFERENCE", refs);
 
     if (clickedDefinitionRef) {
-        fromMsg.context = new SnippetContext({
-            full_range: convertRange(targetFullRangeFromLocation(clickedDefinitionRef)),
+        fromMsg.context = gc.SnippetContext.create({
+            fullRange: convertRange(targetFullRangeFromLocation(clickedDefinitionRef)),
         });
     }
 
-    const reference = new ReferenceFollow({
+    const reference = gc.ReferenceFollow.create({
         from: fromMsg,
         to: refs.map(
             (ref) =>
-                new LocationWithContext({
-                    location: new Location({
+                gc.LocationWithContext.create({
+                    location: gc.Location.create({
                         path: workspaceTracker.relativePath(ref.uri.fsPath),
                         range: convertRange(ref.range),
                     }),
@@ -133,7 +122,7 @@ export async function getReferencesToSelection(workspaceTracker: WorkspaceTracke
 }
 
 
-export async function fromRange(selection: vscode.Selection): Promise<Range> {
+export async function fromRange(selection: vscode.Selection): Promise<gc.Range> {
     const selectionLine = selection.active.line;
 
 
@@ -148,40 +137,58 @@ export async function fromRange(selection: vscode.Selection): Promise<Range> {
     // Default to cursor position
     const selectionCharacter = selection.active.character;
 
-    return new Range({
-        start: new Position({
-            line: selectionLine,
-            character: selectionCharacter,
+    return gc.Range.create({
+        start: gc.Position.create({
+            line: BigInt(selectionLine),
+            character: BigInt(selectionCharacter),
         }),
-        end: new Position({
-            line: selectionLine,
-            character: selectionCharacter,
-        }),
-    });
-}
-
-export async function wrapFollowDefinition(defMsg: DefinitionFollow): Promise<PushMessage> {
-    return new PushMessage({
-        type: PushType.PUSH_TYPE_FILE_COMMAND,
-        file_command: new FileCommandPush({
-            type: FileCommandType.FILE_COMMAND_TYPE_FOLLOW,
-            follow: new FollowPush({
-                type: FollowType.FOLLOW_TYPE_DEFINITION,
-                definition: defMsg,
-            }),
+        end: gc.Position.create({
+            line: BigInt(selectionLine),
+            character: BigInt(selectionCharacter),
         }),
     });
 }
 
-export async function wrapFollowReference(refMsg: ReferenceFollow): Promise<PushMessage> {
-    return new PushMessage({
-        type: PushType.PUSH_TYPE_FILE_COMMAND,
-        file_command: new FileCommandPush({
-            type: FileCommandType.FILE_COMMAND_TYPE_FOLLOW,
-            follow: new FollowPush({
-                type: FollowType.FOLLOW_TYPE_REFERENCE,
-                reference: refMsg,
+export async function wrapFollowDefinition(defMsg: gc.DefinitionFollow): Promise<gc.PushResponse> {
+    return gc.PushResponse.create({
+        type: gc.PushType.FILE_COMMAND,
+        data: {
+            oneofKind: "fileCommand",
+            fileCommand: gc.FileCommandPush.create({
+                type: gc.FileCommandType.FOLLOW,
+                data: {
+                    oneofKind: "follow",
+                    follow: gc.FollowPush.create({
+                        type: gc.FollowType.DEFINITION,
+                        data: {
+                            oneofKind: "definition",
+                            definition: defMsg,
+                        },
+                    }),
+                },
             }),
-        }),
+        },
+    });
+}
+
+export async function wrapFollowReference(refMsg: gc.ReferenceFollow): Promise<gc.PushResponse> {
+    return gc.PushResponse.create({
+        type: gc.PushType.FILE_COMMAND,
+        data: {
+            oneofKind: "fileCommand",
+            fileCommand: gc.FileCommandPush.create({
+                type: gc.FileCommandType.FOLLOW,
+                data: {
+                    oneofKind: "follow",
+                    follow: gc.FollowPush.create({
+                        type: gc.FollowType.REFERENCE,
+                        data: {
+                            oneofKind: "reference",
+                            reference: refMsg,
+                        },
+                    }),
+                },
+            }),
+        },
     });
 }

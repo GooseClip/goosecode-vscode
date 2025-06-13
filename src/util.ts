@@ -2,13 +2,7 @@ import * as vscode from "vscode";
 import { RawData } from "ws";
 
 
-import { gooseclip } from "./proto/ide/v1/ide";
-import Location = gooseclip.goosecode.ide.v1.Location;
-import Position = gooseclip.goosecode.ide.v1.Position;
-import SymbolKind = gooseclip.goosecode.ide.v1.SymbolKind;
-import Range = gooseclip.goosecode.ide.v1.Range;
-import DocumentSymbol = gooseclip.goosecode.ide.v1.DocumentSymbol;
-import RequestMessage = gooseclip.goosecode.ide.v1.RequestMessage;
+import * as gc from "./gen/ide"
 
 function isEntireWord(selection: vscode.Selection): boolean {
   const document = vscode.window.activeTextEditor?.document;
@@ -51,77 +45,77 @@ function isEntireWord(selection: vscode.Selection): boolean {
 function convertSymbolKind(symbolKind: vscode.SymbolKind): number {
   switch (symbolKind) {
     case vscode.SymbolKind.File:
-      return SymbolKind.SYMBOL_KIND_FILE;
+      return gc.SymbolKind.FILE;
     case vscode.SymbolKind.Module:
-      return SymbolKind.SYMBOL_KIND_MODULE;
+      return gc.SymbolKind.MODULE;
     case vscode.SymbolKind.Namespace:
-      return SymbolKind.SYMBOL_KIND_NAMESPACE;
+      return gc.SymbolKind.NAMESPACE;
     case vscode.SymbolKind.Package:
-      return SymbolKind.SYMBOL_KIND_PACKAGE;
+      return gc.SymbolKind.PACKAGE;
     case vscode.SymbolKind.Class:
-      return SymbolKind.SYMBOL_KIND_CLASS;
+      return gc.SymbolKind.CLASS;
     case vscode.SymbolKind.Method:
-      return SymbolKind.SYMBOL_KIND_METHOD;
+      return gc.SymbolKind.METHOD;
     case vscode.SymbolKind.Property:
-      return SymbolKind.SYMBOL_KIND_PROPERTY;
+      return gc.SymbolKind.PROPERTY;
     case vscode.SymbolKind.Field:
-      return SymbolKind.SYMBOL_KIND_FIELD;
+      return gc.SymbolKind.FIELD;
     case vscode.SymbolKind.Constructor:
-      return SymbolKind.SYMBOL_KIND_CONSTRUCTOR;
+      return gc.SymbolKind.CONSTRUCTOR;
     case vscode.SymbolKind.Enum:
-      return SymbolKind.SYMBOL_KIND_ENUM;
+      return gc.SymbolKind.ENUM;
     case vscode.SymbolKind.Interface:
-      return SymbolKind.SYMBOL_KIND_INTERFACE;
+      return gc.SymbolKind.INTERFACE;
     case vscode.SymbolKind.Function:
-      return SymbolKind.SYMBOL_KIND_FUNCTION;
+      return gc.SymbolKind.FUNCTION;
     case vscode.SymbolKind.Variable:
-      return SymbolKind.SYMBOL_KIND_VARIABLE;
+      return gc.SymbolKind.VARIABLE;
     case vscode.SymbolKind.Constant:
-      return SymbolKind.SYMBOL_KIND_CONSTANT;
+      return gc.SymbolKind.CONSTANT;
     case vscode.SymbolKind.String:
-      return SymbolKind.SYMBOL_KIND_STRING;
+      return gc.SymbolKind.STRING;
     case vscode.SymbolKind.Number:
-      return SymbolKind.SYMBOL_KIND_NUMBER;
+      return gc.SymbolKind.NUMBER;
     case vscode.SymbolKind.Boolean:
-      return SymbolKind.SYMBOL_KIND_BOOLEAN;
+      return gc.SymbolKind.BOOLEAN;
     case vscode.SymbolKind.Array:
-      return SymbolKind.SYMBOL_KIND_ARRAY;
+      return gc.SymbolKind.ARRAY;
     case vscode.SymbolKind.Object:
-      return SymbolKind.SYMBOL_KIND_OBJECT;
+      return gc.SymbolKind.OBJECT;
     case vscode.SymbolKind.Key:
-      return SymbolKind.SYMBOL_KIND_KEY;
+      return gc.SymbolKind.KEY;
     case vscode.SymbolKind.Null:
-      return SymbolKind.SYMBOL_KIND_NULL;
+      return gc.SymbolKind.NULL;
     case vscode.SymbolKind.EnumMember:
-      return SymbolKind.SYMBOL_KIND_ENUM_MEMBER;
+      return gc.SymbolKind.ENUM_MEMBER;
     case vscode.SymbolKind.Struct:
-      return SymbolKind.SYMBOL_KIND_STRUCT;
+      return gc.SymbolKind.STRUCT;
     case vscode.SymbolKind.Event:
-      return SymbolKind.SYMBOL_KIND_EVENT;
+      return gc.SymbolKind.EVENT;
     case vscode.SymbolKind.Operator:
-      return SymbolKind.SYMBOL_KIND_OPERATOR;
+      return gc.SymbolKind.OPERATOR;
     case vscode.SymbolKind.TypeParameter:
-      return SymbolKind.SYMBOL_KIND_TYPE_PARAMETER;
+      return gc.SymbolKind.TYPE_PARAMETER;
     default:
       throw new Error(`Unknown symbol kind: ${symbolKind}`);
   }
 }
 
-function convertRange(vsRange: vscode.Range | vscode.Location): Range {
+function convertRange(vsRange: vscode.Range | vscode.Location): gc.Range {
   const r =
     vsRange instanceof vscode.Range
       ? vsRange
       : (vsRange as vscode.Location).range;
 
-  const startPos = new Position({
-    line: r.start.line,
-    character: r.start.character,
+  const startPos = gc.Position.create({
+    line: BigInt(r.start.line),
+    character: BigInt(r.start.character),
   });
-  const endPos = new Position({
-    line: r.end.line,
-    character: r.end.character,
+  const endPos = gc.Position.create({
+    line: BigInt(r.end.line),
+    character: BigInt(r.end.character),
   });
-  const range = new Range({
+  const range = gc.Range.create({
     start: startPos,
     end: endPos,
   });
@@ -131,21 +125,21 @@ function convertRange(vsRange: vscode.Range | vscode.Location): Range {
 
 function convertSymbols(
   vsSymbols: Array<vscode.DocumentSymbol | vscode.SymbolInformation>,
-): DocumentSymbol[] {
-  const pbSymbols: DocumentSymbol[] = [];
+): gc.DocumentSymbol[] {
+  const pbSymbols: gc.DocumentSymbol[] = [];
   for (const d of vsSymbols) {
-    let symbol: DocumentSymbol;
+    let symbol: gc.DocumentSymbol;
     if (d instanceof vscode.DocumentSymbol) {
-      symbol = new DocumentSymbol({
+      symbol = gc.DocumentSymbol.create({
         name: d.name,
         detail: d.detail,
         kind: convertSymbolKind(d.kind),
         range: convertRange(d.range),
-        selection_range: convertRange(d.selectionRange),
+        selectionRange: convertRange(d.selectionRange),
         children: convertSymbols(d.children),
       });
     } else if (d instanceof vscode.SymbolInformation) {
-      symbol = new DocumentSymbol({
+      symbol = gc.DocumentSymbol.create({
         name: d.name,
         detail: d.containerName,
         kind: convertSymbolKind(d.kind),
@@ -171,21 +165,6 @@ function getRandomString(length: number): string {
   return result;
 }
 
-// deserializeBinary takes a protobuf message and unmarshals it
-function deserializeBinary(message: RawData) {
-  var request: RequestMessage;
-  try {
-    request = RequestMessage.deserializeBinary(
-      new Uint8Array(message as ArrayBuffer),
-    );
-  } catch (e) {
-    console.log("[ERROR] failed to unmarshal");
-    return null;
-  }
-
-  return request;
-}
-
 export {
   isEntireWord,
   // convertLocations,
@@ -193,5 +172,4 @@ export {
   convertRange,
   convertSymbols,
   getRandomString,
-  deserializeBinary,
 };

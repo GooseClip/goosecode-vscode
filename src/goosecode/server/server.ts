@@ -1,32 +1,13 @@
+import * as grpc from '@grpc/grpc-js';
+import * as gc from "../../gen/ide";
+import { adaptService } from "@protobuf-ts/grpc-backend";
+import { IIDEService } from '../../gen/ide/v1/api.grpc-server';
+import { GooseCodeExtensionConfig } from '../../config';
+import { handleGetFilesRequest } from './handlers/get-files';
+import { ApiError } from '../errors';
+import { Workspace, WorkspaceTracker } from '../../workspace-tracker';
+import { getGitInfoFromVscodeApi } from '../../git';
 import * as vscode from "vscode";
-import * as express from "express";
-import * as expressWs from "express-ws";
-import { RawData, WebSocket } from "ws";
-import { handleGetFilesRequest } from "./handlers/get-files";
-import { handleGoToDefinition } from "./handlers/go-to";
-import { convertBodyToProtoMiddleware } from "./middleware/proto-binary";
-
-
-import { ApiError } from "../errors";
-import { RepositorySnapshotFingerprint, GooseCodeExtensionConfig } from "../../config";
-import * as https from "https";
-import { Server } from "https";
-import { authMiddleware } from "./middleware/auth";
-
-import { Workspace, WorkspaceTracker } from "../../workspace-tracker";
-
-import { gooseclip } from "../../proto/ide/v1/ide";
-
-import RequestMessage = gooseclip.goosecode.ide.v1.RequestMessage;
-import PushType = gooseclip.goosecode.ide.v1.PushType;
-import WorkspacesPush = gooseclip.goosecode.ide.v1.WorkspacesPush;
-import WorkspaceDetails = gooseclip.goosecode.ide.v1.WorkspaceDetails;
-import PushMessage = gooseclip.goosecode.ide.v1.PushMessage;
-import ResponseMessage = gooseclip.goosecode.ide.v1.ResponseMessage;
-import ErrorResponse = gooseclip.goosecode.ide.v1.ErrorResponse;
-import VersionControlInfo = gooseclip.goosecode.ide.v1.VersionControlInfo;
-import ResponseType = gooseclip.goosecode.ide.v1.ResponseType;
-import { getGitInfoFromVscodeApi } from "../../git";
 
 export class GooseCodeServer {
   constructor(
@@ -36,227 +17,66 @@ export class GooseCodeServer {
     private readonly onClosed: () => void,
   ) { }
 
-  public websocket: WebSocket | null = null;
-  public server: Server | null = null;
-
   public get connected(): boolean {
-    return this.websocket !== null;
+    return this.server !== null;
   }
 
-  public async push(msg: PushMessage) {
-    if (this.websocket === null) {
-      console.error("Websocket is not connected");
-      return;
-    }
+  private pushStream: grpc.ServerWritableStream<gc.PushRequest, gc.PushResponse> | null = null;
 
-    console.log("[PUSH]", msg.type);
-    if (msg.type === PushType.PUSH_TYPE_FILE_COMMAND) {
-      const activeWorkspace =
-        this.workspaceTracker.getLastActiveGooseCodeWorkspace();
-      if (!activeWorkspace) {
-        console.error("[PUSH]", "No active workspace found");
-        return;
+
+  public async push(message: gc.PushResponse) {
+    if (this.pushStream) {
+
+      console.log("[PUSH]", message.type);
+      if (message.type === gc.PushType.FILE_COMMAND) {
+        const activeWorkspace =
+          this.workspaceTracker.getLastActiveGooseCodeWorkspace();
+        if (!activeWorkspace) {
+          console.error("[PUSH]", "No active workspace found");
+          return;
+        }
+
+        // Time the request
+        const startTime = Date.now();
+
+        const gitInfo = await getGitInfoFromVscodeApi(
+          vscode.Uri.file(this.workspaceTracker.currentFilePath()),
+        );
+
+        const endTime = Date.now();
+
+        console.log(`Workspace: ${activeWorkspace.uri.fsPath}`);
+        console.log(`Git info: ${JSON.stringify(gitInfo)}`);
+        console.log(`Time taken: ${endTime - startTime}ms`);
+        // Inject the workspace root so GooseCode can automatically associate the connection
+        message.context = gc.PushContext.create({
+          workspaceRoot: activeWorkspace.uri.fsPath,
+          versionControl: gc.VersionControlInfo.create({
+            repositoryFullname: gitInfo?.repositoryFullName ?? "",
+            branch: gitInfo?.branch ?? "",
+            commit: gitInfo?.commit ?? "",
+          }),
+        });
+
       }
 
-      // Inject the workspace root so GooseCode can automatically associate the connection
-      msg.file_command.workspace_root = activeWorkspace.uri.fsPath;
-
-
-      // Time the request
-      const startTime = Date.now();
-      
-      const gitInfo = await getGitInfoFromVscodeApi(
-        vscode.Uri.file(this.workspaceTracker.currentFilePath()),
-      );
-
-      const endTime = Date.now();
-
-      console.log(`Workspace: ${activeWorkspace.uri.fsPath}`);
-      console.log(`Git info: ${JSON.stringify(gitInfo)}`);
-      console.log(`Time taken: ${endTime - startTime}ms`);
-      msg.file_command.version_control = new VersionControlInfo({
-        repository_fullname: gitInfo?.repositoryFullName ?? "",
-        branch: gitInfo?.branch ?? "",
-        commit: gitInfo?.commit ?? "",
-        // staged_files: [],
-        // unstaged_files: [],
-      });
-      // msg.file_command.code_source_id = activeWorkspace.codeSourceID!;
+      this.pushStream.write(message);
+    } else {
+      console.warn("Cannot push message: no client connected to the push stream.");
     }
-    this.websocket.send(msg.serializeBinary());
-  }
-
-  private send(res: express.Response, msg: ResponseMessage) {
-    res.setHeader("Content-Type", "application/octet-stream");
-    const buffer = Buffer.from(msg.serializeBinary());
-    res.send(buffer);
-  }
-
-  public stop() {
-    this.websocket?.close();
-    this.server?.close(() => {
-      // console.log("HTTP server stopped");
-    });
-  }
-
-  public async start() {
-    if (this.server !== null) {
-      console.error("Server already started");
-      return;
-    }
-    // Establish server and websocket connection
-    const app = express();
-    this.server = https.createServer(this.extensionConfig.tlsOptions, app);
-    const wsApp = expressWs(app as any, this.server!);
-
-    app.use(express.raw({ type: "application/octet-stream" }));
-    app.use(convertBodyToProtoMiddleware);
-    app.use((r, q, n) =>
-      authMiddleware(r, q, n, this.extensionConfig.settings.password),
-    );
-
-    app.post(
-      "/files-get",
-      async (
-        req: express.Request,
-        res: express.Response,
-        next: express.NextFunction,
-      ) => {
-        const request: RequestMessage = req.body as RequestMessage;
-        console.log(
-          `Get files: ${request.repository_snapshot_fingerprint} ${request.get_files_request.file_paths}`,
-        );
-        try {
-          const workspace = this.workspaceTracker.getWorkspaceFromFingerprint(
-            request.repository_snapshot_fingerprint,
-          );
-          if (workspace === null) {
-            throw new ApiError("Workspace not found", 422);
-          }
-
-          await handleGetFilesRequest(request, workspace!.uri!, (m) =>
-            this.send(res, m),
-          );
-        } catch (e) {
-          next(e);
-        }
-      },
-    );
-
-    app.post(
-      "/go-to-definition",
-      async (
-        req: express.Request,
-        res: express.Response,
-        next: express.NextFunction,
-      ) => {
-        console.log("GO TO DEFINITION REQUEST");
-        try {
-          const request: RequestMessage = req.body as RequestMessage;
-          const workspace = this.workspaceTracker.getWorkspaceFromFingerprint(
-            request.repository_snapshot_fingerprint,
-          );
-          await handleGoToDefinition(req.body, workspace!.uri!, (m) =>
-            this.send(res, m),
-          );
-        } catch (e) {
-          next(e);
-        }
-      },
-    );
-
-    // Start a websocket server
-    wsApp.app.ws("/connect", async (socket, req) => {
-      if (
-        req.headers.authorization !== this.extensionConfig.settings.password
-      ) {
-        console.error("Unauthorized websocket connection");
-        socket.close(3000);
-        return;
-      }
-
-      this.websocket = socket;
-
-      this.onConnected();
-      socket.on("message", (message: RawData) => {
-        console.log("Extension: Received message on websocket...");
-        console.error("Received non-string message data", message);
-      });
-
-      socket.on("close", (code, reason) => {
-        this.websocket = null;
-        this.onClosed();
-        console.log(
-          "WebSocket connection closed, code:",
-          code,
-          "reason:",
-          reason,
-        );
-      });
-
-      socket.on("error", (error) => {
-        console.error("WebSocket error:", error);
-      });
-
-      const workspaces = await this.workspaceTracker.refresh();
-      // After delay, send refresh
-      setTimeout(() => {
-        this.pushWorkspacesToGooseCode(workspaces);
-      }, 1000);
-    });
-
-    app.use(
-      (
-        err: Error,
-        req: express.Request,
-        res: express.Response,
-        next: express.NextFunction,
-      ) => {
-        vscode.window.showErrorMessage(`Error: ${err.message}`);
-        console.error(err.message); // Log the full error stack for server-side debugging.
-        console.log(err.stack); // Log the full error stack for server-side debugging.
-        if (err instanceof ApiError) {
-          this.send(
-            res,
-            new ResponseMessage({
-              type: ResponseType.RESPONSE_TYPE_ERROR,
-              error_response: new ErrorResponse({
-                error: err.message,
-              }),
-            }),
-          );
-        } else {
-          res.status(500).json({
-            error: "Internal Server Error",
-            message: "An unexpected error occurred", // Generic message for the client
-            detail: err.message, // Optionally, provide the error message for client-side debugging (consider security implications).
-          });
-        }
-      },
-    );
-
-    const port = this.extensionConfig.settings.port;
-    const ip = this.extensionConfig.settings.localhostOnly
-      ? "127.0.0.1"
-      : "0.0.0.0";
-
-    // Serve the server
-    this.server!.listen(port, ip, () => {
-      console.log(`Listening on ${ip}:${port}`);
-    });
   }
 
   public pushWorkspacesToGooseCode(
     workspaces: Workspace[],
-    deleted?: WorkspaceDetails,
+    deleted?: gc.WorkspaceDetails,
   ) {
-    const toSend: WorkspaceDetails[] = [];
+    const toSend: gc.WorkspaceDetails[] = [];
 
     if (workspaces) {
       for (const workspace of workspaces) {
-        toSend.push(new WorkspaceDetails({
-          workspace_root: workspace.uri.fsPath,
-          repository_snapshot_fingerprint: workspace.config!.config.fingerprint,
+        toSend.push(gc.WorkspaceDetails.create({
+          workspaceRoot: workspace.uri.fsPath,
+          repositorySnapshotFingerprint: workspace.config!.config.fingerprint,
           deleted: false,
         }));
       }
@@ -267,18 +87,338 @@ export class GooseCodeServer {
     }
 
     this.push(
-      new PushMessage({
-        type: PushType.PUSH_TYPE_WORKSPACES,
-        workspaces: new WorkspacesPush({
-          workspaces: [...toSend.map((root) => new WorkspaceDetails(root))],
-        }),
+      gc.PushResponse.create({
+        type: gc.PushType.WORKSPACES,
+        data: {
+          oneofKind: "workspaces",
+          workspaces: gc.WorkspacesPush.create({
+            workspaces: [...toSend.map((root) => gc.WorkspaceDetails.create(root))],
+          }),
+        }
+
       }),
     );
   }
+
+
+
+  private ideService: IIDEService = {
+    // how can you:
+    // - send no messages, just an error status *with trailer metadata*
+    push: async (call: grpc.ServerWritableStream<gc.PushRequest, gc.PushResponse>): Promise<void> => {
+      if (this.pushStream) {
+        console.warn('A client is already connected to the push stream. Rejecting new connection.');
+        const error = {
+          code: grpc.status.RESOURCE_EXHAUSTED,
+          details: 'A client is already connected.',
+        };
+        call.destroy(new Error(error.details));
+        return;
+      }
+
+      console.log('Client connected to push stream.');
+      this.pushStream = call;
+      this.onConnected();
+
+      const workspaces = await this.workspaceTracker.refresh();
+      // After delay, send refresh
+      setTimeout(() => {
+        this.pushWorkspacesToGooseCode(workspaces);
+      }, 1000);
+
+      call.on('error', (err: Error) => {
+        console.error('Push stream error:', err);
+        if (this.pushStream === call) {
+          this.pushStream = null;
+          this.onClosed();
+        }
+      });
+
+      call.on('cancelled', () => {
+        console.log('Push stream cancelled by client.');
+        if (this.pushStream === call) {
+          this.pushStream = null;
+          this.onClosed();
+        }
+      });
+    },
+
+    getFiles: async (call: grpc.ServerUnaryCall<gc.GetFilesRequest, gc.GetFilesResponse>, callback: grpc.sendUnaryData<gc.GetFilesResponse>): Promise<void> => {
+
+      call.on('error', args => {
+        console.log("goosecode getFiles() got error:", args)
+      })
+
+      const responseHeaders = new grpc.Metadata();
+      call.sendMetadata(responseHeaders);
+
+      const trailers = new grpc.Metadata();
+
+      const request = call.request;
+
+      console.log(
+        `Get files: ${request.context!.repositorySnapshotFingerprint} ${request.filePaths}`,
+      );
+      try {
+        const workspace = this.workspaceTracker.getWorkspaceFromFingerprint(
+          request.context!.repositorySnapshotFingerprint,
+        );
+        if (workspace === null) {
+          throw new ApiError("Workspace not found", 422);
+        }
+
+        await handleGetFilesRequest(request, workspace!.uri!, (m) =>
+          callback(
+            null,
+            {
+              fileContents: [],
+            },
+            trailers
+          )
+        );
+      } catch (e) {
+        callback({
+          code: grpc.status.INTERNAL,
+          details: e instanceof Error ? e.message : "Unknown error",
+        },);
+      }
+
+      // wait for the requested amount of milliseconds
+
+    },
+
+    listFiles: (call: grpc.ServerUnaryCall<gc.ListFilesRequest, gc.ListFilesResponse>, callback: grpc.sendUnaryData<gc.ListFilesResponse>): void => {
+      call.on('error', args => {
+        console.log("goosecode listFiles() got error:", args)
+      })
+
+      const responseHeaders = new grpc.Metadata();
+      call.sendMetadata(responseHeaders);
+
+      const trailers = new grpc.Metadata();
+
+      // wait for the requested amount of milliseconds
+      callback(
+        null,
+        {
+          filePaths: [],
+        },
+        trailers
+      );
+    },
+
+    select: (call: grpc.ServerUnaryCall<gc.SelectRequest, gc.SelectResponse>, callback: grpc.sendUnaryData<gc.SelectResponse>): void => {
+      call.on('error', args => {
+        console.log("goosecode select() got error:", args)
+      })
+
+      const responseHeaders = new grpc.Metadata();
+      call.sendMetadata(responseHeaders);
+
+      const trailers = new grpc.Metadata();
+
+      // wait for the requested amount of milliseconds
+      callback(null, null, trailers);
+    },
+
+    navigate: (call: grpc.ServerUnaryCall<gc.NavigateRequest, gc.NavigateResponse>, callback: grpc.sendUnaryData<gc.NavigateResponse>): void => {
+      call.on('error', args => {
+        console.log("goosecode navigate() got error:", args)
+      })
+
+      const responseHeaders = new grpc.Metadata();
+      call.sendMetadata(responseHeaders);
+
+      const trailers = new grpc.Metadata();
+      /*
+       console.log("GO TO DEFINITION REQUEST");
+        try {
+          const request: RequestMessage = req.body as RequestMessage;
+          const workspace = this.workspaceTracker.getWorkspaceFromFingerprint(
+            request.repository_snapshot_fingerprint,
+          );
+          await handleGoToDefinition(req.body, workspace!.uri!, (m) =>
+            this.send(res, m),
+          );
+        } catch (e) {
+          next(e);
+        }*/
+
+      // wait for the requested amount of milliseconds
+    },
+
+    search: (call: grpc.ServerUnaryCall<gc.SearchRequest, gc.SearchResponse>, callback: grpc.sendUnaryData<gc.SearchResponse>): void => {
+      call.on('error', args => {
+        console.log("goosecode search() got error:", args)
+      })
+
+      const responseHeaders = new grpc.Metadata();
+      call.sendMetadata(responseHeaders);
+
+      const trailers = new grpc.Metadata();
+
+      // wait for the requested amount of milliseconds
+    },
+
+    probe: (call: grpc.ServerUnaryCall<gc.ProbeRequest, gc.ProbeResponse>, callback: grpc.sendUnaryData<gc.ProbeResponse>): void => {
+      call.on('error', args => {
+        console.log("goosecode probe() got error:", args)
+      })
+
+      const responseHeaders = new grpc.Metadata();
+      call.sendMetadata(responseHeaders);
+
+      const trailers = new grpc.Metadata();
+
+      // wait for the requested amount of milliseconds
+      callback(null, null, trailers);
+    },
+
+    refactor: (call: grpc.ServerUnaryCall<gc.RefactorRequest, gc.RefactorResponse>, callback: grpc.sendUnaryData<gc.RefactorResponse>): void => {
+      call.on('error', args => {
+        console.log("goosecode refactor() got error:", args)
+      })
+
+      const responseHeaders = new grpc.Metadata();
+      call.sendMetadata(responseHeaders);
+
+      const trailers = new grpc.Metadata();
+
+      // wait for the requested amount of milliseconds
+      callback(null, null, trailers);
+    },
+
+    versionControlDetails: (call: grpc.ServerUnaryCall<gc.VersionControlDetailsRequest, gc.VersionControlDetailsResponse>, callback: grpc.sendUnaryData<gc.VersionControlDetailsResponse>): void => {
+      call.on('error', args => {
+        console.log("goosecode versionControlDetails() got error:", args)
+      })
+
+      const responseHeaders = new grpc.Metadata();
+      call.sendMetadata(responseHeaders);
+
+      const trailers = new grpc.Metadata();
+
+      // wait for the requested amount of milliseconds
+      callback(null, null, trailers);
+    },
+
+    lint: (call: grpc.ServerUnaryCall<gc.LintRequest, gc.LintResponse>, callback: grpc.sendUnaryData<gc.LintResponse>): void => {
+      call.on('error', args => {
+        console.log("goosecode lint() got error:", args)
+      })
+
+      const responseHeaders = new grpc.Metadata();
+      call.sendMetadata(responseHeaders);
+
+      const trailers = new grpc.Metadata();
+
+      // wait for the requested amount of milliseconds  
+      callback(null, null, trailers);
+    },
+  }
+
+
+  public async start() {
+    if (require.main === module) {
+      /*
+          const app = express();
+        this.server = https.createServer(this.extensionConfig.tlsOptions, app);
+        const wsApp = expressWs(app as any, this.server!);
+      */
+
+      const port = this.extensionConfig.settings.port;
+      const ip = this.extensionConfig.settings.localhostOnly
+        ? "127.0.0.1"
+        : "0.0.0.0";
+      const host = `${ip}:${port}`;
+
+      const server = this.getServer();
+      server.bindAsync(
+        host,
+        grpc.ServerCredentials.createInsecure(), // TODO
+        (err: Error | null, port: number) => {
+          if (err) {
+            console.error(`Server error: ${err.message}`);
+          } else {
+            console.log(`Server bound on port: ${port}`);
+            server.start();
+          }
+        }
+      );
+    }
+  }
+
+  public stop() {
+    this.pushStream?.end();
+    this.server?.forceShutdown();
+    this.server = null;
+    this.pushStream = null;
+  }
+
+
+  private server: grpc.Server | null = null;
+  private getServer(): grpc.Server {
+    this.server = new grpc.Server(
+      {
+        interceptors: [
+          authInterceptorFactory(this.extensionConfig.settings.password)
+        ],
+      }
+    );
+    this.server.addService(...adaptService(gc.IDEService, this.ideService));
+    return this.server;
+  }
 }
 
-// type RefreshWorkspace = {
-//   workspace_root: string;
-//   repository_snapshot_fingerprint: CodeSourceID;
-//   deleted: boolean;
-// };
+
+function validateAuthorizationMetadata(metadata: grpc.Metadata, password: string) {
+  const authorization = metadata.get('authorization');
+  if (authorization.length < 1) {
+    return false;
+  }
+  return authorization[0] === password;
+}
+
+function authInterceptorFactory(password: string): grpc.ServerInterceptor {
+  return (methodDescriptor: grpc.ServerMethodDefinition<any, any>, call: grpc.ServerInterceptingCallInterface) => {
+    const listener = (new grpc.ServerListenerBuilder())
+      .withOnReceiveMetadata((metadata, next) => {
+        if (validateAuthorizationMetadata(metadata, password)) {
+          next(metadata);
+        } else {
+          call.sendStatus({
+            code: grpc.status.UNAUTHENTICATED,
+            details: 'Auth metadata not correct'
+          });
+        }
+      }).build();
+    const responder = (new grpc.ResponderBuilder())
+      .withStart(next => {
+        next(listener);
+      }).build();
+    return new grpc.ServerInterceptingCall(call, responder);
+  };
+}
+
+/*
+
+function authMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+  password: string,
+) {
+  if (req.path === "/connect/.websocket") {
+    next();
+    return;
+  }
+
+  if (req.headers.authorization !== password) {
+    next(new ApiError(`Unauthorized, path: ${req.path}`, 401));
+    return;
+  }
+  next();
+}
+
+export { authMiddleware };
+*/

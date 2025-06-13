@@ -1,13 +1,9 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { gooseclip } from "../../proto/ide/v1/ide";
+import * as gc from "../../gen/ide";
 import { LocationOrLocationLink, DocumentSymbolOrSymbolInformation } from "@/types";
 import { Uri } from "vscode";
-
-import Location = gooseclip.goosecode.ide.v1.Location;
-import { WorkspaceTracker } from "../../workspace-tracker";
-import { convertRange } from "../../util";
 
 
 const defaultExclusions = [
@@ -153,7 +149,7 @@ export async function getReferences(): Promise<vscode.Location[]> {
 
 export async function goToDefinition(
   workspaceUri: Uri,
-  loc: Location,
+  loc: gc.Location,
   select: boolean,
 ): Promise<boolean> {
   const activeEditor = vscode.window.activeTextEditor;
@@ -165,12 +161,12 @@ export async function goToDefinition(
     path.join(workspaceUri.fsPath, loc.path),
   );
   const startPos = new vscode.Position(
-    loc.range.start.line,
-    loc.range.start.character,
+    Number(loc.range?.start?.line),
+    Number(loc.range?.start?.character),
   );
   const endPos = !select
     ? startPos
-    : new vscode.Position(loc.range.end.line, loc.range.end.character);
+    : new vscode.Position(Number(loc.range?.end?.line), Number(loc.range?.end?.character));
   const editor = await vscode.window.showTextDocument(document);
   editor.selection = new vscode.Selection(startPos, endPos);
 
@@ -188,7 +184,7 @@ export async function goToDefinition(
   // Don't use the selection range for highlighting
   const highlightRange: vscode.Range = new vscode.Range(
     startPos,
-    new vscode.Position(loc.range.end.line, loc.range.end.character),
+    new vscode.Position(Number(loc.range?.end?.line), Number(loc.range?.end?.character)),
   );
 
   // Highlight range

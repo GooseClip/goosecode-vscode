@@ -8,34 +8,13 @@ import {
   getDocumentSymbols,
   goToDefinition,
 } from "./commands/commands";
-import { convertRange } from "../util";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { loadWorkspaceConfiguration } from "../config";
 
-import { gooseclip } from "../proto/ide/v1/ide";
-import PushMessage = gooseclip.goosecode.ide.v1.PushMessage;
-import PushType = gooseclip.goosecode.ide.v1.PushType;
-import ActiveSessionPush = gooseclip.goosecode.ide.v1.ActiveSessionPush;
-import ActiveSessionType = gooseclip.goosecode.ide.v1.ActiveSessionType;
-import RegeneratePush = gooseclip.goosecode.ide.v1.RegeneratePush;
-import RegenerateType = gooseclip.goosecode.ide.v1.RegenerateType;
-import FileCommandPush = gooseclip.goosecode.ide.v1.FileCommandPush;
-import FileCommandType = gooseclip.goosecode.ide.v1.FileCommandType;
-import OpenPush = gooseclip.goosecode.ide.v1.OpenPush;
-import Location = gooseclip.goosecode.ide.v1.Location;
-import Range = gooseclip.goosecode.ide.v1.Range;
-import Position = gooseclip.goosecode.ide.v1.Position;
-import AppCommandPush = gooseclip.goosecode.ide.v1.AppCommandPush;
-import AppCommandType = gooseclip.goosecode.ide.v1.AppCommandType;
-import BookmarkPush = gooseclip.goosecode.ide.v1.BookmarkPush;
-import FollowPush = gooseclip.goosecode.ide.v1.FollowPush;
-import FollowType = gooseclip.goosecode.ide.v1.FollowType;
-import DefinitionFollow = gooseclip.goosecode.ide.v1.DefinitionFollow;
-import LocationWithContext = gooseclip.goosecode.ide.v1.LocationWithContext;
-import SnippetContext = gooseclip.goosecode.ide.v1.SnippetContext;
-import ReferenceFollow = gooseclip.goosecode.ide.v1.ReferenceFollow;
-import { getWordAtPosition, targetFullRangeFromLocation, targetRangeFromLocation, uriFromLocation } from "./vscode_extension_helpers";
-import { testDefinitionClicked, fromRange, wrapFollowDefinition, wrapFollowReference, getReferencesToSelection as createReferencesFollowMessage, getDefinitionsWithoutCurrentPosition, getDefinitionsOfSelection as createDefinitionFollowMessage } from "./goosecode_follow";
+import { getOneofValue } from "@protobuf-ts/runtime";
+
+import * as gc from "../gen/ide";
+import { testDefinitionClicked, fromRange, getReferencesToSelection as createReferencesFollowMessage, getDefinitionsWithoutCurrentPosition, getDefinitionsOfSelection as createDefinitionFollowMessage } from "./goosecode_follow";
 
 async function guard(
   gooseCodeServer: GooseCodeServer | null,
@@ -121,12 +100,15 @@ export function registerGooseCodeCommands(
       }
 
       gooseCodeServer?.push(
-        new PushMessage({
-          type: PushType.PUSH_TYPE_ACTIVE_SESSION,
-          active_session: new ActiveSessionPush({
-            type: ActiveSessionType.ACTIVE_SESSION_TYPE_DELETE,
-          }),
-        }),
+        gc.PushResponse.create({
+          type: gc.PushType.ACTIVE_SESSION,
+          data: {
+            oneofKind: "activeSession",
+            activeSession: gc.ActiveSessionPush.create({
+              type: gc.ActiveSessionType.DELETE,
+            }),
+          },
+        })
       );
     },
   );
@@ -145,12 +127,15 @@ export function registerGooseCodeCommands(
       }
 
       gooseCodeServer?.push(
-        new PushMessage({
-          type: PushType.PUSH_TYPE_ACTIVE_SESSION,
-          active_session: new ActiveSessionPush({
-            type: ActiveSessionType.ACTIVE_SESSION_TYPE_SAVE,
-          }),
-        }),
+        gc.PushResponse.create({
+          type: gc.PushType.ACTIVE_SESSION,
+          data: {
+            oneofKind: "activeSession",
+            activeSession: gc.ActiveSessionPush.create({
+              type: gc.ActiveSessionType.SAVE,
+            }),
+          }
+        })
       );
     },
   );
@@ -169,15 +154,15 @@ export function registerGooseCodeCommands(
       }
 
       gooseCodeServer?.push(
-        new PushMessage({
-          type: PushType.PUSH_TYPE_ACTIVE_SESSION,
-          active_session: new ActiveSessionPush({
-            type: ActiveSessionType.ACTIVE_SESSION_TYPE_REGENERATE,
-            regenerate: new RegeneratePush({
-              type: RegenerateType.REGENERATE_TYPE_LINEAR,
+        gc.PushResponse.create({
+          type: gc.PushType.ACTIVE_SESSION,
+          data: {
+            oneofKind: "activeSession",
+            activeSession: gc.ActiveSessionPush.create({
+              type: gc.ActiveSessionType.REGENERATE,
             }),
-          }),
-        }),
+          }
+        })
       );
     },
   );
@@ -196,14 +181,20 @@ export function registerGooseCodeCommands(
       }
 
       gooseCodeServer?.push(
-        new PushMessage({
-          type: PushType.PUSH_TYPE_ACTIVE_SESSION,
-          active_session: new ActiveSessionPush({
-            type: ActiveSessionType.ACTIVE_SESSION_TYPE_REGENERATE,
-            regenerate: new RegeneratePush({
-              type: RegenerateType.REGENERATE_TYPE_SWIMLANE,
+        gc.PushResponse.create({
+          type: gc.PushType.ACTIVE_SESSION,
+          data: {
+            oneofKind: "activeSession",
+            activeSession: gc.ActiveSessionPush.create({
+              type: gc.ActiveSessionType.REGENERATE,
+              data: {
+                oneofKind: "regenerate",
+                regenerate: gc.RegeneratePush.create({
+                  type: gc.RegenerateType.SWIMLANE,
+                }),
+              }
             }),
-          }),
+          }
         }),
       );
     },
@@ -223,12 +214,15 @@ export function registerGooseCodeCommands(
       }
 
       gooseCodeServer?.push(
-        new PushMessage({
-          type: PushType.PUSH_TYPE_ACTIVE_SESSION,
-          active_session: new ActiveSessionPush({
-            type: ActiveSessionType.ACTIVE_SESSION_TYPE_STEP,
-          }),
-        }),
+        gc.PushResponse.create({
+          type: gc.PushType.ACTIVE_SESSION,
+          data: {
+            oneofKind: "activeSession",
+            activeSession: gc.ActiveSessionPush.create({
+              type: gc.ActiveSessionType.STEP,
+            }),
+          }
+        })
       );
     },
   );
@@ -246,12 +240,15 @@ export function registerGooseCodeCommands(
         return;
       }
       gooseCodeServer?.push(
-        new PushMessage({
-          type: PushType.PUSH_TYPE_APP_COMMAND,
-          app_command: new AppCommandPush({
-            type: AppCommandType.APP_COMMAND_TYPE_MINIMAP,
-          }),
-        }),
+        gc.PushResponse.create({
+          type: gc.PushType.APP_COMMAND,
+          data: {
+            oneofKind: "appCommand",
+            appCommand: gc.AppCommandPush.create({
+              type: gc.AppCommandType.MINIMAP,
+            }),
+          }
+        })
       );
     },
   );
@@ -269,11 +266,14 @@ export function registerGooseCodeCommands(
         return;
       }
       gooseCodeServer?.push(
-        new PushMessage({
-          type: PushType.PUSH_TYPE_APP_COMMAND,
-          app_command: new AppCommandPush({
-            type: AppCommandType.APP_COMMAND_TYPE_OVERLAY,
-          }),
+        gc.PushResponse.create({
+          type: gc.PushType.APP_COMMAND,
+          data: {
+            oneofKind: "appCommand",
+            appCommand: gc.AppCommandPush.create({
+              type: gc.AppCommandType.OVERLAY,
+            }),
+          }
         }),
       );
     },
@@ -287,16 +287,22 @@ export function registerGooseCodeCommands(
     }
     const editor = vscode.window.activeTextEditor!;
     gooseCodeServer?.push(
-      new PushMessage({
-        type: PushType.PUSH_TYPE_FILE_COMMAND,
-        file_command: new FileCommandPush({
-          type: FileCommandType.FILE_COMMAND_TYPE_OPEN_FILE,
-          open_file: new OpenPush({
-            path: workspaceTracker.currentRelativeFilePath(),
-            range: selectedRange(editor),
-          }),
-        }),
-      }),
+      gc.PushResponse.create({
+        type: gc.PushType.FILE_COMMAND,
+        data: {
+          oneofKind: "fileCommand",
+          fileCommand: gc.FileCommandPush.create({
+            type: gc.FileCommandType.OPEN_FILE,
+            data: {
+              oneofKind: "openFile",
+              openFile: gc.OpenPush.create({
+                path: workspaceTracker.currentRelativeFilePath(),
+                range: selectedRange(editor),
+              }),
+            }
+          })
+        }
+      })
     );
   });
   subscriptions.push(sub);
@@ -341,15 +347,21 @@ export function registerGooseCodeCommands(
       return;
     }
     gooseCodeServer?.push(
-      new PushMessage({
-        type: PushType.PUSH_TYPE_FILE_COMMAND,
-        file_command: new FileCommandPush({
-          type: FileCommandType.FILE_COMMAND_TYPE_PIN_FILE,
-          bookmark: new BookmarkPush({
-            path: workspaceTracker.currentRelativeFilePath(),
-          }),
-        }),
-      }),
+      gc.PushResponse.create({
+        type: gc.PushType.FILE_COMMAND,
+        data: {
+          oneofKind: "fileCommand",
+          fileCommand: gc.FileCommandPush.create({
+            type: gc.FileCommandType.PIN_FILE,
+            data: {
+              oneofKind: "bookmark",
+              bookmark: gc.BookmarkPush.create({
+                path: workspaceTracker.currentRelativeFilePath(),
+              }),
+            }
+          })
+        }
+      })
     );
   });
   subscriptions.push(sub);
@@ -393,8 +405,8 @@ export function registerGooseCodeCommands(
     let references = await getReferences();
 
     const from = await fromRange(selection);
-    const fromMsg = new LocationWithContext({
-      location: new Location({
+    const fromMsg = gc.LocationWithContext.create({
+      location: gc.Location.create({
         path: workspaceTracker.relativePath(
           editor.document.uri.fsPath,
         ),
@@ -403,7 +415,6 @@ export function registerGooseCodeCommands(
     });
 
 
-    console.log("FROM", from.start.line, from.start.character, from.end.line, from.end.character);
 
     const filteredDefinitions = getDefinitionsWithoutCurrentPosition(definitions, selection);
 
@@ -421,10 +432,12 @@ export function registerGooseCodeCommands(
       // Push the message to goosecode
       gooseCodeServer?.push(msg);
 
-      // Navigate in editor to the definition
+
+      // Navigate in edittor to the definition
       await goToDefinition(
         workspaceUri,
-        msg.file_command.follow.definition.to.location,
+        // @ts-ignore
+        msg.data.fileCommand!.follow.definition.to.location,
         false,
       );
       return;
@@ -432,7 +445,9 @@ export function registerGooseCodeCommands(
 
     const clickedDefinitionRef = await testDefinitionClicked(definitions, selection);
     if (clickedDefinitionRef) {
-      const msg = await createReferencesFollowMessage(workspaceTracker, selection, fromMsg.clone(), clickedDefinitionRef);
+
+
+      const msg = await createReferencesFollowMessage(workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
       if (!msg) {
         console.error("No referencesmessage to push");
         return;
@@ -448,14 +463,14 @@ export function registerGooseCodeCommands(
 }
 
 function selectedRange(editor: vscode.TextEditor) {
-  return new Range({
-    start: new Position({
-      line: editor.selection.start.line,
-      character: editor.selection.start.character,
+  return gc.Range.create({
+    start: gc.Position.create({
+      line: BigInt(editor.selection.start.line),
+      character: BigInt(editor.selection.start.character),
     }),
-    end: new Position({
-      line: editor.selection.end.line,
-      character: editor.selection.end.character,
+    end: gc.Position.create({
+      line: BigInt(editor.selection.end.line),
+      character: BigInt(editor.selection.end.character),
     }),
   });
 }

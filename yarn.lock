@@ -53,7 +53,7 @@
   resolved "https://registry.npmjs.org/@eslint/js/-/js-8.39.0.tgz"
   integrity sha512-kf9RB0Fg7NZfap83B3QOqOGg9QmD9yBudqQXzzOtn3i4y7ZUXe5ONeW34Gwi+TxhH4mvj72R1Zc300KUMa9Bng==
 
-"@grpc/grpc-js@^1.13.4":
+"@grpc/grpc-js@^1.13.4", "@grpc/grpc-js@^1.8.22":
   version "1.13.4"
   resolved "https://registry.npmjs.org/@grpc/grpc-js/-/grpc-js-1.13.4.tgz"
   integrity sha512-GsFaMXCkMqkKIvwCQjCrwH+GHbPKBjhwo/8ZuUkWHqbI73Kky9I+pQltrlT0+MWpedCoosda53lgjYfyEPgxBg==
@@ -155,6 +155,14 @@
   dependencies:
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
+
+"@protobuf-ts/grpc-backend@^2.11.0":
+  version "2.11.0"
+  resolved "https://registry.npmjs.org/@protobuf-ts/grpc-backend/-/grpc-backend-2.11.0.tgz"
+  integrity sha512-qg94ydMi1aDFEuGRfweqUQjV00zJ/gchc694nkxbZ3Nd1mRYOJjQqu278ZAClCveCIBCNVQ7RUNKyaqSO4BhDA==
+  dependencies:
+    "@protobuf-ts/runtime" "^2.11.0"
+    "@protobuf-ts/runtime-rpc" "^2.11.0"
 
 "@protobuf-ts/plugin@^2.11.0":
   version "2.11.0"
