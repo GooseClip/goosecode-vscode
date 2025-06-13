@@ -15,17 +15,17 @@ import { authMiddleware } from "./middleware/auth";
 
 import { Workspace, WorkspaceTracker } from "../../workspace-tracker";
 
-import { goosecode } from "../../proto/ide/ide";
+import { gooseclip } from "../../proto/ide/v1/ide";
 
-import RequestMessage = goosecode.v2.app.source.ide.RequestMessage;
-import PushType = goosecode.v2.app.source.ide.PushType;
-import WorkspacesPush = goosecode.v2.app.source.ide.WorkspacesPush;
-import WorkspaceDetails = goosecode.v2.app.source.ide.WorkspaceDetails;
-import PushMessage = goosecode.v2.app.source.ide.PushMessage;
-import ResponseMessage = goosecode.v2.app.source.ide.ResponseMessage;
-import ErrorResponse = goosecode.v2.app.source.ide.ErrorResponse;
-import VersionControlInfo = goosecode.v2.app.source.ide.VersionControlInfo;
-import ResponseType = goosecode.v2.app.source.ide.ResponseType;
+import RequestMessage = gooseclip.goosecode.ide.v1.RequestMessage;
+import PushType = gooseclip.goosecode.ide.v1.PushType;
+import WorkspacesPush = gooseclip.goosecode.ide.v1.WorkspacesPush;
+import WorkspaceDetails = gooseclip.goosecode.ide.v1.WorkspaceDetails;
+import PushMessage = gooseclip.goosecode.ide.v1.PushMessage;
+import ResponseMessage = gooseclip.goosecode.ide.v1.ResponseMessage;
+import ErrorResponse = gooseclip.goosecode.ide.v1.ErrorResponse;
+import VersionControlInfo = gooseclip.goosecode.ide.v1.VersionControlInfo;
+import ResponseType = gooseclip.goosecode.ide.v1.ResponseType;
 import { getGitInfoFromVscodeApi } from "../../git";
 
 export class GooseCodeServer {
@@ -50,7 +50,7 @@ export class GooseCodeServer {
     }
 
     console.log("[PUSH]", msg.type);
-    if (msg.type === PushType.PUSH_FILE_COMMAND) {
+    if (msg.type === PushType.PUSH_TYPE_FILE_COMMAND) {
       const activeWorkspace =
         this.workspaceTracker.getLastActiveGooseCodeWorkspace();
       if (!activeWorkspace) {
@@ -219,7 +219,7 @@ export class GooseCodeServer {
           this.send(
             res,
             new ResponseMessage({
-              type: ResponseType.RESPONSE_ERROR,
+              type: ResponseType.RESPONSE_TYPE_ERROR,
               error_response: new ErrorResponse({
                 error: err.message,
               }),
@@ -268,7 +268,7 @@ export class GooseCodeServer {
 
     this.push(
       new PushMessage({
-        type: PushType.PUSH_WORKSPACES,
+        type: PushType.PUSH_TYPE_WORKSPACES,
         workspaces: new WorkspacesPush({
           workspaces: [...toSend.map((root) => new WorkspaceDetails(root))],
         }),

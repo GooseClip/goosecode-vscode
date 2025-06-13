@@ -1,37 +1,41 @@
 import * as vscode from "vscode";
 import { Disposable } from "vscode";
 import { GooseCodeServer } from "./server/server";
+import { LocationOrLocationLink } from "@/types";
 import {
   getDefinitions,
   getReferences,
+  getDocumentSymbols,
   goToDefinition,
 } from "./commands/commands";
 import { convertRange } from "../util";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { loadWorkspaceConfiguration } from "../config";
 
-import { goosecode } from "../proto/ide/ide";
-import PushMessage = goosecode.v2.app.source.ide.PushMessage;
-import PushType = goosecode.v2.app.source.ide.PushType;
-import ActiveSessionPush = goosecode.v2.app.source.ide.ActiveSessionPush;
-import ActiveSessionType = goosecode.v2.app.source.ide.ActiveSessionType;
-import RegeneratePush = goosecode.v2.app.source.ide.RegeneratePush;
-import RegenerateType = goosecode.v2.app.source.ide.RegenerateType;
-import FileCommandPush = goosecode.v2.app.source.ide.FileCommandPush;
-import FileCommandType = goosecode.v2.app.source.ide.FileCommandType;
-import OpenPush = goosecode.v2.app.source.ide.OpenPush;
-import Location = goosecode.v2.app.source.ide.Location;
-import Range = goosecode.v2.app.source.ide.Range;
-import Position = goosecode.v2.app.source.ide.Position;
-import AppCommandPush = goosecode.v2.app.source.ide.AppCommandPush;
-import AppCommandType = goosecode.v2.app.source.ide.AppCommandType;
-import BookmarkPush = goosecode.v2.app.source.ide.BookmarkPush;
-import FollowPush = goosecode.v2.app.source.ide.FollowPush;
-import FollowType = goosecode.v2.app.source.ide.FollowType;
-import DefinitionFollow = goosecode.v2.app.source.ide.DefinitionFollow;
-import LocationWithContext = goosecode.v2.app.source.ide.LocationWithContext;
-import SnippetContext = goosecode.v2.app.source.ide.SnippetContext;
-import ReferenceFollow = goosecode.v2.app.source.ide.ReferenceFollow;
+import { gooseclip } from "../proto/ide/v1/ide";
+import PushMessage = gooseclip.goosecode.ide.v1.PushMessage;
+import PushType = gooseclip.goosecode.ide.v1.PushType;
+import ActiveSessionPush = gooseclip.goosecode.ide.v1.ActiveSessionPush;
+import ActiveSessionType = gooseclip.goosecode.ide.v1.ActiveSessionType;
+import RegeneratePush = gooseclip.goosecode.ide.v1.RegeneratePush;
+import RegenerateType = gooseclip.goosecode.ide.v1.RegenerateType;
+import FileCommandPush = gooseclip.goosecode.ide.v1.FileCommandPush;
+import FileCommandType = gooseclip.goosecode.ide.v1.FileCommandType;
+import OpenPush = gooseclip.goosecode.ide.v1.OpenPush;
+import Location = gooseclip.goosecode.ide.v1.Location;
+import Range = gooseclip.goosecode.ide.v1.Range;
+import Position = gooseclip.goosecode.ide.v1.Position;
+import AppCommandPush = gooseclip.goosecode.ide.v1.AppCommandPush;
+import AppCommandType = gooseclip.goosecode.ide.v1.AppCommandType;
+import BookmarkPush = gooseclip.goosecode.ide.v1.BookmarkPush;
+import FollowPush = gooseclip.goosecode.ide.v1.FollowPush;
+import FollowType = gooseclip.goosecode.ide.v1.FollowType;
+import DefinitionFollow = gooseclip.goosecode.ide.v1.DefinitionFollow;
+import LocationWithContext = gooseclip.goosecode.ide.v1.LocationWithContext;
+import SnippetContext = gooseclip.goosecode.ide.v1.SnippetContext;
+import ReferenceFollow = gooseclip.goosecode.ide.v1.ReferenceFollow;
+import { getWordAtPosition, targetFullRangeFromLocation, targetRangeFromLocation, uriFromLocation } from "./vscode_extension_helpers";
+import { testDefinitionClicked, fromRange, wrapFollowDefinition, wrapFollowReference, getReferencesToSelection as createReferencesFollowMessage, getDefinitionsWithoutCurrentPosition, getDefinitionsOfSelection as createDefinitionFollowMessage } from "./goosecode_follow";
 
 async function guard(
   gooseCodeServer: GooseCodeServer | null,
@@ -118,9 +122,9 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: PushType.PUSH_ACTIVE_SESSION,
+          type: PushType.PUSH_TYPE_ACTIVE_SESSION,
           active_session: new ActiveSessionPush({
-            type: ActiveSessionType.ACTIVE_SESSION_DELETE,
+            type: ActiveSessionType.ACTIVE_SESSION_TYPE_DELETE,
           }),
         }),
       );
@@ -142,9 +146,9 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: PushType.PUSH_ACTIVE_SESSION,
+          type: PushType.PUSH_TYPE_ACTIVE_SESSION,
           active_session: new ActiveSessionPush({
-            type: ActiveSessionType.ACTIVE_SESSION_SAVE,
+            type: ActiveSessionType.ACTIVE_SESSION_TYPE_SAVE,
           }),
         }),
       );
@@ -166,11 +170,11 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: PushType.PUSH_ACTIVE_SESSION,
+          type: PushType.PUSH_TYPE_ACTIVE_SESSION,
           active_session: new ActiveSessionPush({
-            type: ActiveSessionType.ACTIVE_SESSION_REGENERATE,
+            type: ActiveSessionType.ACTIVE_SESSION_TYPE_REGENERATE,
             regenerate: new RegeneratePush({
-              type: RegenerateType.REGENERATE_LINEAR,
+              type: RegenerateType.REGENERATE_TYPE_LINEAR,
             }),
           }),
         }),
@@ -193,11 +197,11 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: PushType.PUSH_ACTIVE_SESSION,
+          type: PushType.PUSH_TYPE_ACTIVE_SESSION,
           active_session: new ActiveSessionPush({
-            type: ActiveSessionType.ACTIVE_SESSION_REGENERATE,
+            type: ActiveSessionType.ACTIVE_SESSION_TYPE_REGENERATE,
             regenerate: new RegeneratePush({
-              type: RegenerateType.REGENERATE_SWIMLANE,
+              type: RegenerateType.REGENERATE_TYPE_SWIMLANE,
             }),
           }),
         }),
@@ -220,9 +224,9 @@ export function registerGooseCodeCommands(
 
       gooseCodeServer?.push(
         new PushMessage({
-          type: PushType.PUSH_ACTIVE_SESSION,
+          type: PushType.PUSH_TYPE_ACTIVE_SESSION,
           active_session: new ActiveSessionPush({
-            type: ActiveSessionType.ACTIVE_SESSION_STEP,
+            type: ActiveSessionType.ACTIVE_SESSION_TYPE_STEP,
           }),
         }),
       );
@@ -243,9 +247,9 @@ export function registerGooseCodeCommands(
       }
       gooseCodeServer?.push(
         new PushMessage({
-          type: PushType.PUSH_APP_COMMAND,
+          type: PushType.PUSH_TYPE_APP_COMMAND,
           app_command: new AppCommandPush({
-            type: AppCommandType.APP_COMMAND_MINIMAP,
+            type: AppCommandType.APP_COMMAND_TYPE_MINIMAP,
           }),
         }),
       );
@@ -266,9 +270,9 @@ export function registerGooseCodeCommands(
       }
       gooseCodeServer?.push(
         new PushMessage({
-          type: PushType.PUSH_APP_COMMAND,
+          type: PushType.PUSH_TYPE_APP_COMMAND,
           app_command: new AppCommandPush({
-            type: AppCommandType.APP_COMMAND_OVERLAY,
+            type: AppCommandType.APP_COMMAND_TYPE_OVERLAY,
           }),
         }),
       );
@@ -284,9 +288,9 @@ export function registerGooseCodeCommands(
     const editor = vscode.window.activeTextEditor!;
     gooseCodeServer?.push(
       new PushMessage({
-        type: PushType.PUSH_FILE_COMMAND,
+        type: PushType.PUSH_TYPE_FILE_COMMAND,
         file_command: new FileCommandPush({
-          type: FileCommandType.FILE_COMMAND_OPEN_FILE,
+          type: FileCommandType.FILE_COMMAND_TYPE_OPEN_FILE,
           open_file: new OpenPush({
             path: workspaceTracker.currentRelativeFilePath(),
             range: selectedRange(editor),
@@ -338,9 +342,9 @@ export function registerGooseCodeCommands(
     }
     gooseCodeServer?.push(
       new PushMessage({
-        type: PushType.PUSH_FILE_COMMAND,
+        type: PushType.PUSH_TYPE_FILE_COMMAND,
         file_command: new FileCommandPush({
-          type: FileCommandType.FILE_COMMAND_PIN_FILE,
+          type: FileCommandType.FILE_COMMAND_TYPE_PIN_FILE,
           bookmark: new BookmarkPush({
             path: workspaceTracker.currentRelativeFilePath(),
           }),
@@ -380,114 +384,63 @@ export function registerGooseCodeCommands(
       console.error("No active workspace found");
       return;
     }
+
+    console.log("FOLLOW", workspace)
     const workspaceUri = workspace.uri;
     const selection = editor.selection;
+    await getDocumentSymbols();
     let definitions = await getDefinitions();
+    let references = await getReferences();
 
-    let currentDefinition: vscode.LocationLink | undefined;
-    definitions = definitions.filter((def) => {
-      if (def.originSelectionRange!.intersection(def.targetSelectionRange!)) {
-        currentDefinition = def;
-        return false;
-      }
-      return true;
+    const from = await fromRange(selection);
+    const fromMsg = new LocationWithContext({
+      location: new Location({
+        path: workspaceTracker.relativePath(
+          editor.document.uri.fsPath,
+        ),
+        range: from,
+      }),
     });
 
-    if (definitions.length > 0) {
-      if (definitions.length > 1) {
+
+    console.log("FROM", from.start.line, from.start.character, from.end.line, from.end.character);
+
+    const filteredDefinitions = getDefinitionsWithoutCurrentPosition(definitions, selection);
+
+    if (filteredDefinitions.length > 0) {
+      if (filteredDefinitions.length > 1) {
         console.warn("Multiple definitions found. Going to the first one");
       }
 
-      gooseCodeServer?.push(
-        new PushMessage({
-          type: PushType.PUSH_FILE_COMMAND,
-          file_command: new FileCommandPush({
-            type: FileCommandType.FILE_COMMAND_FOLLOW,
-            follow: new FollowPush({
-              type: FollowType.FOLLOW_DEFINITION,
-              definition: new DefinitionFollow({
-                from: new LocationWithContext({
-                  location: new Location({
-                    path: workspaceTracker.relativePath(
-                      editor.document.uri.fsPath,
-                    ),
-                    range: convertRange(definitions[0].originSelectionRange!),
-                  }),
-                }),
-                to: new LocationWithContext({
-                  location: new Location({
-                    path: workspaceTracker.relativePath(
-                      definitions[0].targetUri.fsPath,
-                    ),
-                    range: convertRange(definitions[0].targetSelectionRange!),
-                  }),
-                  context: new SnippetContext({
-                    full_range: convertRange(definitions[0].targetRange),
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      );
+      const msg = await createDefinitionFollowMessage(workspaceTracker, fromMsg, filteredDefinitions);
+      if (!msg) {
+        console.error("No definition message to push");
+        return;
+      }
 
+      // Push the message to goosecode
+      gooseCodeServer?.push(msg);
+
+      // Navigate in editor to the definition
       await goToDefinition(
         workspaceUri,
-        new Location({
-          path: workspaceTracker.relativePath(definitions[0].targetUri.fsPath),
-          range: convertRange(definitions[0].targetSelectionRange!),
-        }),
+        msg.file_command.follow.definition.to.location,
         false,
       );
       return;
     }
 
-    let currentLocation: vscode.Location | undefined;
-    let refs = await getReferences();
-
-    refs = refs.filter((ref) => {
-      if (ref.range!.intersection(selection)) {
-        currentLocation = ref;
-        return false;
+    const clickedDefinitionRef = await testDefinitionClicked(definitions, selection);
+    if (clickedDefinitionRef) {
+      const msg = await createReferencesFollowMessage(workspaceTracker, selection, fromMsg.clone(), clickedDefinitionRef);
+      if (!msg) {
+        console.error("No referencesmessage to push");
+        return;
       }
-      return true;
-    });
 
-    if (refs.length > 0) {
-      gooseCodeServer?.push(
-        new PushMessage({
-          type: PushType.PUSH_FILE_COMMAND,
-          file_command: new FileCommandPush({
-            type: FileCommandType.FILE_COMMAND_FOLLOW,
-            follow: new FollowPush({
-              type: FollowType.FOLLOW_REFERENCE,
-              reference: new ReferenceFollow({
-                from: new LocationWithContext({
-                  location: new Location({
-                    path: workspaceTracker.relativePath(
-                      currentLocation!.uri.fsPath,
-                    ),
-                    range: convertRange(currentLocation!.range),
-                  }),
-                  context: new SnippetContext({
-                    full_range: convertRange(currentDefinition!.targetRange),
-                  }),
-                }),
-                to: refs.map(
-                  (ref) =>
-                    new LocationWithContext({
-                      location: new Location({
-                        path: workspaceTracker.relativePath(ref.uri.fsPath),
-                        range: convertRange(ref.range),
-                      }),
-                    }),
-                ),
-              }),
-            }),
-          }),
-        }),
-      );
+      gooseCodeServer?.push(msg);
     }
+
   });
   subscriptions.push(sub);
 

@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { Uri } from "vscode";
-import { GooseCodeServer } from "../goosecode/server/server";
 
 export class ActiveSessionProvider
   implements vscode.TreeDataProvider<SessionEvent>

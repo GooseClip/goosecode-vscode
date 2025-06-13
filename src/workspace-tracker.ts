@@ -96,12 +96,23 @@ export class WorkspaceTracker {
     this.commitSubscriptions.length = 0;
 
     // Subscribe to commit changes
+    console.log("Workspaces", this.workspaces.length)
     for(var i = 0; i < this.workspaces.length; i++){
       const workspace = this.workspaces[i];
+      if(!workspace){
+        console.log("Workspace doesn't exist")
+      }
       const subscription = await onDidChangeCommit(workspace.uri, async (commit, branch) => {
         console.log(`[DEBUG][COMMIT CHANGE] ${workspace.uri.fsPath} ${commit} ${branch}`);
         const config = await updateWorkspaceConfiguration(workspace.config!, workspace.uri.fsPath, commit, branch);
-        this.workspaces[i].config!.config = config.GooseCode;
+        console.log("-----------")
+        console.log(this.workspaces[i])
+        console.log("-----------")
+        if(this.workspaces[i] && this.workspaces[i].config){
+          this.workspaces[i].config!.config = config.GooseCode;
+        }else{
+          console.log("Config doesn't exist")
+        }
         this.onRefreshed({ refreshCodeSources: true });
       });
       if (subscription) {

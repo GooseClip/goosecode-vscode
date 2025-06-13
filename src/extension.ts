@@ -17,7 +17,7 @@ import { registerGooseCodeCommands } from "./goosecode/goosecode";
 import { ConnectionProvider } from "./views/connection";
 import { ActiveSessionProvider } from "./views/active-session";
 
-import { goosecode } from "./proto/ide/ide";
+import { gooseclip } from "./proto/ide/v1/ide";
 
 var workspaceTracker: WorkspaceTracker | null = null;
 var gooseCodeServer: GooseCodeServer | null = null;
@@ -26,7 +26,7 @@ var codeSourcesProvider: CodeSourcesProvider | null = null;
 var connectionProvider: ConnectionProvider | null = null;
 var activeSessionProvider: ActiveSessionProvider | null = null;
 
-import WorkspaceDetails = goosecode.v2.app.source.ide.WorkspaceDetails;
+import WorkspaceDetails = gooseclip.goosecode.ide.v1.WorkspaceDetails;
 
 async function startServer(
   context: vscode.ExtensionContext,

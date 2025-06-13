@@ -2,13 +2,13 @@ import * as vscode from "vscode";
 import { RawData } from "ws";
 
 
-import { goosecode } from "./proto/ide/ide";
-import Location = goosecode.v2.app.source.ide.Location;
-import Position = goosecode.v2.app.source.ide.Position;
-import SymbolKind = goosecode.v2.app.source.ide.SymbolKind;
-import Range = goosecode.v2.app.source.ide.Range;
-import DocumentSymbol = goosecode.v2.app.source.ide.DocumentSymbol;
-import RequestMessage = goosecode.v2.app.source.ide.RequestMessage;
+import { gooseclip } from "./proto/ide/v1/ide";
+import Location = gooseclip.goosecode.ide.v1.Location;
+import Position = gooseclip.goosecode.ide.v1.Position;
+import SymbolKind = gooseclip.goosecode.ide.v1.SymbolKind;
+import Range = gooseclip.goosecode.ide.v1.Range;
+import DocumentSymbol = gooseclip.goosecode.ide.v1.DocumentSymbol;
+import RequestMessage = gooseclip.goosecode.ide.v1.RequestMessage;
 
 function isEntireWord(selection: vscode.Selection): boolean {
   const document = vscode.window.activeTextEditor?.document;
@@ -141,7 +141,7 @@ function convertSymbols(
         detail: d.detail,
         kind: convertSymbolKind(d.kind),
         range: convertRange(d.range),
-        selectionRange: convertRange(d.selectionRange),
+        selection_range: convertRange(d.selectionRange),
         children: convertSymbols(d.children),
       });
     } else if (d instanceof vscode.SymbolInformation) {

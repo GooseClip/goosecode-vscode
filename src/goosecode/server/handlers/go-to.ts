@@ -1,12 +1,12 @@
 import { Uri } from "vscode";
 import { goToDefinition } from "../../commands/commands";
 import { ApiError } from "../../errors";
-import { goosecode } from "../../../proto/ide/ide";
+import { gooseclip } from "../../../proto/ide/v1/ide";
 
-import RequestMessage = goosecode.v2.app.source.ide.RequestMessage;
-import ResponseMessage = goosecode.v2.app.source.ide.ResponseMessage;
-import ResponseType = goosecode.v2.app.source.ide.ResponseType;
-import GoToDefinitionResponse = goosecode.v2.app.source.ide.GoToDefinitionResponse;
+import RequestMessage = gooseclip.goosecode.ide.v1.RequestMessage;
+import ResponseMessage = gooseclip.goosecode.ide.v1.ResponseMessage;
+import ResponseType = gooseclip.goosecode.ide.v1.ResponseType;
+import GoToDefinitionResponse = gooseclip.goosecode.ide.v1.GoToDefinitionResponse;
 
 
 async function handleGoToDefinition(
@@ -23,7 +23,7 @@ async function handleGoToDefinition(
   }
 
   const response = new ResponseMessage({
-    type: ResponseType.RESPONSE_GO_TO_DEFINITION,
+    type: ResponseType.RESPONSE_TYPE_GO_TO_DEFINITION,
     repository_snapshot_fingerprint: request.repository_snapshot_fingerprint,
     go_to_definition_response: new GoToDefinitionResponse({}),
   });

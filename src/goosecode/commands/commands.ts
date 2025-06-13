@@ -1,11 +1,13 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { goosecode } from "../../proto/ide/ide";
-
+import { gooseclip } from "../../proto/ide/v1/ide";
+import { LocationOrLocationLink, DocumentSymbolOrSymbolInformation } from "@/types";
 import { Uri } from "vscode";
 
-import Location = goosecode.v2.app.source.ide.Location;
+import Location = gooseclip.goosecode.ide.v1.Location;
+import { WorkspaceTracker } from "../../workspace-tracker";
+import { convertRange } from "../../util";
 
 
 const defaultExclusions = [
@@ -63,19 +65,50 @@ export async function getFileContents(
   }
 }
 
-export async function getDefinitions(): Promise<vscode.LocationLink[]> {
+
+export async function getDocumentSymbols(): Promise<undefined> {
+  const activeEditor = vscode.window.activeTextEditor;
+  if (!activeEditor) {
+    return;
+  }
+  const documentUri = activeEditor.document.uri;
+  const symbols = await vscode.commands.executeCommand<DocumentSymbolOrSymbolInformation[]>(
+    'vscode.executeDocumentSymbolProvider',
+    documentUri,
+  );
+  if (!symbols) {
+    return;
+  }
+
+  console.log("[INFO][GET DOCUMENT SYMBOLS]", "Symbols", symbols.length);
+
+  for (const s of symbols) {
+    if (s instanceof vscode.DocumentSymbol) {
+      console.log("[INFO][GET SYMBOL RANGE]", "DocumentSymbol", s);
+    } else if (s instanceof vscode.SymbolInformation) {
+      console.log("[INFO][GET SYMBOL RANGE]", "SymbolInformation", s);
+    } else {
+      console.log("[WARN][GET SYMBOL RANGE]", "Unknown symbol type", s);
+    }
+  }
+}
+
+export async function getDefinitions(): Promise<LocationOrLocationLink[]> {
   const activeEditor = vscode.window.activeTextEditor;
 
   if (activeEditor) {
     const position = activeEditor.selection.active;
-    const links = await vscode.commands.executeCommand<vscode.LocationLink[]>(
+    const definitions = await vscode.commands.executeCommand<LocationOrLocationLink[]>(
       "vscode.executeDefinitionProvider",
       activeEditor.document.uri,
       position,
     );
 
-    if (links && links.length > 0) {
-      return links;
+    if (definitions && definitions.length > 0) {
+      for (const d of definitions) {
+        console.log("[INFO][GET DEFINITIONS]", "Definition", d);
+      }
+      return definitions;
     } else {
       console.log(
         "[WARN][DEFINITIONS]",
@@ -102,6 +135,9 @@ export async function getReferences(): Promise<vscode.Location[]> {
     );
 
     if (references && references.length > 0) {
+      for (const r of references) {
+        console.log("[INFO][GET REFERENCES]", "Reference", r);
+      }
       return references;
     } else {
       console.log(
