@@ -174,7 +174,6 @@ export class GooseCodeServer {
     },
 
     getFiles: async (request: gc.GetFilesRequest, context: rpc.ServerCallContext): Promise<gc.GetFilesResponse> => {
-
       context.sendResponseHeaders({
         'status': 'processing...'
       });
@@ -182,11 +181,6 @@ export class GooseCodeServer {
       context.trailers = {
         'status': '...done'
       };
-
-
-      console.log(
-        `Get files: ${request.context!.repositorySnapshotFingerprint} ${request.filePaths}`,
-      );
       try {
         const workspace = this.workspaceTracker.getWorkspaceFromFingerprint(
           request.context!.repositorySnapshotFingerprint,
@@ -198,6 +192,7 @@ export class GooseCodeServer {
         const res = await handleGetFilesRequest(request, workspace!.uri!);
         return res;
       } catch (e) {
+        console.error(e);
         throw new ApiError("Internal error", 500);
       }
     },

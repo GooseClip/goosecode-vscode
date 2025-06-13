@@ -3,32 +3,33 @@ import { getFileContents } from "../../commands/commands";
 import * as vscode from "vscode";
 
 import * as gc from "@/gen/ide";
-import { getFileContentsAtCommit } from "@/git";
+import { getDiffToHead, getFileContentsAtCommit as getFileContentsAtHead } from "@/git";
 
 async function handleGetFilesRequest(
   request: gc.GetFilesRequest,
   workspaceUri: vscode.Uri,
 
 ): Promise<gc.GetFilesResponse> {
-  // TODO GET THE COMMIT CONTENTS AND THE DELTA
-
-  console.log(`HANDLE GET FILES: ${request.filePaths.join(",")}`)
-  console.log(`WORKSPACE URL ${workspaceUri.fsPath}`)
   const contents: gc.FileContent[] = [];
   for (var v of request.filePaths) {
     const current = await getFileContents(
       workspaceUri,
       [v],
     );
-    const commitContent = await getFileContentsAtCommit(vscode.Uri.file(vscode.window.activeTextEditor!.document.uri.fsPath));
+    var head = null;
+    try {
+      console.log("Getting diff")
+      head = await getFileContentsAtHead(vscode.Uri.file(vscode.window.activeTextEditor!.document.uri.fsPath));
+    } catch (e) {
+      console.error("Failed to get patch")
+    }
 
-    console.log("CURRENT CONTENT", current[0]);
-    console.log("COMMIT CONTENT", commitContent);
+    console.log("Returning conent")
 
     contents.push(gc.FileContent.create({
       filePath: v,
+      fileAtHead:  head ?? "",
       currentContent: current[0],
-      commitContent: commitContent ?? "",
     }));
   }
 

@@ -17,23 +17,6 @@ export interface GitInfo {
     unstagedFiles: string[];
 }
 
-async function runGitCommand(command: string, cwd: string): Promise<string> {
-    try {
-        const { stdout } = await exec(command, { cwd });
-        return stdout.trim();
-    } catch (error: any) {
-        // Handle cases where the command fails (e.g., no remote named 'origin')
-        if (error.stderr?.includes('No such remote') || error.message?.includes('No such remote')) {
-            // Specific error for missing remote, handle gracefully
-            throw new Error('Remote origin not found');
-        }
-        if (error.stderr?.includes('not a git repository') || error.message?.includes('not a git repository')) {
-            throw new Error('Not a git repository');
-        }
-        throw new Error(`Failed to run git command "${command}": ${error.message}`);
-    }
-}
-
 // Helper function to parse GitHub repository name from URL
 function parseRepoFullName(url: string): string | null {
     if (!url) return null;
@@ -122,31 +105,88 @@ function parseRepoFullName(url: string): string | null {
 //     }
 // }
 
+async function  _getRepo(resourceUri: vscode.Uri, wait: boolean): Promise<git.Repository | null>{
+    const extension = vscode.extensions.getExtension('vscode.git');
+    if (!extension) {
+        console.warn('VS Code Git extension not found.');
+        return null;
+    }
+
+    // Activate the extension if needed
+    if (!extension.isActive) {
+        if(!wait){
+            return null;
+        }
+        await extension.activate();
+    }
+
+    // Type the exports object as GitExtension and get the API
+    const gitExtensionExports = extension.exports as git.GitExtension;
+    const gitApi: git.API | undefined = gitExtensionExports.getAPI(1);
+    if (!gitApi) {
+        console.warn('Could not get Git API (version 1).');
+        return null;
+    }
+
+    const repo: git.Repository | null = gitApi.getRepository(resourceUri);
+    if (!repo) {
+        console.log('No Git repository found containing resource:', resourceUri.fsPath);
+        return null;
+    }
+
+    return repo;
+}
+
+export async function getFileContentsAtCommit(resourceUri: vscode.Uri): Promise<string | null> {
+    try {
+       
+        const repo = await _getRepo(resourceUri, false);
+        if(repo == null){
+            return null;
+        }
+        const head = repo.state.HEAD;
+        if (!head?.commit) {
+            console.warn('No HEAD commit found.');
+            return null;
+        }
+        
+        return await repo.show(head.commit, resourceUri.fsPath);
+
+    } catch (error: any) {
+        // This will catch errors if the file doesn't exist in HEAD either (e.g. new untracked file)
+        console.error(`Failed to get file contents for ${resourceUri.fsPath}:`, error);
+        return null;
+    }
+    
+}
+
+export async function getDiffToHead(resourceUri: vscode.Uri): Promise<string | null> {
+    try {
+        const repo = await _getRepo(resourceUri, false);
+        if(repo == null){
+            return null;
+        }
+
+        const head = repo.state.HEAD;
+        if (!head?.commit) {
+            console.warn('No HEAD commit found.');
+            return null;
+        }
+        
+        return await repo.diffWithHEAD(resourceUri.fsPath);
+
+    } catch (error: any) {
+        // This will catch errors if the file doesn't exist in HEAD either (e.g. new untracked file)
+        console.error(`Failed to get file contents for ${resourceUri.fsPath}:`, error);
+        return null;
+    }
+    
+}
+
 export async function getGitInfoFromVscodeApi(resourceUri: vscode.Uri): Promise<GitInfo | null> {
     try {
-        // Get the extension object first
-        const extension = vscode.extensions.getExtension('vscode.git');
-        if (!extension) {
-            console.warn('VS Code Git extension not found.');
-            return null;
-        }
-
-        // Activate the extension if needed
-        if (!extension.isActive) {
-            await extension.activate();
-        }
-
-        // Type the exports object as GitExtension and get the API
-        const gitExtensionExports = extension.exports as git.GitExtension;
-        const gitApi: git.API | undefined = gitExtensionExports.getAPI(1);
-        if (!gitApi) {
-            console.warn('Could not get Git API (version 1).');
-            return null;
-        }
-
-        const repo: git.Repository | null = gitApi.getRepository(resourceUri);
-        if (!repo) {
-            // console.log('No Git repository found containing resource:', resourceUri.fsPath);
+        const repo = await _getRepo(resourceUri, true);
+        if(repo == null){
             return null;
         }
 
@@ -196,29 +236,8 @@ export async function onDidChangeCommit(
     callback: (commitSHA: string, branch?: string) => void
 ): Promise<vscode.Disposable | null> {
     try {
-        // Get the extension object first
-        const extension = vscode.extensions.getExtension('vscode.git');
-        if (!extension) {
-            console.warn('VS Code Git extension not found.');
-            return null;
-        }
-
-        // Activate the extension if needed
-        if (!extension.isActive) {
-            await extension.activate();
-        }
-
-        // Type the exports object as GitExtension and get the API
-        const gitExtensionExports = extension.exports as git.GitExtension;
-        const gitApi: git.API | undefined = gitExtensionExports.getAPI(1);
-        if (!gitApi) {
-            console.warn('Could not get Git API (version 1).');
-            return null;
-        }
-
-        const repo: git.Repository | null = gitApi.getRepository(resourceUri);
-        if (!repo) {
-            console.log('No Git repository found containing resource:', resourceUri.fsPath);
+        const repo = await _getRepo(resourceUri, true);
+        if(repo == null){
             return null;
         }
 

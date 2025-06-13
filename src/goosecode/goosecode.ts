@@ -346,13 +346,19 @@ export function registerGooseCodeCommands(
       gooseCodeServer?.push(msg);
 
 
-      // Navigate in edittor to the definition
-      await goToDefinition(
-        workspaceUri,
-        // @ts-ignore
-        msg.data.fileCommand!.follow.definition.to.location,
-        false,
-      );
+      try {
+        // Navigate in edittor to the definition
+        if (msg.data.oneofKind == "fileCommand" && msg.data.fileCommand.data.oneofKind == "follow" && msg.data.fileCommand.data.follow.data.oneofKind == "definition") {
+          await goToDefinition(
+            workspaceUri,
+            msg.data.fileCommand.data.follow.data.definition.to!.location!,
+            false,
+          );
+        }
+
+      } catch (e) {
+        console.error(e);
+      }
       return;
     }
 

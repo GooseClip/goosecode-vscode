@@ -41,13 +41,13 @@ export interface FileContent {
      */
     filePath: string;
     /**
-     * @generated from protobuf field: string current_content = 2
+     * @generated from protobuf field: string file_at_head = 2
+     */
+    fileAtHead: string;
+    /**
+     * @generated from protobuf field: string current_content = 3
      */
     currentContent: string;
-    /**
-     * @generated from protobuf field: string commit_content = 3
-     */
-    commitContent: string;
 }
 /**
  * @generated from protobuf message gooseclip.goosecode.ide.v1.GetFilesRequest
@@ -566,15 +566,15 @@ class FileContent$Type extends MessageType<FileContent> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.FileContent", [
             { no: 1, name: "file_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "current_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "commit_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "file_at_head", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "current_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<FileContent>): FileContent {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.filePath = "";
+        message.fileAtHead = "";
         message.currentContent = "";
-        message.commitContent = "";
         if (value !== undefined)
             reflectionMergePartial<FileContent>(this, message, value);
         return message;
@@ -587,11 +587,11 @@ class FileContent$Type extends MessageType<FileContent> {
                 case /* string file_path */ 1:
                     message.filePath = reader.string();
                     break;
-                case /* string current_content */ 2:
-                    message.currentContent = reader.string();
+                case /* string file_at_head */ 2:
+                    message.fileAtHead = reader.string();
                     break;
-                case /* string commit_content */ 3:
-                    message.commitContent = reader.string();
+                case /* string current_content */ 3:
+                    message.currentContent = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -608,12 +608,12 @@ class FileContent$Type extends MessageType<FileContent> {
         /* string file_path = 1; */
         if (message.filePath !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.filePath);
-        /* string current_content = 2; */
+        /* string file_at_head = 2; */
+        if (message.fileAtHead !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.fileAtHead);
+        /* string current_content = 3; */
         if (message.currentContent !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.currentContent);
-        /* string commit_content = 3; */
-        if (message.commitContent !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.commitContent);
+            writer.tag(3, WireType.LengthDelimited).string(message.currentContent);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
