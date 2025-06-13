@@ -37,11 +37,15 @@ export interface Context {
  */
 export interface FileContent {
     /**
-     * @generated from protobuf field: string current_content = 1
+     * @generated from protobuf field: string file_path = 1
+     */
+    filePath: string;
+    /**
+     * @generated from protobuf field: string current_content = 2
      */
     currentContent: string;
     /**
-     * @generated from protobuf field: string commit_content = 2
+     * @generated from protobuf field: string commit_content = 3
      */
     commitContent: string;
 }
@@ -561,12 +565,14 @@ export const Context = new Context$Type();
 class FileContent$Type extends MessageType<FileContent> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.FileContent", [
-            { no: 1, name: "current_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "commit_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "file_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "current_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "commit_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<FileContent>): FileContent {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.filePath = "";
         message.currentContent = "";
         message.commitContent = "";
         if (value !== undefined)
@@ -578,10 +584,13 @@ class FileContent$Type extends MessageType<FileContent> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string current_content */ 1:
+                case /* string file_path */ 1:
+                    message.filePath = reader.string();
+                    break;
+                case /* string current_content */ 2:
                     message.currentContent = reader.string();
                     break;
-                case /* string commit_content */ 2:
+                case /* string commit_content */ 3:
                     message.commitContent = reader.string();
                     break;
                 default:
@@ -596,12 +605,15 @@ class FileContent$Type extends MessageType<FileContent> {
         return message;
     }
     internalBinaryWrite(message: FileContent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string current_content = 1; */
+        /* string file_path = 1; */
+        if (message.filePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.filePath);
+        /* string current_content = 2; */
         if (message.currentContent !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.currentContent);
-        /* string commit_content = 2; */
+            writer.tag(2, WireType.LengthDelimited).string(message.currentContent);
+        /* string commit_content = 3; */
         if (message.commitContent !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.commitContent);
+            writer.tag(3, WireType.LengthDelimited).string(message.commitContent);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

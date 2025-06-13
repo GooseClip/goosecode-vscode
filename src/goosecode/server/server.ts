@@ -8,6 +8,7 @@ import { ApiError } from '../errors';
 import { Workspace, WorkspaceTracker } from '../../workspace-tracker';
 import { getGitInfoFromVscodeApi } from '../../git';
 import * as vscode from "vscode";
+import * as stream from "streamx";
 
 export class GooseCodeServer {
   constructor(
@@ -21,7 +22,7 @@ export class GooseCodeServer {
     return this.server !== null;
   }
 
-  private pushStream: rpc.RpcInputStream<gc.PushResponse> | null = null;
+  private pushStream: stream.Duplex | null = null;
 
 
   public async push(message: gc.PushResponse) {
@@ -61,7 +62,7 @@ export class GooseCodeServer {
 
       }
 
-      this.pushStream.send(message);
+      this.pushStream.push(message);
     } else {
       console.warn("Cannot push message: no client connected to the push stream.");
     }
@@ -116,22 +117,19 @@ export class GooseCodeServer {
       context.trailers = {
         'status': '...done'
       };
-      if (this.pushStream) {
-        console.warn('A client is already connected to the push stream. Rejecting new connection.');
-        const error = {
-          code: grpc.status.CANCELLED,
-          details: 'Connection replaced.',
-        };
 
-        this.pushStream.complete();
-        return;
+      if (this.pushStream) {
+        console.warn('A client is already connected to the push stream. Replacing with new connection.');
+        this.pushStream.end();
+        this.pushStream = null;
       }
 
       console.log('Client connected to push stream.');
-      this.pushStream = responses;
+      this.pushStream = new stream.Duplex()
       this.onConnected();
 
-      console.log("WRITING UNSPECIFIED");
+
+      console.log("SENDING TEST MESSAGE");
       try {
         responses.send(gc.PushResponse.create({
           type: gc.PushType.UNSPECIFIED,
@@ -139,23 +137,40 @@ export class GooseCodeServer {
       } catch (e) {
         console.log("ERROR", e);
       }
-      console.log("AFTER WRITE UNSPECIFIED");
-      // this.pushStream.complete();
-
-      // const workspaces = await this.workspaceTracker.refresh();
-      // // After delay, send refresh
-      // setTimeout(() => {
-      //   this.pushWorkspacesToGooseCode(workspaces);
-      // }, 1000);
 
 
+      const workspaces = await this.workspaceTracker.refresh();
+      // After delay, send refresh
+      setTimeout(() => {
+        this.pushWorkspacesToGooseCode(workspaces);
+        console.log("PUSHED WORKSPACES");
+      }, 1000);
+
+
+      // Set up cleanup handler
+      const cleanup = () => {
+        this.onClosed();
+      };
+
+      // Handle cancellation
       context.onCancel(() => {
         console.log('Push stream cancelled by client.');
-        if (this.pushStream === responses) {
-          this.pushStream = null;
-          this.onClosed();
-        }
+        cleanup();
       });
+
+      try {
+        // TODO STREAM RESPONSES TO CLIENT
+        for await (const m of this.pushStream) {
+          console.log("Sending message:", m);
+          responses.send(m);
+          // Handle client message if necessary
+        }
+      } catch (e) {
+        console.error("Error reading from client push stream", e);
+      } finally {
+        console.log("Client push stream ended.");
+        cleanup();
+      }
     },
 
     getFiles: async (request: gc.GetFilesRequest, context: rpc.ServerCallContext): Promise<gc.GetFilesResponse> => {
@@ -366,7 +381,7 @@ export class GooseCodeServer {
   }
 
   public stop() {
-    this.pushStream?.complete();
+    this.pushStream?.end();
     this.pushStream = null;
     this.server?.forceShutdown();
     this.server = null;
@@ -407,7 +422,7 @@ function authInterceptorFactory(password: string): grpc.ServerInterceptor {
           console.log("Authenticated");
           next(metadata);
         } else {
-          console.error("Not authenticated");
+          console.error("Not authenticated:", metadata.get('authorization'));
           call.sendStatus({
             code: grpc.status.UNAUTHENTICATED,
             details: 'Not authenticated'
