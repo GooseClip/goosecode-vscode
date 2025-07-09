@@ -4,10 +4,10 @@ import * as gc from "../gen/ide";
 import { getSelectedOneofValue, setOneofValue } from "@protobuf-ts/runtime";
 
 import { convertRange } from "../util";
-import { LocationOrLocationLink } from "@/types";
-import { getReferences } from "./commands/commands";
-import { WorkspaceTracker } from "@/workspace-tracker";
-import { selectLbConfigFromList } from "@grpc/grpc-js/build/src/load-balancer";
+import { LocationOrLocationLink } from "../types";
+import { getFileContents, getReferences } from "./commands/commands";
+import { WorkspaceTracker } from "../workspace-tracker";
+import { getFileContentsAtCommit as getFileContentsAtHead } from "../git";
 
 // If the user clicks on where something is defined, we return the symbol that was clicked.
 export async function testDefinitionClicked(definitions: LocationOrLocationLink[], selection: vscode.Selection): Promise<LocationOrLocationLink | undefined> {
@@ -77,7 +77,38 @@ export async function getDefinitionsOfSelection(
     });
 
     console.log("FOLLOW DEFINITION", definitions);
-    return await wrapFollowDefinition(defMsg);
+
+    const fileContexts: gc.FileContext[] = [];
+
+    const ws = workspaceTracker.getLastActiveGooseCodeWorkspace();
+    const paths = [
+        fromMsg.location!.path,
+        toMsg.location!.path,
+    ]
+    for (var v of paths) {
+      const current = await getFileContents(
+        ws!.uri,
+        [v],
+      );
+      
+      console.log(`CURRENT:${current}`);
+  
+      var head = null;
+      try {
+        head = await getFileContentsAtHead(vscode.Uri.file(vscode.window.activeTextEditor!.document.uri.fsPath));
+      } catch (e) {
+        console.error("Failed to get patch")
+      }
+  
+      fileContexts.push(gc.FileContext.create({
+        filePath: v,
+        headContent:  head ?? "",
+        currentContent: current[0],
+      }));
+    }
+
+    
+    return await wrapFollowDefinition(fileContexts, defMsg);
 }
 
 
@@ -129,8 +160,6 @@ export async function fromRange(selection: vscode.Selection): Promise<gc.Range> 
     const tup = await getWordAtPosition();
     if (tup) {
         const { word, range } = tup;
-        console.log("WORD", word);
-        console.log("RANGE", range);
         return convertRange(range);
     }
 
@@ -149,13 +178,14 @@ export async function fromRange(selection: vscode.Selection): Promise<gc.Range> 
     });
 }
 
-export async function wrapFollowDefinition(defMsg: gc.DefinitionFollow): Promise<gc.PushResponse> {
+export async function wrapFollowDefinition(fileContext: gc.FileContext[], defMsg: gc.DefinitionFollow): Promise<gc.PushResponse> {
     return gc.PushResponse.create({
         type: gc.PushType.FILE_COMMAND,
         data: {
             oneofKind: "fileCommand",
             fileCommand: gc.FileCommandPush.create({
                 type: gc.FileCommandType.FOLLOW,
+                fileContexts: fileContext,
                 data: {
                     oneofKind: "follow",
                     follow: gc.FollowPush.create({

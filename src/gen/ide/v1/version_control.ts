@@ -19,28 +19,26 @@ export interface VersionControlInfo {
      */
     repositoryFullname: string;
     /**
-     * @generated from protobuf field: string branch = 2
+     * @generated from protobuf field: optional string branch = 2
      */
-    branch: string;
+    branch?: string;
     /**
-     * @generated from protobuf field: string commit = 3
+     * @generated from protobuf field: optional string commit = 3
      */
-    commit: string;
+    commit?: string;
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class VersionControlInfo$Type extends MessageType<VersionControlInfo> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.VersionControlInfo", [
             { no: 1, name: "repository_fullname", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "branch", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "commit", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "branch", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "commit", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<VersionControlInfo>): VersionControlInfo {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.repositoryFullname = "";
-        message.branch = "";
-        message.commit = "";
         if (value !== undefined)
             reflectionMergePartial<VersionControlInfo>(this, message, value);
         return message;
@@ -53,10 +51,10 @@ class VersionControlInfo$Type extends MessageType<VersionControlInfo> {
                 case /* string repository_fullname */ 1:
                     message.repositoryFullname = reader.string();
                     break;
-                case /* string branch */ 2:
+                case /* optional string branch */ 2:
                     message.branch = reader.string();
                     break;
-                case /* string commit */ 3:
+                case /* optional string commit */ 3:
                     message.commit = reader.string();
                     break;
                 default:
@@ -74,11 +72,11 @@ class VersionControlInfo$Type extends MessageType<VersionControlInfo> {
         /* string repository_fullname = 1; */
         if (message.repositoryFullname !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.repositoryFullname);
-        /* string branch = 2; */
-        if (message.branch !== "")
+        /* optional string branch = 2; */
+        if (message.branch !== undefined)
             writer.tag(2, WireType.LengthDelimited).string(message.branch);
-        /* string commit = 3; */
-        if (message.commit !== "")
+        /* optional string commit = 3; */
+        if (message.commit !== undefined)
             writer.tag(3, WireType.LengthDelimited).string(message.commit);
         let u = options.writeUnknownFields;
         if (u !== false)

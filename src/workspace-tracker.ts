@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
-import { Uri } from "vscode";
 import * as path from "path";
+import * as gc from "./gen/ide";
 import {
-  RepositorySnapshotFingerprint,
   GooseCodeWorkspaceConfig,
   loadWorkspaceConfiguration,
   updateWorkspaceConfiguration,
@@ -22,10 +21,6 @@ export class Workspace {
     return this.workspace.uri;
   }
 
-  get fingerprint(): RepositorySnapshotFingerprint | null {
-    return this.config?.config.fingerprint ?? null;
-  }
-
   get isEnabled(): boolean {
     return this.config !== null;
   }
@@ -38,23 +33,34 @@ export class WorkspaceTracker {
   ) {}
   public workspaces: Workspace[] = [];
   private lastWorkspace: Workspace | null = null;
-  private activeFile: Uri | null = null;
+  private activeFile: vscode.Uri | null = null;
   private commitSubscriptions: vscode.Disposable[] = [];
 
   public activeWorkspaces(): Array<Workspace> {
     return this.workspaces.filter((w) => w.isEnabled);
   }
 
-  public getWorkspaceFromFingerprint(
-    fingerprint: RepositorySnapshotFingerprint,
+  public getWorkspaceFromContext(
+    context: gc.Context,
   ): Workspace | null {
+    
+
+    // Use the repository fullname and commit in search
+    if(context.versionControlInfo?.commit){
+      const hit = this.activeWorkspaces().find(
+        (w) => w.config!.config.repositoryFullName === context.versionControlInfo?.repositoryFullname && w.config!.config.commit === context.versionControlInfo?.commit,
+      );
+      return hit || null;
+    }
+
+    // Use the repository fullname in search
     const hit = this.activeWorkspaces().find(
-      (w) => w.config!.config.fingerprint === fingerprint,
+      (w) => w.config!.config.repositoryFullName === context.versionControlInfo?.repositoryFullname,
     );
     return hit || null;
   }
 
-  public getWorkspaceFromFile(activeFileUri: Uri): Workspace | null {
+  public getWorkspaceFromFile(activeFileUri: vscode.Uri): Workspace | null {
     const ws = vscode.workspace.getWorkspaceFolder(activeFileUri);
     if (!ws) {
       return null;
@@ -63,7 +69,12 @@ export class WorkspaceTracker {
     return hit || null;
   }
 
-  public onActiveFileChanged(activeFileUri: Uri) {
+  public getWorkspaceFromWorkspaceUri(workspaceUri: vscode.Uri): Workspace | null {
+    const hit = this.workspaces.find((w) => w.uri === workspaceUri);
+    return hit || null;
+  }
+
+  public onActiveFileChanged(activeFileUri: vscode.Uri) {
     this.activeFile = activeFileUri;
     const workspace = this.getWorkspaceFromFile(activeFileUri);
     if (!workspace) {
@@ -95,6 +106,8 @@ export class WorkspaceTracker {
     this.commitSubscriptions.forEach((s) => s.dispose());
     this.commitSubscriptions.length = 0;
 
+
+    console.log("!!!!!!!!!!!!!!!!Subscribing to commit changes!!!!!!!!!!!!")
     // Subscribe to commit changes
     console.log("Workspaces", this.workspaces.length)
     for(var i = 0; i < this.workspaces.length; i++){
@@ -102,25 +115,34 @@ export class WorkspaceTracker {
       if(!workspace){
         console.log("Workspace doesn't exist")
       }
-      const subscription = await onDidChangeCommit(workspace.uri, async (commit, branch) => {
-        console.log(`[DEBUG][COMMIT CHANGE] ${workspace.uri.fsPath} ${commit} ${branch}`);
-        const config = await updateWorkspaceConfiguration(workspace.config!, workspace.uri.fsPath, commit, branch);
-        console.log("-----------")
-        console.log(this.workspaces[i])
-        console.log("-----------")
-        if(this.workspaces[i] && this.workspaces[i].config){
-          this.workspaces[i].config!.config = config.GooseCode;
-        }else{
-          console.log("Config doesn't exist")
-        }
-        this.onRefreshed({ refreshCodeSources: true });
-      });
+      const subscription = await onDidChangeCommit(workspace.uri, this.handleCommitChange.bind(this));
       if (subscription) {
         this.commitSubscriptions.push(subscription);
       }
     }
 
     return this.workspaces.filter((w) => fromCodeSources || w.isEnabled);
+  }
+
+  private async handleCommitChange(workspaceUri: vscode.Uri, commit: string, branch: string) {
+    console.log(`[DEBUG][COMMIT CHANGE] ${workspaceUri.fsPath} ${commit} ${branch}`);
+
+    
+    const workspace = this.getWorkspaceFromWorkspaceUri(workspaceUri);
+    if(!workspace){
+      console.error("Workspace not found after commit/branch change");
+    }
+
+    const config = await updateWorkspaceConfiguration(workspace!.config!, workspace!.uri.fsPath, commit, branch);
+    console.log("-----------")
+    console.log(workspace)
+    console.log("-----------")
+    if(workspace && workspace.config){
+      workspace.config!.config = config.GooseCode;
+    }else{
+      console.log("Config doesn't exist")
+    }
+    this.onRefreshed({ refreshCodeSources: true });
   }
 
   // TODO what if the first file is a dependency

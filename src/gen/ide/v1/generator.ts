@@ -2,23 +2,6 @@
 // @generated from protobuf file "gooseclip/goosecode/ide/v1/generator.proto" (package "gooseclip.goosecode.ide.v1", syntax proto3)
 // tslint:disable
 /**
- * @generated from protobuf enum gooseclip.goosecode.ide.v1.ActiveSessionType
- */
-export enum ActiveSessionType {
-    /**
-     * @generated from protobuf enum value: ACTIVE_SESSION_TYPE_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: ACTIVE_SESSION_TYPE_DELETE = 1;
-     */
-    DELETE = 1,
-    /**
-     * @generated from protobuf enum value: ACTIVE_SESSION_TYPE_SAVE = 2;
-     */
-    SAVE = 2
-}
-/**
  * @generated from protobuf enum gooseclip.goosecode.ide.v1.RegenerateType
  */
 export enum RegenerateType {

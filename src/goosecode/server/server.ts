@@ -27,9 +27,7 @@ export class GooseCodeServer {
 
   public async push(message: gc.PushResponse) {
     if (this.pushStream) {
-      console.log("PUSH STREAM", typeof this.pushStream);
-
-      console.log("[PUSH]", message.type);
+      console.log("Pushing =>", gc.PushType[message.type]);
       if (message.type === gc.PushType.FILE_COMMAND) {
         const activeWorkspace =
           this.workspaceTracker.getLastActiveGooseCodeWorkspace();
@@ -47,9 +45,9 @@ export class GooseCodeServer {
 
         const endTime = Date.now();
 
-        console.log(`Workspace: ${activeWorkspace.uri.fsPath}`);
-        console.log(`Git info: ${JSON.stringify(gitInfo)}`);
-        console.log(`Time taken: ${endTime - startTime}ms`);
+        // console.log(`Workspace: ${activeWorkspace.uri.fsPath}`);
+        // console.log(`Git info: ${JSON.stringify(gitInfo)}`);
+        // console.log(`Time taken: ${endTime - startTime}ms`);
         // Inject the workspace root so GooseCode can automatically associate the connection
         message.context = gc.PushContext.create({
           workspaceRoot: activeWorkspace.uri.fsPath,
@@ -78,7 +76,11 @@ export class GooseCodeServer {
       for (const workspace of workspaces) {
         toSend.push(gc.WorkspaceDetails.create({
           workspaceRoot: workspace.uri.fsPath,
-          repositorySnapshotFingerprint: workspace.config!.config.fingerprint,
+          versionControlInfo: gc.VersionControlInfo.create({
+            repositoryFullname: workspace.config!.config.repositoryFullName,
+            branch: workspace.config!.config.branch,
+            commit: workspace.config!.config.commit,
+          }),
           deleted: false,
         }));
       }
@@ -182,13 +184,14 @@ export class GooseCodeServer {
         'status': '...done'
       };
       try {
-        const workspace = this.workspaceTracker.getWorkspaceFromFingerprint(
-          request.context!.repositorySnapshotFingerprint,
+        const workspace = this.workspaceTracker.getWorkspaceFromContext(
+          request.context!,
         );
-        if (workspace === null) {
-          throw new ApiError("Workspace not found", 422);
-        }
 
+        if (workspace === null) {
+          throw new ApiError(`Workspace not found: ${request.context!.versionControlInfo?.repositoryFullname}`, 422);
+        }
+      
         const res = await handleGetFilesRequest(request, workspace!.uri!);
         return res;
       } catch (e) {
@@ -354,15 +357,15 @@ export class GooseCodeServer {
 
     server.bindAsync(
       host,
-      grpc.ServerCredentials.createInsecure(),
-      // grpc.ServerCredentials.createSsl(
-      //   null, // rootCerts - null since we're not validating client certs
-      //   [{
-      //     private_key: privateKey,
-      //     cert_chain: certChain
-      //   }],
-      //   false // checkClientCertificate - matches rejectUnauthorized setting
-      // ),
+      // grpc.ServerCredentials.createInsecure(),
+      grpc.ServerCredentials.createSsl(
+        null, // rootCerts - null since we're not validating client certs
+        [{
+          private_key: privateKey,
+          cert_chain: certChain
+        }],
+        false // checkClientCertificate - matches rejectUnauthorized setting
+      ),
       (err: Error | null, port: number) => {
         if (err) {
           console.error(`Server error: ${err.message}`);
@@ -411,13 +414,11 @@ function authInterceptorFactory(password: string): grpc.ServerInterceptor {
   return (methodDescriptor: grpc.ServerMethodDefinition<any, any>, call: grpc.ServerInterceptingCallInterface) => {
     const listener = (new grpc.ServerListenerBuilder())
       .withOnReceiveMetadata((metadata, next) => {
-        console.log("Received metadata: ", metadata);
         console.log("Method: ", methodDescriptor.path);
         if (validateAuthorizationMetadata(metadata, password)) {
-          console.log("Authenticated");
           next(metadata);
         } else {
-          console.error("Not authenticated:", metadata.get('authorization'));
+          console.error("Not authenticated");
           call.sendStatus({
             code: grpc.status.UNAUTHENTICATED,
             details: 'Not authenticated'

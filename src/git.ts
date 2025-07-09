@@ -224,19 +224,12 @@ export async function getGitInfoFromVscodeApi(resourceUri: vscode.Uri): Promise<
     }
 }
 
-/**
- * Watches for changes to the HEAD commit of the Git repository containing the resourceUri.
- *
- * @param resourceUri A URI within the repository to watch.
- * @param callback A function to call when the HEAD commit hash changes. It receives the new commit hash.
- * @returns A Promise resolving to a vscode.Disposable that can be used to stop watching, or null if the repository/API cannot be found.
- */
 export async function onDidChangeCommit(
-    resourceUri: vscode.Uri,
-    callback: (commitSHA: string, branch?: string) => void
+    workspaceUri: vscode.Uri,
+    callback: (workspaceUri: vscode.Uri, commitSHA: string, branch: string) => void
 ): Promise<vscode.Disposable | null> {
     try {
-        const repo = await _getRepo(resourceUri, true);
+        const repo = await _getRepo(workspaceUri, true);
         if(repo == null){
             return null;
         }
@@ -251,7 +244,7 @@ export async function onDidChangeCommit(
             if (previousCommitHash !== sha || previousBranch !== branch) {
                 previousCommitHash = sha;
                 previousBranch = branch;
-                callback(sha ?? '', branch ?? '');
+                callback(workspaceUri, sha ?? '', branch ?? '');
             }
         });
 

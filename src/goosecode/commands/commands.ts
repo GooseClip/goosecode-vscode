@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import * as gc from "../../gen/ide";
-import { LocationOrLocationLink, DocumentSymbolOrSymbolInformation } from "@/types";
+import { LocationOrLocationLink, DocumentSymbolOrSymbolInformation } from "../../types";
 import { Uri } from "vscode";
 
 
@@ -76,17 +76,17 @@ export async function getDocumentSymbols(): Promise<undefined> {
     return;
   }
 
-  console.log("[INFO][GET DOCUMENT SYMBOLS]", "Symbols", symbols.length);
+  // console.log("[INFO][GET DOCUMENT SYMBOLS]", "Symbols", symbols.length);
 
-  for (const s of symbols) {
-    if (s instanceof vscode.DocumentSymbol) {
-      console.log("[INFO][GET SYMBOL RANGE]", "DocumentSymbol", s);
-    } else if (s instanceof vscode.SymbolInformation) {
-      console.log("[INFO][GET SYMBOL RANGE]", "SymbolInformation", s);
-    } else {
-      console.log("[WARN][GET SYMBOL RANGE]", "Unknown symbol type", s);
-    }
-  }
+  // for (const s of symbols) {
+  //   if (s instanceof vscode.DocumentSymbol) {
+  //     console.log("[INFO][GET SYMBOL RANGE]", "DocumentSymbol", s);
+  //   } else if (s instanceof vscode.SymbolInformation) {
+  //     console.log("[INFO][GET SYMBOL RANGE]", "SymbolInformation", s);
+  //   } else {
+  //     console.log("[WARN][GET SYMBOL RANGE]", "Unknown symbol type", s);
+  //   }
+  // }
 }
 
 export async function getDefinitions(): Promise<LocationOrLocationLink[]> {
@@ -101,9 +101,9 @@ export async function getDefinitions(): Promise<LocationOrLocationLink[]> {
     );
 
     if (definitions && definitions.length > 0) {
-      for (const d of definitions) {
-        console.log("[INFO][GET DEFINITIONS]", "Definition", d);
-      }
+      // for (const d of definitions) {
+      //   console.log("[INFO][GET DEFINITIONS]", "Definition", d);
+      // }
       return definitions;
     } else {
       console.log(
@@ -131,9 +131,9 @@ export async function getReferences(): Promise<vscode.Location[]> {
     );
 
     if (references && references.length > 0) {
-      for (const r of references) {
-        console.log("[INFO][GET REFERENCES]", "Reference", r);
-      }
+      // for (const r of references) {
+      //   console.log("[INFO][GET REFERENCES]", "Reference", r);
+      // }
       return references;
     } else {
       console.log(

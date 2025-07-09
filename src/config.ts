@@ -14,14 +14,11 @@ import { Uri } from "vscode";
 
 const configFileName = ".goose";
 
-export type RepositorySnapshotFingerprint = string;
-
 // Define the GooseCode type
 type GooseCodeWorkspace = {
   repositoryFullName: string;
   branch: string;
   commit: string;
-  fingerprint: RepositorySnapshotFingerprint;
 };
 
 // Define the outer structure with GooseCode
@@ -53,13 +50,11 @@ export async function updateWorkspaceConfiguration(
   branch?: string,
 ): Promise<GooseClipConfig> {
 
-  const fingerprint = Buffer.from(`${config?.config?.repositoryFullName}@${commit}`).toString('base64');
   const c: GooseClipConfig = {
     GooseCode: {
       repositoryFullName: config?.config?.repositoryFullName ?? "",
       branch: branch ?? "",
       commit: commit,
-      fingerprint: fingerprint,
     },
   };
   const t = stringify(c);
@@ -73,14 +68,14 @@ export async function updateWorkspaceConfiguration(
 
 export async function removeWorkspaceConfiguration(
   root: string,
-): Promise<RepositorySnapshotFingerprint | null> {
+): Promise<GooseCodeWorkspace | null> {
   const p = path.join(root, configFileName);
   const config = await loadWorkspaceConfiguration(root, false);
   const exists = fs.existsSync(p);
   if (exists) {
     fs.unlinkSync(p);
   }
-  return config?.config.fingerprint ?? null;
+  return config?.config ?? null;
 }
 
 export async function loadWorkspaceConfiguration(
@@ -93,19 +88,21 @@ export async function loadWorkspaceConfiguration(
   if (!create && !exists) {
     return null;
   }
+
+  // const fingerprint = Buffer.from(`${config?.config?.repositoryFullName}@${commit}`).toString('base64');
+  // const fingerprint = valid ? Buffer.from(`${gitInfo?.repositoryFullName}@${gitInfo?.commit}`).toString('base64') : uuidv4();
+
   // If file doesn't exist, create it
   if (!exists) {
     // Generate a uuid
     const gitInfo = await getGitInfoFromVscodeApi(Uri.file(root));
     // dart: base64Encode(utf8.encode("${repository.fullName}@${commit}"))
     const valid = gitInfo?.repositoryFullName && gitInfo?.commit;
-    const fingerprint = valid ? Buffer.from(`${gitInfo?.repositoryFullName}@${gitInfo?.commit}`).toString('base64') : uuidv4();
     const c: GooseClipConfig = {
       GooseCode: {
         repositoryFullName: gitInfo?.repositoryFullName ?? "",
         branch: gitInfo?.branch ?? "",
         commit: gitInfo?.commit ?? "",
-        fingerprint: fingerprint,
       },
     };
     const t = stringify(c);

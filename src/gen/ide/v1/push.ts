@@ -11,9 +11,8 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { VersionControlInfo } from "./version_control";
-import { RegenerateType } from "./generator";
-import { ActiveSessionType } from "./generator";
 import { WorkspaceDetails } from "./workspace";
+import { FileContext } from "./files";
 import { LocationWithContext } from "./vscode";
 import { Range } from "./vscode";
 import { SnippetContext } from "./vscode";
@@ -136,6 +135,10 @@ export interface FileCommandPush {
      */
     type: FileCommandType;
     /**
+     * @generated from protobuf field: repeated gooseclip.goosecode.ide.v1.FileContext file_contexts = 2
+     */
+    fileContexts: FileContext[];
+    /**
      * @generated from protobuf oneof: data
      */
     data: {
@@ -183,36 +186,6 @@ export interface AppCommandPush {
      * @generated from protobuf field: gooseclip.goosecode.ide.v1.AppCommandType type = 1
      */
     type: AppCommandType;
-}
-/**
- * @generated from protobuf message gooseclip.goosecode.ide.v1.ActiveSessionPush
- */
-export interface ActiveSessionPush {
-    /**
-     * @generated from protobuf field: gooseclip.goosecode.ide.v1.ActiveSessionType type = 1
-     */
-    type: ActiveSessionType;
-    /**
-     * @generated from protobuf oneof: data
-     */
-    data: {
-        oneofKind: "regenerate";
-        /**
-         * @generated from protobuf field: gooseclip.goosecode.ide.v1.RegeneratePush regenerate = 10
-         */
-        regenerate: RegeneratePush;
-    } | {
-        oneofKind: undefined;
-    };
-}
-/**
- * @generated from protobuf message gooseclip.goosecode.ide.v1.RegeneratePush
- */
-export interface RegeneratePush {
-    /**
-     * @generated from protobuf field: gooseclip.goosecode.ide.v1.RegenerateType type = 1
-     */
-    type: RegenerateType;
 }
 /**
  * @generated from protobuf message gooseclip.goosecode.ide.v1.PushRequest
@@ -264,15 +237,9 @@ export interface PushResponse {
          */
         workspaces: WorkspacesPush;
     } | {
-        oneofKind: "activeSession";
-        /**
-         * @generated from protobuf field: gooseclip.goosecode.ide.v1.ActiveSessionPush active_session = 12
-         */
-        activeSession: ActiveSessionPush;
-    } | {
         oneofKind: "fileCommand";
         /**
-         * @generated from protobuf field: gooseclip.goosecode.ide.v1.FileCommandPush file_command = 13
+         * @generated from protobuf field: gooseclip.goosecode.ide.v1.FileCommandPush file_command = 12
          */
         fileCommand: FileCommandPush;
     } | {
@@ -296,13 +263,9 @@ export enum PushType {
      */
     WORKSPACES = 2,
     /**
-     * @generated from protobuf enum value: PUSH_TYPE_ACTIVE_SESSION = 3;
+     * @generated from protobuf enum value: PUSH_TYPE_FILE_COMMAND = 3;
      */
-    ACTIVE_SESSION = 3,
-    /**
-     * @generated from protobuf enum value: PUSH_TYPE_FILE_COMMAND = 4;
-     */
-    FILE_COMMAND = 4
+    FILE_COMMAND = 3
 }
 /**
  * @generated from protobuf enum gooseclip.goosecode.ide.v1.FollowType
@@ -770,7 +733,8 @@ export const FollowPush = new FollowPush$Type();
 class FileCommandPush$Type extends MessageType<FileCommandPush> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.FileCommandPush", [
-            { no: 1, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.FileCommandType", FileCommandType, "FILE_COMMAND_TYPE_"] },
+            { no: 1, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.FileCommandType", FileCommandType, "FILE_COMMAND_TYPE_"], options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "file_contexts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FileContext },
             { no: 10, name: "open_file", kind: "message", oneof: "data", T: () => OpenPush },
             { no: 11, name: "bookmark", kind: "message", oneof: "data", T: () => BookmarkPush },
             { no: 12, name: "highlight", kind: "message", oneof: "data", T: () => HighlightPush },
@@ -780,6 +744,7 @@ class FileCommandPush$Type extends MessageType<FileCommandPush> {
     create(value?: PartialMessage<FileCommandPush>): FileCommandPush {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.type = 0;
+        message.fileContexts = [];
         message.data = { oneofKind: undefined };
         if (value !== undefined)
             reflectionMergePartial<FileCommandPush>(this, message, value);
@@ -792,6 +757,9 @@ class FileCommandPush$Type extends MessageType<FileCommandPush> {
             switch (fieldNo) {
                 case /* gooseclip.goosecode.ide.v1.FileCommandType type */ 1:
                     message.type = reader.int32();
+                    break;
+                case /* repeated gooseclip.goosecode.ide.v1.FileContext file_contexts */ 2:
+                    message.fileContexts.push(FileContext.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* gooseclip.goosecode.ide.v1.OpenPush open_file */ 10:
                     message.data = {
@@ -832,6 +800,9 @@ class FileCommandPush$Type extends MessageType<FileCommandPush> {
         /* gooseclip.goosecode.ide.v1.FileCommandType type = 1; */
         if (message.type !== 0)
             writer.tag(1, WireType.Varint).int32(message.type);
+        /* repeated gooseclip.goosecode.ide.v1.FileContext file_contexts = 2; */
+        for (let i = 0; i < message.fileContexts.length; i++)
+            FileContext.internalBinaryWrite(message.fileContexts[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         /* gooseclip.goosecode.ide.v1.OpenPush open_file = 10; */
         if (message.data.oneofKind === "openFile")
             OpenPush.internalBinaryWrite(message.data.openFile, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
@@ -949,111 +920,6 @@ class AppCommandPush$Type extends MessageType<AppCommandPush> {
  */
 export const AppCommandPush = new AppCommandPush$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ActiveSessionPush$Type extends MessageType<ActiveSessionPush> {
-    constructor() {
-        super("gooseclip.goosecode.ide.v1.ActiveSessionPush", [
-            { no: 1, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.ActiveSessionType", ActiveSessionType, "ACTIVE_SESSION_TYPE_"] },
-            { no: 10, name: "regenerate", kind: "message", oneof: "data", T: () => RegeneratePush }
-        ]);
-    }
-    create(value?: PartialMessage<ActiveSessionPush>): ActiveSessionPush {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.type = 0;
-        message.data = { oneofKind: undefined };
-        if (value !== undefined)
-            reflectionMergePartial<ActiveSessionPush>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ActiveSessionPush): ActiveSessionPush {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* gooseclip.goosecode.ide.v1.ActiveSessionType type */ 1:
-                    message.type = reader.int32();
-                    break;
-                case /* gooseclip.goosecode.ide.v1.RegeneratePush regenerate */ 10:
-                    message.data = {
-                        oneofKind: "regenerate",
-                        regenerate: RegeneratePush.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).regenerate)
-                    };
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ActiveSessionPush, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* gooseclip.goosecode.ide.v1.ActiveSessionType type = 1; */
-        if (message.type !== 0)
-            writer.tag(1, WireType.Varint).int32(message.type);
-        /* gooseclip.goosecode.ide.v1.RegeneratePush regenerate = 10; */
-        if (message.data.oneofKind === "regenerate")
-            RegeneratePush.internalBinaryWrite(message.data.regenerate, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.ActiveSessionPush
- */
-export const ActiveSessionPush = new ActiveSessionPush$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class RegeneratePush$Type extends MessageType<RegeneratePush> {
-    constructor() {
-        super("gooseclip.goosecode.ide.v1.RegeneratePush", [
-            { no: 1, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.RegenerateType", RegenerateType, "REGENERATE_TYPE_"] }
-        ]);
-    }
-    create(value?: PartialMessage<RegeneratePush>): RegeneratePush {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.type = 0;
-        if (value !== undefined)
-            reflectionMergePartial<RegeneratePush>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RegeneratePush): RegeneratePush {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* gooseclip.goosecode.ide.v1.RegenerateType type */ 1:
-                    message.type = reader.int32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: RegeneratePush, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* gooseclip.goosecode.ide.v1.RegenerateType type = 1; */
-        if (message.type !== 0)
-            writer.tag(1, WireType.Varint).int32(message.type);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.RegeneratePush
- */
-export const RegeneratePush = new RegeneratePush$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class PushRequest$Type extends MessageType<PushRequest> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.PushRequest", []);
@@ -1153,8 +1019,7 @@ class PushResponse$Type extends MessageType<PushResponse> {
             { no: 2, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.PushType", PushType, "PUSH_TYPE_"] },
             { no: 10, name: "app_command", kind: "message", oneof: "data", T: () => AppCommandPush },
             { no: 11, name: "workspaces", kind: "message", oneof: "data", T: () => WorkspacesPush },
-            { no: 12, name: "active_session", kind: "message", oneof: "data", T: () => ActiveSessionPush },
-            { no: 13, name: "file_command", kind: "message", oneof: "data", T: () => FileCommandPush }
+            { no: 12, name: "file_command", kind: "message", oneof: "data", T: () => FileCommandPush }
         ]);
     }
     create(value?: PartialMessage<PushResponse>): PushResponse {
@@ -1188,13 +1053,7 @@ class PushResponse$Type extends MessageType<PushResponse> {
                         workspaces: WorkspacesPush.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).workspaces)
                     };
                     break;
-                case /* gooseclip.goosecode.ide.v1.ActiveSessionPush active_session */ 12:
-                    message.data = {
-                        oneofKind: "activeSession",
-                        activeSession: ActiveSessionPush.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).activeSession)
-                    };
-                    break;
-                case /* gooseclip.goosecode.ide.v1.FileCommandPush file_command */ 13:
+                case /* gooseclip.goosecode.ide.v1.FileCommandPush file_command */ 12:
                     message.data = {
                         oneofKind: "fileCommand",
                         fileCommand: FileCommandPush.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).fileCommand)
@@ -1224,12 +1083,9 @@ class PushResponse$Type extends MessageType<PushResponse> {
         /* gooseclip.goosecode.ide.v1.WorkspacesPush workspaces = 11; */
         if (message.data.oneofKind === "workspaces")
             WorkspacesPush.internalBinaryWrite(message.data.workspaces, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
-        /* gooseclip.goosecode.ide.v1.ActiveSessionPush active_session = 12; */
-        if (message.data.oneofKind === "activeSession")
-            ActiveSessionPush.internalBinaryWrite(message.data.activeSession, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
-        /* gooseclip.goosecode.ide.v1.FileCommandPush file_command = 13; */
+        /* gooseclip.goosecode.ide.v1.FileCommandPush file_command = 12; */
         if (message.data.oneofKind === "fileCommand")
-            FileCommandPush.internalBinaryWrite(message.data.fileCommand, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+            FileCommandPush.internalBinaryWrite(message.data.fileCommand, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

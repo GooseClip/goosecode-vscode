@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { LocationOrLocationLink } from "@/types";
+import { LocationOrLocationLink } from "../types";
 import { Uri } from "vscode";
 
 

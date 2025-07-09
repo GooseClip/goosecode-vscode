@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { Disposable } from "vscode";
 import { GooseCodeServer } from "./server/server";
-import { LocationOrLocationLink } from "@/types";
+import { LocationOrLocationLink } from "../types";
 import {
   getDefinitions,
   getReferences,
@@ -84,62 +84,6 @@ export function registerGooseCodeCommands(
   workspaceTracker: WorkspaceTracker,
 ): Array<Disposable> {
   const subscriptions: Array<Disposable> = [];
-
-  // Active session commands
-
-  sub = vscode.commands.registerCommand(
-    "goosecode.activeSession.delete",
-    async () => {
-      console.log("Delete active session");
-      if (
-        !(await guard(gooseCodeServer, workspaceTracker, {
-          workspaceIndependent: true,
-        }))
-      ) {
-        return;
-      }
-
-      gooseCodeServer?.push(
-        gc.PushResponse.create({
-          type: gc.PushType.ACTIVE_SESSION,
-          data: {
-            oneofKind: "activeSession",
-            activeSession: gc.ActiveSessionPush.create({
-              type: gc.ActiveSessionType.DELETE,
-            }),
-          },
-        })
-      );
-    },
-  );
-  subscriptions.push(sub);
-
-  sub = vscode.commands.registerCommand(
-    "goosecode.activeSession.save",
-    async () => {
-      console.log("Save active session");
-      if (
-        !(await guard(gooseCodeServer, workspaceTracker, {
-          workspaceIndependent: true,
-        }))
-      ) {
-        return;
-      }
-
-      gooseCodeServer?.push(
-        gc.PushResponse.create({
-          type: gc.PushType.ACTIVE_SESSION,
-          data: {
-            oneofKind: "activeSession",
-            activeSession: gc.ActiveSessionPush.create({
-              type: gc.ActiveSessionType.SAVE,
-            }),
-          }
-        })
-      );
-    },
-  );
-  subscriptions.push(sub);
 
   // Toggle minimap
   var sub = vscode.commands.registerCommand(
@@ -313,7 +257,7 @@ export function registerGooseCodeCommands(
     console.log("FOLLOW", workspace)
     const workspaceUri = workspace.uri;
     const selection = editor.selection;
-    await getDocumentSymbols();
+    // await getDocumentSymbols();
     let definitions = await getDefinitions();
     let references = await getReferences();
 
@@ -341,6 +285,7 @@ export function registerGooseCodeCommands(
         console.error("No definition message to push");
         return;
       }
+
 
       // Push the message to goosecode
       gooseCodeServer?.push(msg);

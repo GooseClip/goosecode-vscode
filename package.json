@@ -125,15 +125,6 @@
         }
       },
       {
-        "command": "goosecode.activeSession.delete",
-        "title": "Discard Session",
-        "category": "GooseCode",
-        "icon": {
-          "light": "resources/light/delete.svg",
-          "dark": "resources/dark/delete.svg"
-        }
-      },
-      {
         "command": "goosecode.codeSources.enableCodeSource",
         "title": "Enable CodeSource",
         "category": "GooseCode",

@@ -15,6 +15,8 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { DocumentSymbol } from "./vscode";
 import { Location } from "./vscode";
+import { FileContext } from "./files";
+import { VersionControlInfo } from "./version_control";
 /**
  * //////////////////////////////////////////////////////////////////////////////////////////
  * Context
@@ -24,31 +26,14 @@ import { Location } from "./vscode";
  */
 export interface Context {
     /**
-     * @generated from protobuf field: string repository_snapshot_fingerprint = 1
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.VersionControlInfo version_control_info = 1
      */
-    repositorySnapshotFingerprint: string;
+    versionControlInfo?: VersionControlInfo;
 }
 // //////////////////////////////////////////////////////////////////////////////////////////
 // Get Files
 // //////////////////////////////////////////////////////////////////////////////////////////
 
-/**
- * @generated from protobuf message gooseclip.goosecode.ide.v1.FileContent
- */
-export interface FileContent {
-    /**
-     * @generated from protobuf field: string file_path = 1
-     */
-    filePath: string;
-    /**
-     * @generated from protobuf field: string file_at_head = 2
-     */
-    fileAtHead: string;
-    /**
-     * @generated from protobuf field: string current_content = 3
-     */
-    currentContent: string;
-}
 /**
  * @generated from protobuf message gooseclip.goosecode.ide.v1.GetFilesRequest
  */
@@ -67,9 +52,9 @@ export interface GetFilesRequest {
  */
 export interface GetFilesResponse {
     /**
-     * @generated from protobuf field: repeated gooseclip.goosecode.ide.v1.FileContent file_contents = 1
+     * @generated from protobuf field: repeated gooseclip.goosecode.ide.v1.FileContext file_context = 1
      */
-    fileContents: FileContent[];
+    fileContext: FileContext[];
 }
 /**
  * @generated from protobuf message gooseclip.goosecode.ide.v1.ListFilesRequest
@@ -518,12 +503,11 @@ export enum RefactorType {
 class Context$Type extends MessageType<Context> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.Context", [
-            { no: 1, name: "repository_snapshot_fingerprint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "version_control_info", kind: "message", T: () => VersionControlInfo }
         ]);
     }
     create(value?: PartialMessage<Context>): Context {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.repositorySnapshotFingerprint = "";
         if (value !== undefined)
             reflectionMergePartial<Context>(this, message, value);
         return message;
@@ -533,8 +517,8 @@ class Context$Type extends MessageType<Context> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string repository_snapshot_fingerprint */ 1:
-                    message.repositorySnapshotFingerprint = reader.string();
+                case /* gooseclip.goosecode.ide.v1.VersionControlInfo version_control_info */ 1:
+                    message.versionControlInfo = VersionControlInfo.internalBinaryRead(reader, reader.uint32(), options, message.versionControlInfo);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -548,9 +532,9 @@ class Context$Type extends MessageType<Context> {
         return message;
     }
     internalBinaryWrite(message: Context, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string repository_snapshot_fingerprint = 1; */
-        if (message.repositorySnapshotFingerprint !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.repositorySnapshotFingerprint);
+        /* gooseclip.goosecode.ide.v1.VersionControlInfo version_control_info = 1; */
+        if (message.versionControlInfo)
+            VersionControlInfo.internalBinaryWrite(message.versionControlInfo, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -562,74 +546,11 @@ class Context$Type extends MessageType<Context> {
  */
 export const Context = new Context$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class FileContent$Type extends MessageType<FileContent> {
-    constructor() {
-        super("gooseclip.goosecode.ide.v1.FileContent", [
-            { no: 1, name: "file_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "file_at_head", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "current_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<FileContent>): FileContent {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.filePath = "";
-        message.fileAtHead = "";
-        message.currentContent = "";
-        if (value !== undefined)
-            reflectionMergePartial<FileContent>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: FileContent): FileContent {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string file_path */ 1:
-                    message.filePath = reader.string();
-                    break;
-                case /* string file_at_head */ 2:
-                    message.fileAtHead = reader.string();
-                    break;
-                case /* string current_content */ 3:
-                    message.currentContent = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: FileContent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string file_path = 1; */
-        if (message.filePath !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.filePath);
-        /* string file_at_head = 2; */
-        if (message.fileAtHead !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.fileAtHead);
-        /* string current_content = 3; */
-        if (message.currentContent !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.currentContent);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.FileContent
- */
-export const FileContent = new FileContent$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class GetFilesRequest$Type extends MessageType<GetFilesRequest> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.GetFilesRequest", [
-            { no: 1, name: "context", kind: "message", T: () => Context },
-            { no: 2, name: "file_paths", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "file_paths", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { repeated: { minItems: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetFilesRequest>): GetFilesRequest {
@@ -682,12 +603,12 @@ export const GetFilesRequest = new GetFilesRequest$Type();
 class GetFilesResponse$Type extends MessageType<GetFilesResponse> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.GetFilesResponse", [
-            { no: 1, name: "file_contents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FileContent }
+            { no: 1, name: "file_context", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FileContext, options: { "buf.validate.field": { repeated: { minItems: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetFilesResponse>): GetFilesResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.fileContents = [];
+        message.fileContext = [];
         if (value !== undefined)
             reflectionMergePartial<GetFilesResponse>(this, message, value);
         return message;
@@ -697,8 +618,8 @@ class GetFilesResponse$Type extends MessageType<GetFilesResponse> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* repeated gooseclip.goosecode.ide.v1.FileContent file_contents */ 1:
-                    message.fileContents.push(FileContent.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated gooseclip.goosecode.ide.v1.FileContext file_context */ 1:
+                    message.fileContext.push(FileContext.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -712,9 +633,9 @@ class GetFilesResponse$Type extends MessageType<GetFilesResponse> {
         return message;
     }
     internalBinaryWrite(message: GetFilesResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated gooseclip.goosecode.ide.v1.FileContent file_contents = 1; */
-        for (let i = 0; i < message.fileContents.length; i++)
-            FileContent.internalBinaryWrite(message.fileContents[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated gooseclip.goosecode.ide.v1.FileContext file_context = 1; */
+        for (let i = 0; i < message.fileContext.length; i++)
+            FileContext.internalBinaryWrite(message.fileContext[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -729,7 +650,7 @@ export const GetFilesResponse = new GetFilesResponse$Type();
 class ListFilesRequest$Type extends MessageType<ListFilesRequest> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.ListFilesRequest", [
-            { no: 1, name: "context", kind: "message", T: () => Context },
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
             { no: 2, name: "excluded_dir", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -830,8 +751,8 @@ export const ListFilesResponse = new ListFilesResponse$Type();
 class SelectRequest$Type extends MessageType<SelectRequest> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.SelectRequest", [
-            { no: 1, name: "context", kind: "message", T: () => Context },
-            { no: 2, name: "location", kind: "message", T: () => Location }
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "location", kind: "message", T: () => Location, options: { "buf.validate.field": { required: true } } }
         ]);
     }
     create(value?: PartialMessage<SelectRequest>): SelectRequest {
@@ -921,8 +842,8 @@ export const SelectResponse = new SelectResponse$Type();
 class OpenFilesRequest$Type extends MessageType<OpenFilesRequest> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.OpenFilesRequest", [
-            { no: 1, name: "context", kind: "message", T: () => Context },
-            { no: 2, name: "file_paths", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "file_paths", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { repeated: { minItems: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<OpenFilesRequest>): OpenFilesRequest {
@@ -975,8 +896,8 @@ export const OpenFilesRequest = new OpenFilesRequest$Type();
 class GoToDefinitionRequest$Type extends MessageType<GoToDefinitionRequest> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.GoToDefinitionRequest", [
-            { no: 1, name: "context", kind: "message", T: () => Context },
-            { no: 2, name: "location", kind: "message", T: () => Location },
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "location", kind: "message", T: () => Location, options: { "buf.validate.field": { required: true } } },
             { no: 3, name: "select", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
@@ -1036,8 +957,8 @@ export const GoToDefinitionRequest = new GoToDefinitionRequest$Type();
 class NavigateRequest$Type extends MessageType<NavigateRequest> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.NavigateRequest", [
-            { no: 1, name: "context", kind: "message", T: () => Context },
-            { no: 2, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.NavigateType", NavigateType, "NAVIGATE_TYPE_"] },
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.NavigateType", NavigateType, "NAVIGATE_TYPE_"], options: { "buf.validate.field": { required: true, enum: { definedOnly: true } } } },
             { no: 5, name: "go_to_definition", kind: "message", oneof: "data", T: () => GoToDefinitionRequest },
             { no: 6, name: "open_files", kind: "message", oneof: "data", T: () => OpenFilesRequest }
         ]);
@@ -1149,7 +1070,7 @@ export const NavigateResponse = new NavigateResponse$Type();
 class FindPattern$Type extends MessageType<FindPattern> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.FindPattern", [
-            { no: 1, name: "search_pattern", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "search_pattern", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } },
             { no: 2, name: "included_files", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "excluded_files", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -1259,7 +1180,7 @@ export const FindPatternResult = new FindPatternResult$Type();
 class FindUses$Type extends MessageType<FindUses> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.FindUses", [
-            { no: 1, name: "location", kind: "message", T: () => Location }
+            { no: 1, name: "location", kind: "message", T: () => Location, options: { "buf.validate.field": { required: true } } }
         ]);
     }
     create(value?: PartialMessage<FindUses>): FindUses {
@@ -1427,7 +1348,7 @@ export const SearchRequest = new SearchRequest$Type();
 class SearchResponse$Type extends MessageType<SearchResponse> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.SearchResponse", [
-            { no: 1, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.SearchType", SearchType, "SEARCH_TYPE_"] },
+            { no: 1, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.SearchType", SearchType, "SEARCH_TYPE_"], options: { "buf.validate.field": { required: true, enum: { definedOnly: true } } } },
             { no: 5, name: "pattern", kind: "message", oneof: "data", T: () => FindPatternResult },
             { no: 6, name: "uses", kind: "message", oneof: "data", T: () => FindUsesResult }
         ]);
@@ -1495,7 +1416,7 @@ export const SearchResponse = new SearchResponse$Type();
 class DescribeRange$Type extends MessageType<DescribeRange> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.DescribeRange", [
-            { no: 1, name: "location", kind: "message", T: () => Location }
+            { no: 1, name: "location", kind: "message", T: () => Location, options: { "buf.validate.field": { required: true } } }
         ]);
     }
     create(value?: PartialMessage<DescribeRange>): DescribeRange {
@@ -1588,8 +1509,8 @@ export const DescribeRangeResult = new DescribeRangeResult$Type();
 class ProbeRequest$Type extends MessageType<ProbeRequest> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.ProbeRequest", [
-            { no: 1, name: "context", kind: "message", T: () => Context },
-            { no: 2, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.ProbeType", ProbeType, "PROBE_TYPE_"] },
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.ProbeType", ProbeType, "PROBE_TYPE_"], options: { "buf.validate.field": { required: true, enum: { definedOnly: true } } } },
             { no: 5, name: "describe_range", kind: "message", oneof: "data", T: () => DescribeRange }
         ]);
     }
@@ -1653,7 +1574,7 @@ export const ProbeRequest = new ProbeRequest$Type();
 class ProbeResponse$Type extends MessageType<ProbeResponse> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.ProbeResponse", [
-            { no: 1, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.ProbeType", ProbeType, "PROBE_TYPE_"] },
+            { no: 1, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.ProbeType", ProbeType, "PROBE_TYPE_"], options: { "buf.validate.field": { required: true, enum: { definedOnly: true } } } },
             { no: 5, name: "describe_range", kind: "message", oneof: "data", T: () => DescribeRangeResult }
         ]);
     }
@@ -1711,8 +1632,8 @@ export const ProbeResponse = new ProbeResponse$Type();
 class Rename$Type extends MessageType<Rename> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.Rename", [
-            { no: 1, name: "location", kind: "message", T: () => Location },
-            { no: 2, name: "new_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "location", kind: "message", T: () => Location, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "new_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } }
         ]);
     }
     create(value?: PartialMessage<Rename>): Rename {
@@ -1765,8 +1686,8 @@ export const Rename = new Rename$Type();
 class RefactorRequest$Type extends MessageType<RefactorRequest> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.RefactorRequest", [
-            { no: 1, name: "context", kind: "message", T: () => Context },
-            { no: 2, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.RefactorType", RefactorType, "REFACTOR_TYPE_"] },
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.RefactorType", RefactorType, "REFACTOR_TYPE_"], options: { "buf.validate.field": { required: true, enum: { definedOnly: true } } } },
             { no: 5, name: "rename", kind: "message", oneof: "data", T: () => Rename }
         ]);
     }
@@ -1868,7 +1789,7 @@ export const RefactorResponse = new RefactorResponse$Type();
 class VersionControlDetailsRequest$Type extends MessageType<VersionControlDetailsRequest> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.VersionControlDetailsRequest", [
-            { no: 1, name: "context", kind: "message", T: () => Context }
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } }
         ]);
     }
     create(value?: PartialMessage<VersionControlDetailsRequest>): VersionControlDetailsRequest {
@@ -1914,10 +1835,10 @@ export const VersionControlDetailsRequest = new VersionControlDetailsRequest$Typ
 class VersionControlDetailsResponse$Type extends MessageType<VersionControlDetailsResponse> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.VersionControlDetailsResponse", [
-            { no: 1, name: "owner", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "repository", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "branch", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "commit", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "owner", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "repository", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } },
+            { no: 3, name: "branch", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } },
+            { no: 4, name: "commit", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } }
         ]);
     }
     create(value?: PartialMessage<VersionControlDetailsResponse>): VersionControlDetailsResponse {

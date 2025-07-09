@@ -10,18 +10,19 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { VersionControlInfo } from "./version_control";
 /**
  * @generated from protobuf message gooseclip.goosecode.ide.v1.WorkspaceDetails
  */
 export interface WorkspaceDetails {
     /**
-     * @generated from protobuf field: string repository_snapshot_fingerprint = 1
-     */
-    repositorySnapshotFingerprint: string;
-    /**
-     * @generated from protobuf field: string workspace_root = 2
+     * @generated from protobuf field: string workspace_root = 1
      */
     workspaceRoot: string;
+    /**
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.VersionControlInfo version_control_info = 2
+     */
+    versionControlInfo?: VersionControlInfo;
     /**
      * @generated from protobuf field: bool deleted = 3
      */
@@ -31,14 +32,13 @@ export interface WorkspaceDetails {
 class WorkspaceDetails$Type extends MessageType<WorkspaceDetails> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.WorkspaceDetails", [
-            { no: 1, name: "repository_snapshot_fingerprint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "workspace_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "workspace_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "version_control_info", kind: "message", T: () => VersionControlInfo },
             { no: 3, name: "deleted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<WorkspaceDetails>): WorkspaceDetails {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.repositorySnapshotFingerprint = "";
         message.workspaceRoot = "";
         message.deleted = false;
         if (value !== undefined)
@@ -50,11 +50,11 @@ class WorkspaceDetails$Type extends MessageType<WorkspaceDetails> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string repository_snapshot_fingerprint */ 1:
-                    message.repositorySnapshotFingerprint = reader.string();
-                    break;
-                case /* string workspace_root */ 2:
+                case /* string workspace_root */ 1:
                     message.workspaceRoot = reader.string();
+                    break;
+                case /* gooseclip.goosecode.ide.v1.VersionControlInfo version_control_info */ 2:
+                    message.versionControlInfo = VersionControlInfo.internalBinaryRead(reader, reader.uint32(), options, message.versionControlInfo);
                     break;
                 case /* bool deleted */ 3:
                     message.deleted = reader.bool();
@@ -71,12 +71,12 @@ class WorkspaceDetails$Type extends MessageType<WorkspaceDetails> {
         return message;
     }
     internalBinaryWrite(message: WorkspaceDetails, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string repository_snapshot_fingerprint = 1; */
-        if (message.repositorySnapshotFingerprint !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.repositorySnapshotFingerprint);
-        /* string workspace_root = 2; */
+        /* string workspace_root = 1; */
         if (message.workspaceRoot !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.workspaceRoot);
+            writer.tag(1, WireType.LengthDelimited).string(message.workspaceRoot);
+        /* gooseclip.goosecode.ide.v1.VersionControlInfo version_control_info = 2; */
+        if (message.versionControlInfo)
+            VersionControlInfo.internalBinaryWrite(message.versionControlInfo, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         /* bool deleted = 3; */
         if (message.deleted !== false)
             writer.tag(3, WireType.Varint).bool(message.deleted);

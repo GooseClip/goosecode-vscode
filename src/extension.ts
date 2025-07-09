@@ -16,7 +16,7 @@ import { WorkspaceTracker } from "./workspace-tracker";
 import { registerGooseCodeCommands } from "./goosecode/goosecode";
 import { ConnectionProvider } from "./views/connection";
 import { ActiveSessionProvider } from "./views/active-session";
-import { WorkspaceDetails } from "./gen/ide";
+import * as gc from "./gen/ide";
 
 
 var workspaceTracker: WorkspaceTracker | null = null;
@@ -231,14 +231,18 @@ function createTreeProviders(
   sub = vscode.commands.registerCommand(
     "goosecode.codeSources.disableCodeSource",
     async (codeSource: CodeSource) => {
-      const codeSourceID = await removeWorkspaceConfiguration(
+      const config = await removeWorkspaceConfiguration(
         codeSource.resourceUri!.fsPath,
       );
-      console.log(`Disable goosecode: ${codeSourceID}`);
+      console.log(`Disable goosecode: ${config?.repositoryFullName}`);
       const workspaces = await workspaceTracker!.refresh();
-      gooseCodeServer?.pushWorkspacesToGooseCode(workspaces, WorkspaceDetails.create({
+      gooseCodeServer?.pushWorkspacesToGooseCode(workspaces, gc.WorkspaceDetails.create({
           workspaceRoot: codeSource.resourceUri!.fsPath,
-          repositorySnapshotFingerprint: codeSourceID!,
+          versionControlInfo: gc.VersionControlInfo.create({
+            repositoryFullname: config?.repositoryFullName ?? "",
+            branch: config?.branch ?? "",
+            commit: config?.commit ?? "",
+          }),
           deleted: true,
         }),
       );
