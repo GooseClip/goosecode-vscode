@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { LocationOrLocationLink } from "../types";
 import { Uri } from "vscode";
+import * as gc from "../gen/ide";
 
 
 export function getWordAtPosition(): { word: string, range: vscode.Range } | undefined {
@@ -43,3 +44,17 @@ export function targetFullRangeFromLocation(location: LocationOrLocationLink): v
     }
     return location.targetRange;
 }
+
+export function selectedRange(editor: vscode.TextEditor) {
+    return gc.Range.create({
+      start: gc.Position.create({
+        line: BigInt(editor.selection.start.line),
+        character: BigInt(editor.selection.start.character),
+      }),
+      end: gc.Position.create({
+        line: BigInt(editor.selection.end.line),
+        character: BigInt(editor.selection.end.character),
+      }),
+    });
+  }
+  

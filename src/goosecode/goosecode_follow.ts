@@ -5,9 +5,85 @@ import { getSelectedOneofValue, setOneofValue } from "@protobuf-ts/runtime";
 
 import { convertRange } from "../util";
 import { LocationOrLocationLink } from "../types";
-import { getFileContents, getReferences } from "./commands/commands";
+import { getDefinitions, getFileContents, getReferences, goToDefinition } from "./commands/commands";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { getFileContentsAtCommit as getFileContentsAtHead } from "../git";
+import { getFileContexts } from "./context";
+import { GooseCodeServer } from "./server/server";
+
+export async function handleFollowCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker){
+    const editor = vscode.window.activeTextEditor!;
+    const workspace = workspaceTracker.getLastActiveGooseCodeWorkspace();
+    if (workspace === null) {
+      console.error("No active workspace found");
+      return;
+    }
+
+    console.log("FOLLOW", workspace)
+    const workspaceUri = workspace.uri;
+    const selection = editor.selection;
+    // await getDocumentSymbols();
+    let definitions = await getDefinitions();
+    let references = await getReferences();
+
+    const from = await fromRange(selection);
+    const fromMsg = gc.LocationWithContext.create({
+      location: gc.Location.create({
+        path: workspaceTracker.relativePath(
+          editor.document.uri.fsPath,
+        ),
+        range: from,
+      }),
+    });
+
+
+
+    const filteredDefinitions = getDefinitionsWithoutCurrentPosition(definitions, selection);
+
+    if (filteredDefinitions.length > 0) {
+      if (filteredDefinitions.length > 1) {
+        console.warn("Multiple definitions found. Going to the first one");
+      }
+
+      const msg = await createDefinitionFollowMessage(workspaceTracker, fromMsg, filteredDefinitions);
+      if (!msg) {
+        console.error("No definition message to push");
+        return;
+      }
+
+
+      // Push the message to goosecode
+      gooseCodeServer?.push(msg);
+
+
+      try {
+        // Navigate in edittor to the definition
+        if (msg.data.oneofKind == "fileCommand" && msg.data.fileCommand.data.oneofKind == "follow" && msg.data.fileCommand.data.follow.data.oneofKind == "definition") {
+          await goToDefinition(
+            workspaceUri,
+            msg.data.fileCommand.data.follow.data.definition.to!.location!,
+            false,
+          );
+        }
+
+      } catch (e) {
+        console.error(e);
+      }
+      return;
+    }
+
+    const clickedDefinitionRef = await testDefinitionClicked(definitions, selection);
+    if (clickedDefinitionRef) {
+      const msg = await createReferencesFollowMessage(workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
+      if (!msg) {
+        console.error("No referencesmessage to push");
+        return;
+      }
+
+      gooseCodeServer?.push(msg);
+    }
+
+}
 
 // If the user clicks on where something is defined, we return the symbol that was clicked.
 export async function testDefinitionClicked(definitions: LocationOrLocationLink[], selection: vscode.Selection): Promise<LocationOrLocationLink | undefined> {
@@ -45,7 +121,7 @@ export function getDefinitionsWithoutCurrentPosition(definitions: LocationOrLoca
     });
 }
 
-export async function getDefinitionsOfSelection(
+export async function createDefinitionFollowMessage(
     workspaceTracker: WorkspaceTracker,
     fromMsg: gc.LocationWithContext,
     definitions: LocationOrLocationLink[],
@@ -78,41 +154,18 @@ export async function getDefinitionsOfSelection(
 
     console.log("FOLLOW DEFINITION", definitions);
 
-    const fileContexts: gc.FileContext[] = [];
-
-    const ws = workspaceTracker.getLastActiveGooseCodeWorkspace();
     const paths = [
         fromMsg.location!.path,
         toMsg.location!.path,
-    ]
-    for (var v of paths) {
-      const current = await getFileContents(
-        ws!.uri,
-        [v],
-      );
-      
-      console.log(`CURRENT:${current}`);
-  
-      var head = null;
-      try {
-        head = await getFileContentsAtHead(vscode.Uri.file(vscode.window.activeTextEditor!.document.uri.fsPath));
-      } catch (e) {
-        console.error("Failed to get patch")
-      }
-  
-      fileContexts.push(gc.FileContext.create({
-        filePath: v,
-        headContent:  head ?? "",
-        currentContent: current[0],
-      }));
-    }
+    ];
+    const fileContexts = await getFileContexts(workspaceTracker, paths);
 
     
     return await wrapFollowDefinition(fileContexts, defMsg);
 }
 
 
-export async function getReferencesToSelection(workspaceTracker: WorkspaceTracker,
+export async function createReferencesFollowMessage(workspaceTracker: WorkspaceTracker,
     selection: vscode.Selection,
     fromMsg: gc.LocationWithContext,
     clickedDefinitionRef: LocationOrLocationLink

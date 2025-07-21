@@ -1,22 +1,102 @@
 import * as vscode from "vscode";
 import { Disposable } from "vscode";
 import { GooseCodeServer } from "./server/server";
-import { LocationOrLocationLink } from "../types";
-import {
-  getDefinitions,
-  getReferences,
-  getDocumentSymbols,
-  goToDefinition,
-} from "./commands/commands";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { loadWorkspaceConfiguration } from "../config";
-
-import { getOneofValue } from "@protobuf-ts/runtime";
-
 import * as gc from "../gen/ide";
-import { testDefinitionClicked, fromRange, getReferencesToSelection as createReferencesFollowMessage, getDefinitionsWithoutCurrentPosition, getDefinitionsOfSelection as createDefinitionFollowMessage } from "./goosecode_follow";
-import { convertRange } from "@/util";
-import { getWordAtPosition, targetFullRangeFromLocation, targetRangeFromLocation } from "./vscode_extension_helpers";
+import { handleFollowCommand } from "./goosecode_follow";
+import { handleSnippetCommand } from "./goosecode_snippet";
+import { handleMinimapCommand } from "./goosecode_minimap";
+import { handleOverlayCommand } from "./goosecode_overlay";
+import { handleBookmarkCommand } from "./goosecode_bookmark";
+
+
+export function registerGooseCodeCommands(
+  gooseCodeServer: GooseCodeServer | null,
+  workspaceTracker: WorkspaceTracker,
+): Array<Disposable> {
+  const subscriptions: Array<Disposable> = [];
+
+  // Toggle minimap
+  var sub = vscode.commands.registerCommand(
+    "goosecode.appcommand.minimap",
+    async () => {
+      const independent = {
+        workspaceIndependent: true,
+      };
+      if (!(await guard(gooseCodeServer, workspaceTracker, independent))) {
+        return;
+      }
+      handleMinimapCommand(gooseCodeServer!, workspaceTracker);
+    },
+  );
+  subscriptions.push(sub);
+
+  // Toggle overlay
+  var sub = vscode.commands.registerCommand(
+    "goosecode.appcommand.overlay",
+    async () => {
+      const independent = {
+        workspaceIndependent: true,
+      };
+      if (!(await guard(gooseCodeServer, workspaceTracker, independent))) {
+        return;
+      }
+      handleOverlayCommand(gooseCodeServer!, workspaceTracker);
+    },
+  );
+  subscriptions.push(sub);
+
+  // Create Snippet
+  sub = vscode.commands.registerCommand("goosecode.snippet", async () => {
+    if (!(await guard(gooseCodeServer, workspaceTracker))) {
+      return;
+    }
+    handleSnippetCommand(gooseCodeServer!, workspaceTracker);
+  });
+  subscriptions.push(sub);
+
+  // Bookmark File
+  sub = vscode.commands.registerCommand("goosecode.bookmark", async () => {
+    if (!(await guard(gooseCodeServer, workspaceTracker))) {
+      return;
+    }
+    handleBookmarkCommand(gooseCodeServer!, workspaceTracker);
+  });
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand("goosecode.follow", async () => {
+    if (!(await guard(gooseCodeServer, workspaceTracker))) {
+      return;
+    }
+    handleFollowCommand(gooseCodeServer!, workspaceTracker);
+
+  });
+  subscriptions.push(sub);
+
+  return subscriptions;
+}
+
+
+  // // Highlight
+  // subscriptions.push(
+  //   vscode.commands.registerCommand("goosecode.highlight", () => {
+  //     const editor = vscode.window.activeTextEditor;
+  //     if (editor) {
+  //       gooseCodeServer.push(
+  //         new PushMessage({
+  //           type: idepb.PushType.PUSH_HIGHLIGHT,
+  //           highlight: new HighlightPush({
+  //             path: currentFilePath(editor),
+  //             range: selectedRange(editor),
+  //             color: 0xaaffffff,
+  //           }),
+  //         }),
+  //       );
+  //     }
+  //   }),
+  // );
+
 
 async function guard(
   gooseCodeServer: GooseCodeServer | null,
@@ -79,251 +159,4 @@ async function guard(
   }
 
   return true;
-}
-
-export function registerGooseCodeCommands(
-  gooseCodeServer: GooseCodeServer | null,
-  workspaceTracker: WorkspaceTracker,
-): Array<Disposable> {
-  const subscriptions: Array<Disposable> = [];
-
-  // Toggle minimap
-  var sub = vscode.commands.registerCommand(
-    "goosecode.appcommand.minimap",
-    async () => {
-      if (
-        !(await guard(gooseCodeServer, workspaceTracker, {
-          workspaceIndependent: true,
-        }))
-      ) {
-        return;
-      }
-      gooseCodeServer?.push(
-        gc.PushResponse.create({
-          type: gc.PushType.APP_COMMAND,
-          data: {
-            oneofKind: "appCommand",
-            appCommand: gc.AppCommandPush.create({
-              type: gc.AppCommandType.MINIMAP,
-            }),
-          }
-        })
-      );
-    },
-  );
-  subscriptions.push(sub);
-
-  // Toggle overlay
-  var sub = vscode.commands.registerCommand(
-    "goosecode.appcommand.overlay",
-    async () => {
-      if (
-        !(await guard(gooseCodeServer, workspaceTracker, {
-          workspaceIndependent: true,
-        }))
-      ) {
-        return;
-      }
-      gooseCodeServer?.push(
-        gc.PushResponse.create({
-          type: gc.PushType.APP_COMMAND,
-          data: {
-            oneofKind: "appCommand",
-            appCommand: gc.AppCommandPush.create({
-              type: gc.AppCommandType.OVERLAY,
-            }),
-          }
-        }),
-      );
-    },
-  );
-  subscriptions.push(sub);
-
-  // Create Snippet
-  sub = vscode.commands.registerCommand("goosecode.snippet", async () => {
-    if (!(await guard(gooseCodeServer, workspaceTracker))) {
-      return;
-    }
-
-    const editor = vscode.window.activeTextEditor!;
-    const selection = editor.selection;
-
-    let range: vscode.Range;
-    let fullRange: vscode.Range;
-
-    if (selection.isEmpty) {
-      const wordRange = getWordAtPosition();
-      range = wordRange?.range ?? selection;
-      fullRange = editor.document.lineAt(selection.active.line).range;
-    } else {
-      range = selection;
-      const startLine = editor.document.lineAt(selection.start.line);
-      const endLine = editor.document.lineAt(selection.end.line);
-      fullRange = new vscode.Range(startLine.range.start, endLine.range.end);
-    }
-
-    gooseCodeServer?.push(
-      gc.PushResponse.create({
-        type: gc.PushType.FILE_COMMAND,
-        data: {
-          oneofKind: "fileCommand",
-          fileCommand: gc.FileCommandPush.create({
-            type: gc.FileCommandType.SNIPPET,
-            data: {
-              oneofKind: "snippet",
-              snippet: gc.SnippetPush.create({
-                location: gc.LocationWithContext.create({
-                  location: gc.Location.create({
-                    path: workspaceTracker.currentRelativeFilePath(),
-                    range: convertRange(range),
-                  }),
-                  context: gc.SnippetContext.create({
-                    fullRange: convertRange(fullRange)
-                  })
-                }),
-              }),
-            }
-          }),
-        },
-      }),
-    );
-  });
-  subscriptions.push(sub);
-
-  // Bookmark File
-  sub = vscode.commands.registerCommand("goosecode.bookmark", async () => {
-    if (!(await guard(gooseCodeServer, workspaceTracker))) {
-      return;
-    }
-    gooseCodeServer?.push(
-      gc.PushResponse.create({
-        type: gc.PushType.FILE_COMMAND,
-        data: {
-          oneofKind: "fileCommand",
-          fileCommand: gc.FileCommandPush.create({
-            type: gc.FileCommandType.BOOKMARK,
-            data: {
-              oneofKind: "bookmark",
-              bookmark: gc.BookmarkPush.create({
-                path: workspaceTracker.currentRelativeFilePath(),
-              }),
-            }
-          })
-        }
-      })
-    );
-  });
-  subscriptions.push(sub);
-
-  // // Highlight
-  // subscriptions.push(
-  //   vscode.commands.registerCommand("goosecode.highlight", () => {
-  //     const editor = vscode.window.activeTextEditor;
-  //     if (editor) {
-  //       gooseCodeServer.push(
-  //         new PushMessage({
-  //           type: idepb.PushType.PUSH_HIGHLIGHT,
-  //           highlight: new HighlightPush({
-  //             path: currentFilePath(editor),
-  //             range: selectedRange(editor),
-  //             color: 0xaaffffff,
-  //           }),
-  //         }),
-  //       );
-  //     }
-  //   }),
-  // );
-
-  sub = vscode.commands.registerCommand("goosecode.follow", async () => {
-    if (!(await guard(gooseCodeServer, workspaceTracker))) {
-      return;
-    }
-    const editor = vscode.window.activeTextEditor!;
-    const workspace = workspaceTracker.getLastActiveGooseCodeWorkspace();
-    if (workspace === null) {
-      console.error("No active workspace found");
-      return;
-    }
-
-    console.log("FOLLOW", workspace)
-    const workspaceUri = workspace.uri;
-    const selection = editor.selection;
-    // await getDocumentSymbols();
-    let definitions = await getDefinitions();
-    let references = await getReferences();
-
-    const from = await fromRange(selection);
-    const fromMsg = gc.LocationWithContext.create({
-      location: gc.Location.create({
-        path: workspaceTracker.relativePath(
-          editor.document.uri.fsPath,
-        ),
-        range: from,
-      }),
-    });
-
-
-
-    const filteredDefinitions = getDefinitionsWithoutCurrentPosition(definitions, selection);
-
-    if (filteredDefinitions.length > 0) {
-      if (filteredDefinitions.length > 1) {
-        console.warn("Multiple definitions found. Going to the first one");
-      }
-
-      const msg = await createDefinitionFollowMessage(workspaceTracker, fromMsg, filteredDefinitions);
-      if (!msg) {
-        console.error("No definition message to push");
-        return;
-      }
-
-
-      // Push the message to goosecode
-      gooseCodeServer?.push(msg);
-
-
-      try {
-        // Navigate in edittor to the definition
-        if (msg.data.oneofKind == "fileCommand" && msg.data.fileCommand.data.oneofKind == "follow" && msg.data.fileCommand.data.follow.data.oneofKind == "definition") {
-          await goToDefinition(
-            workspaceUri,
-            msg.data.fileCommand.data.follow.data.definition.to!.location!,
-            false,
-          );
-        }
-
-      } catch (e) {
-        console.error(e);
-      }
-      return;
-    }
-
-    const clickedDefinitionRef = await testDefinitionClicked(definitions, selection);
-    if (clickedDefinitionRef) {
-      const msg = await createReferencesFollowMessage(workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
-      if (!msg) {
-        console.error("No referencesmessage to push");
-        return;
-      }
-
-      gooseCodeServer?.push(msg);
-    }
-
-  });
-  subscriptions.push(sub);
-
-  return subscriptions;
-}
-
-function selectedRange(editor: vscode.TextEditor) {
-  return gc.Range.create({
-    start: gc.Position.create({
-      line: BigInt(editor.selection.start.line),
-      character: BigInt(editor.selection.start.character),
-    }),
-    end: gc.Position.create({
-      line: BigInt(editor.selection.end.line),
-      character: BigInt(editor.selection.end.character),
-    }),
-  });
 }

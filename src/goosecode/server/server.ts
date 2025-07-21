@@ -126,7 +126,6 @@ export class GooseCodeServer {
       this.onConnected();
 
 
-      console.log("SENDING TEST MESSAGE");
       try {
         responses.send(gc.PushResponse.create({
           type: gc.PushType.UNSPECIFIED,
@@ -140,7 +139,6 @@ export class GooseCodeServer {
       // After delay, send refresh
       setTimeout(() => {
         this.pushWorkspacesToGooseCode(workspaces);
-        console.log("PUSHED WORKSPACES");
       }, 1000);
 
 
@@ -156,11 +154,8 @@ export class GooseCodeServer {
       });
 
       try {
-        // TODO STREAM RESPONSES TO CLIENT
         for await (const m of this.pushStream) {
-          console.log("Sending message:", m);
           responses.send(m);
-          // Handle client message if necessary
         }
       } catch (e) {
         console.error("Error reading from client push stream", e);
@@ -394,8 +389,6 @@ export class GooseCodeServer {
     return this.server;
   }
 }
-
-
 
 function validateAuthorizationMetadata(metadata: grpc.Metadata, password: string) {
   const authorization = metadata.get('authorization');
