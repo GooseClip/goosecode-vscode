@@ -15,6 +15,8 @@ import { getOneofValue } from "@protobuf-ts/runtime";
 
 import * as gc from "../gen/ide";
 import { testDefinitionClicked, fromRange, getReferencesToSelection as createReferencesFollowMessage, getDefinitionsWithoutCurrentPosition, getDefinitionsOfSelection as createDefinitionFollowMessage } from "./goosecode_follow";
+import { convertRange } from "@/util";
+import { getWordAtPosition, targetFullRangeFromLocation, targetRangeFromLocation } from "./vscode_extension_helpers";
 
 async function guard(
   gooseCodeServer: GooseCodeServer | null,
@@ -137,69 +139,59 @@ export function registerGooseCodeCommands(
   );
   subscriptions.push(sub);
 
-  // Show file
-  var sub = vscode.commands.registerCommand("goosecode.open", async () => {
+  // Create Snippet
+  sub = vscode.commands.registerCommand("goosecode.snippet", async () => {
     if (!(await guard(gooseCodeServer, workspaceTracker))) {
       return;
     }
+
     const editor = vscode.window.activeTextEditor!;
+    const selection = editor.selection;
+
+    let range: vscode.Range;
+    let fullRange: vscode.Range;
+
+    if (selection.isEmpty) {
+      const wordRange = getWordAtPosition();
+      range = wordRange?.range ?? selection;
+      fullRange = editor.document.lineAt(selection.active.line).range;
+    } else {
+      range = selection;
+      const startLine = editor.document.lineAt(selection.start.line);
+      const endLine = editor.document.lineAt(selection.end.line);
+      fullRange = new vscode.Range(startLine.range.start, endLine.range.end);
+    }
+
     gooseCodeServer?.push(
       gc.PushResponse.create({
         type: gc.PushType.FILE_COMMAND,
         data: {
           oneofKind: "fileCommand",
           fileCommand: gc.FileCommandPush.create({
-            type: gc.FileCommandType.OPEN_FILE,
+            type: gc.FileCommandType.SNIPPET,
             data: {
-              oneofKind: "openFile",
-              openFile: gc.OpenPush.create({
-                path: workspaceTracker.currentRelativeFilePath(),
-                range: selectedRange(editor),
+              oneofKind: "snippet",
+              snippet: gc.SnippetPush.create({
+                location: gc.LocationWithContext.create({
+                  location: gc.Location.create({
+                    path: workspaceTracker.currentRelativeFilePath(),
+                    range: convertRange(range),
+                  }),
+                  context: gc.SnippetContext.create({
+                    fullRange: convertRange(fullRange)
+                  })
+                }),
               }),
             }
-          })
-        }
-      })
+          }),
+        },
+      }),
     );
   });
   subscriptions.push(sub);
 
-  // Create Snippet
-  // sub = vscode.commands.registerCommand("goosecode.snippet", async () => {
-  //   if (!(await guard(gooseCodeServer, workspaceTracker))) {
-  //     return;
-  //   }
-  //   const editor = vscode.window.activeTextEditor!;
-  //   gooseCodeServer?.push(
-  //     new idedb.PushMessage({
-  //       type: idedb.PushType.PUSH_FILE_COMMAND,
-  //       file_command: new idedb.FileCommandPush({
-  //         type: idedb.FileCommandType.FILE_COMMAND_CREATE_SNIPPET,
-  //         version_control: new idedb.VersionControlInfo({
-  //           repository_full_name: "goosecode/goosecode",
-  //           branch: "main",
-  //           commit: "1234567890",
-  //           staged_files: [],
-  //           unstaged_files: [],
-  //         }),
-  //         create_snippet: new idedb.CreateSnippetPush({
-  //           location: new idedb.Location({
-  //             path: workspaceTracker.currentFilePath(),
-  //             range: selectedRange(editor),
-  //           }),
-  //           context: new idedb.SnippetContext({
-  //             before: 10,
-  //             after: 10,
-  //           }),
-  //         }),
-  //       }),
-  //     }),
-  //   );
-  // });
-  // subscriptions.push(sub);
-
-  // Pin File
-  sub = vscode.commands.registerCommand("goosecode.pin", async () => {
+  // Bookmark File
+  sub = vscode.commands.registerCommand("goosecode.bookmark", async () => {
     if (!(await guard(gooseCodeServer, workspaceTracker))) {
       return;
     }
@@ -209,7 +201,7 @@ export function registerGooseCodeCommands(
         data: {
           oneofKind: "fileCommand",
           fileCommand: gc.FileCommandPush.create({
-            type: gc.FileCommandType.PIN_FILE,
+            type: gc.FileCommandType.BOOKMARK,
             data: {
               oneofKind: "bookmark",
               bookmark: gc.BookmarkPush.create({
@@ -242,7 +234,6 @@ export function registerGooseCodeCommands(
   //   }),
   // );
 
-  // Highlight
   sub = vscode.commands.registerCommand("goosecode.follow", async () => {
     if (!(await guard(gooseCodeServer, workspaceTracker))) {
       return;
@@ -309,8 +300,6 @@ export function registerGooseCodeCommands(
 
     const clickedDefinitionRef = await testDefinitionClicked(definitions, selection);
     if (clickedDefinitionRef) {
-
-
       const msg = await createReferencesFollowMessage(workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
       if (!msg) {
         console.error("No referencesmessage to push");

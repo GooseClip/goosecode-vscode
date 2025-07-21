@@ -36,14 +36,9 @@ export class GooseCodeServer {
           return;
         }
 
-        // Time the request
-        const startTime = Date.now();
-
         const gitInfo = await getGitInfoFromVscodeApi(
           vscode.Uri.file(this.workspaceTracker.currentFilePath()),
         );
-
-        const endTime = Date.now();
 
         // console.log(`Workspace: ${activeWorkspace.uri.fsPath}`);
         // console.log(`Git info: ${JSON.stringify(gitInfo)}`);

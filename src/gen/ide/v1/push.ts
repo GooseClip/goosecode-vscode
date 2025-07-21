@@ -14,21 +14,14 @@ import { VersionControlInfo } from "./version_control";
 import { WorkspaceDetails } from "./workspace";
 import { FileContext } from "./files";
 import { LocationWithContext } from "./vscode";
-import { Range } from "./vscode";
-import { SnippetContext } from "./vscode";
-import { Location } from "./vscode";
 /**
- * @generated from protobuf message gooseclip.goosecode.ide.v1.CreateSnippetPush
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.SnippetPush
  */
-export interface CreateSnippetPush {
+export interface SnippetPush {
     /**
-     * @generated from protobuf field: gooseclip.goosecode.ide.v1.Location location = 1
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.LocationWithContext location = 1
      */
-    location?: Location;
-    /**
-     * @generated from protobuf field: gooseclip.goosecode.ide.v1.SnippetContext context = 2
-     */
-    context?: SnippetContext;
+    location?: LocationWithContext;
 }
 /**
  * @generated from protobuf message gooseclip.goosecode.ide.v1.BookmarkPush
@@ -38,40 +31,6 @@ export interface BookmarkPush {
      * @generated from protobuf field: string path = 1
      */
     path: string;
-}
-/**
- * @generated from protobuf message gooseclip.goosecode.ide.v1.HighlightPush
- */
-export interface HighlightPush {
-    /**
-     * @generated from protobuf field: string path = 1
-     */
-    path: string;
-    /**
-     * @generated from protobuf field: gooseclip.goosecode.ide.v1.Range range = 2
-     */
-    range?: Range;
-    /**
-     * @generated from protobuf field: uint32 color = 3
-     */
-    color: number;
-}
-/**
- * @generated from protobuf message gooseclip.goosecode.ide.v1.OpenPush
- */
-export interface OpenPush {
-    /**
-     * @generated from protobuf field: string path = 1
-     */
-    path: string;
-    /**
-     * @generated from protobuf field: gooseclip.goosecode.ide.v1.Range range = 2
-     */
-    range?: Range;
-    /**
-     * @generated from protobuf field: bool force_new = 3
-     */
-    forceNew: boolean;
 }
 /**
  * @generated from protobuf message gooseclip.goosecode.ide.v1.DefinitionFollow
@@ -142,23 +101,17 @@ export interface FileCommandPush {
      * @generated from protobuf oneof: data
      */
     data: {
-        oneofKind: "openFile";
+        oneofKind: "snippet";
         /**
-         * @generated from protobuf field: gooseclip.goosecode.ide.v1.OpenPush open_file = 10
+         * @generated from protobuf field: gooseclip.goosecode.ide.v1.SnippetPush snippet = 11
          */
-        openFile: OpenPush;
+        snippet: SnippetPush;
     } | {
         oneofKind: "bookmark";
         /**
-         * @generated from protobuf field: gooseclip.goosecode.ide.v1.BookmarkPush bookmark = 11
+         * @generated from protobuf field: gooseclip.goosecode.ide.v1.BookmarkPush bookmark = 12
          */
         bookmark: BookmarkPush;
-    } | {
-        oneofKind: "highlight";
-        /**
-         * @generated from protobuf field: gooseclip.goosecode.ide.v1.HighlightPush highlight = 12
-         */
-        highlight: HighlightPush;
     } | {
         oneofKind: "follow";
         /**
@@ -267,6 +220,12 @@ export enum PushType {
      */
     FILE_COMMAND = 3
 }
+// message HighlightPush {
+//  string path = 1;
+//  Range range = 2;
+//  uint32 color = 3;
+// }
+
 /**
  * @generated from protobuf enum gooseclip.goosecode.ide.v1.FollowType
  */
@@ -293,25 +252,17 @@ export enum FileCommandType {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: FILE_COMMAND_TYPE_OPEN_FILE = 10;
+     * @generated from protobuf enum value: FILE_COMMAND_TYPE_SNIPPET = 11;
      */
-    OPEN_FILE = 10,
+    SNIPPET = 11,
     /**
-     * @generated from protobuf enum value: FILE_COMMAND_TYPE_CREATE_SNIPPET = 11;
+     * @generated from protobuf enum value: FILE_COMMAND_TYPE_BOOKMARK = 12;
      */
-    CREATE_SNIPPET = 11,
+    BOOKMARK = 12,
     /**
-     * @generated from protobuf enum value: FILE_COMMAND_TYPE_PIN_FILE = 12;
+     * @generated from protobuf enum value: FILE_COMMAND_TYPE_FOLLOW = 13;
      */
-    PIN_FILE = 12,
-    /**
-     * @generated from protobuf enum value: FILE_COMMAND_TYPE_HIGHLIGHT = 13;
-     */
-    HIGHLIGHT = 13,
-    /**
-     * @generated from protobuf enum value: FILE_COMMAND_TYPE_FOLLOW = 14;
-     */
-    FOLLOW = 14
+    FOLLOW = 13
 }
 /**
  * @generated from protobuf enum gooseclip.goosecode.ide.v1.AppCommandType
@@ -331,29 +282,25 @@ export enum AppCommandType {
     OVERLAY = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
-class CreateSnippetPush$Type extends MessageType<CreateSnippetPush> {
+class SnippetPush$Type extends MessageType<SnippetPush> {
     constructor() {
-        super("gooseclip.goosecode.ide.v1.CreateSnippetPush", [
-            { no: 1, name: "location", kind: "message", T: () => Location },
-            { no: 2, name: "context", kind: "message", T: () => SnippetContext }
+        super("gooseclip.goosecode.ide.v1.SnippetPush", [
+            { no: 1, name: "location", kind: "message", T: () => LocationWithContext }
         ]);
     }
-    create(value?: PartialMessage<CreateSnippetPush>): CreateSnippetPush {
+    create(value?: PartialMessage<SnippetPush>): SnippetPush {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<CreateSnippetPush>(this, message, value);
+            reflectionMergePartial<SnippetPush>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CreateSnippetPush): CreateSnippetPush {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SnippetPush): SnippetPush {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* gooseclip.goosecode.ide.v1.Location location */ 1:
-                    message.location = Location.internalBinaryRead(reader, reader.uint32(), options, message.location);
-                    break;
-                case /* gooseclip.goosecode.ide.v1.SnippetContext context */ 2:
-                    message.context = SnippetContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                case /* gooseclip.goosecode.ide.v1.LocationWithContext location */ 1:
+                    message.location = LocationWithContext.internalBinaryRead(reader, reader.uint32(), options, message.location);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -366,13 +313,10 @@ class CreateSnippetPush$Type extends MessageType<CreateSnippetPush> {
         }
         return message;
     }
-    internalBinaryWrite(message: CreateSnippetPush, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* gooseclip.goosecode.ide.v1.Location location = 1; */
+    internalBinaryWrite(message: SnippetPush, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* gooseclip.goosecode.ide.v1.LocationWithContext location = 1; */
         if (message.location)
-            Location.internalBinaryWrite(message.location, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* gooseclip.goosecode.ide.v1.SnippetContext context = 2; */
-        if (message.context)
-            SnippetContext.internalBinaryWrite(message.context, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+            LocationWithContext.internalBinaryWrite(message.location, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -380,9 +324,9 @@ class CreateSnippetPush$Type extends MessageType<CreateSnippetPush> {
     }
 }
 /**
- * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.CreateSnippetPush
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.SnippetPush
  */
-export const CreateSnippetPush = new CreateSnippetPush$Type();
+export const SnippetPush = new SnippetPush$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class BookmarkPush$Type extends MessageType<BookmarkPush> {
     constructor() {
@@ -430,130 +374,6 @@ class BookmarkPush$Type extends MessageType<BookmarkPush> {
  * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.BookmarkPush
  */
 export const BookmarkPush = new BookmarkPush$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class HighlightPush$Type extends MessageType<HighlightPush> {
-    constructor() {
-        super("gooseclip.goosecode.ide.v1.HighlightPush", [
-            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "range", kind: "message", T: () => Range },
-            { no: 3, name: "color", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
-        ]);
-    }
-    create(value?: PartialMessage<HighlightPush>): HighlightPush {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.path = "";
-        message.color = 0;
-        if (value !== undefined)
-            reflectionMergePartial<HighlightPush>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HighlightPush): HighlightPush {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string path */ 1:
-                    message.path = reader.string();
-                    break;
-                case /* gooseclip.goosecode.ide.v1.Range range */ 2:
-                    message.range = Range.internalBinaryRead(reader, reader.uint32(), options, message.range);
-                    break;
-                case /* uint32 color */ 3:
-                    message.color = reader.uint32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: HighlightPush, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string path = 1; */
-        if (message.path !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.path);
-        /* gooseclip.goosecode.ide.v1.Range range = 2; */
-        if (message.range)
-            Range.internalBinaryWrite(message.range, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* uint32 color = 3; */
-        if (message.color !== 0)
-            writer.tag(3, WireType.Varint).uint32(message.color);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.HighlightPush
- */
-export const HighlightPush = new HighlightPush$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class OpenPush$Type extends MessageType<OpenPush> {
-    constructor() {
-        super("gooseclip.goosecode.ide.v1.OpenPush", [
-            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "range", kind: "message", T: () => Range },
-            { no: 3, name: "force_new", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-    create(value?: PartialMessage<OpenPush>): OpenPush {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.path = "";
-        message.forceNew = false;
-        if (value !== undefined)
-            reflectionMergePartial<OpenPush>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenPush): OpenPush {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string path */ 1:
-                    message.path = reader.string();
-                    break;
-                case /* gooseclip.goosecode.ide.v1.Range range */ 2:
-                    message.range = Range.internalBinaryRead(reader, reader.uint32(), options, message.range);
-                    break;
-                case /* bool force_new */ 3:
-                    message.forceNew = reader.bool();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: OpenPush, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string path = 1; */
-        if (message.path !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.path);
-        /* gooseclip.goosecode.ide.v1.Range range = 2; */
-        if (message.range)
-            Range.internalBinaryWrite(message.range, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* bool force_new = 3; */
-        if (message.forceNew !== false)
-            writer.tag(3, WireType.Varint).bool(message.forceNew);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.OpenPush
- */
-export const OpenPush = new OpenPush$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class DefinitionFollow$Type extends MessageType<DefinitionFollow> {
     constructor() {
@@ -735,9 +555,8 @@ class FileCommandPush$Type extends MessageType<FileCommandPush> {
         super("gooseclip.goosecode.ide.v1.FileCommandPush", [
             { no: 1, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.FileCommandType", FileCommandType, "FILE_COMMAND_TYPE_"], options: { "buf.validate.field": { required: true } } },
             { no: 2, name: "file_contexts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FileContext },
-            { no: 10, name: "open_file", kind: "message", oneof: "data", T: () => OpenPush },
-            { no: 11, name: "bookmark", kind: "message", oneof: "data", T: () => BookmarkPush },
-            { no: 12, name: "highlight", kind: "message", oneof: "data", T: () => HighlightPush },
+            { no: 11, name: "snippet", kind: "message", oneof: "data", T: () => SnippetPush },
+            { no: 12, name: "bookmark", kind: "message", oneof: "data", T: () => BookmarkPush },
             { no: 13, name: "follow", kind: "message", oneof: "data", T: () => FollowPush }
         ]);
     }
@@ -761,22 +580,16 @@ class FileCommandPush$Type extends MessageType<FileCommandPush> {
                 case /* repeated gooseclip.goosecode.ide.v1.FileContext file_contexts */ 2:
                     message.fileContexts.push(FileContext.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* gooseclip.goosecode.ide.v1.OpenPush open_file */ 10:
+                case /* gooseclip.goosecode.ide.v1.SnippetPush snippet */ 11:
                     message.data = {
-                        oneofKind: "openFile",
-                        openFile: OpenPush.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).openFile)
+                        oneofKind: "snippet",
+                        snippet: SnippetPush.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).snippet)
                     };
                     break;
-                case /* gooseclip.goosecode.ide.v1.BookmarkPush bookmark */ 11:
+                case /* gooseclip.goosecode.ide.v1.BookmarkPush bookmark */ 12:
                     message.data = {
                         oneofKind: "bookmark",
                         bookmark: BookmarkPush.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).bookmark)
-                    };
-                    break;
-                case /* gooseclip.goosecode.ide.v1.HighlightPush highlight */ 12:
-                    message.data = {
-                        oneofKind: "highlight",
-                        highlight: HighlightPush.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).highlight)
                     };
                     break;
                 case /* gooseclip.goosecode.ide.v1.FollowPush follow */ 13:
@@ -803,15 +616,12 @@ class FileCommandPush$Type extends MessageType<FileCommandPush> {
         /* repeated gooseclip.goosecode.ide.v1.FileContext file_contexts = 2; */
         for (let i = 0; i < message.fileContexts.length; i++)
             FileContext.internalBinaryWrite(message.fileContexts[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* gooseclip.goosecode.ide.v1.OpenPush open_file = 10; */
-        if (message.data.oneofKind === "openFile")
-            OpenPush.internalBinaryWrite(message.data.openFile, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
-        /* gooseclip.goosecode.ide.v1.BookmarkPush bookmark = 11; */
+        /* gooseclip.goosecode.ide.v1.SnippetPush snippet = 11; */
+        if (message.data.oneofKind === "snippet")
+            SnippetPush.internalBinaryWrite(message.data.snippet, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* gooseclip.goosecode.ide.v1.BookmarkPush bookmark = 12; */
         if (message.data.oneofKind === "bookmark")
-            BookmarkPush.internalBinaryWrite(message.data.bookmark, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
-        /* gooseclip.goosecode.ide.v1.HighlightPush highlight = 12; */
-        if (message.data.oneofKind === "highlight")
-            HighlightPush.internalBinaryWrite(message.data.highlight, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+            BookmarkPush.internalBinaryWrite(message.data.bookmark, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         /* gooseclip.goosecode.ide.v1.FollowPush follow = 13; */
         if (message.data.oneofKind === "follow")
             FollowPush.internalBinaryWrite(message.data.follow, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
