@@ -11,12 +11,12 @@ import { getFileContentsAtCommit as getFileContentsAtHead } from "../git";
 import { getFileContexts } from "./context";
 import { GooseCodeServer } from "./server/server";
 
-export async function handleFollowCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker){
+export async function handleFollowCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
     const editor = vscode.window.activeTextEditor!;
     const workspace = workspaceTracker.getLastActiveGooseCodeWorkspace();
     if (workspace === null) {
-      console.error("No active workspace found");
-      return;
+        console.error("No active workspace found");
+        return;
     }
 
     console.log("FOLLOW", workspace)
@@ -28,12 +28,12 @@ export async function handleFollowCommand(gooseCodeServer: GooseCodeServer, work
 
     const from = await fromRange(selection);
     const fromMsg = gc.LocationWithContext.create({
-      location: gc.Location.create({
-        path: workspaceTracker.relativePath(
-          editor.document.uri.fsPath,
-        ),
-        range: from,
-      }),
+        location: gc.Location.create({
+            path: workspaceTracker.relativePath(
+                editor.document.uri.fsPath,
+            ),
+            range: from,
+        }),
     });
 
 
@@ -41,46 +41,46 @@ export async function handleFollowCommand(gooseCodeServer: GooseCodeServer, work
     const filteredDefinitions = getDefinitionsWithoutCurrentPosition(definitions, selection);
 
     if (filteredDefinitions.length > 0) {
-      if (filteredDefinitions.length > 1) {
-        console.warn("Multiple definitions found. Going to the first one");
-      }
-
-      const msg = await createDefinitionFollowMessage(workspaceTracker, fromMsg, filteredDefinitions);
-      if (!msg) {
-        console.error("No definition message to push");
-        return;
-      }
-
-
-      // Push the message to goosecode
-      gooseCodeServer?.push(msg);
-
-
-      try {
-        // Navigate in edittor to the definition
-        if (msg.data.oneofKind == "fileCommand" && msg.data.fileCommand.data.oneofKind == "follow" && msg.data.fileCommand.data.follow.data.oneofKind == "definition") {
-          await goToDefinition(
-            workspaceUri,
-            msg.data.fileCommand.data.follow.data.definition.to!.location!,
-            false,
-          );
+        if (filteredDefinitions.length > 1) {
+            console.warn("Multiple definitions found. Going to the first one");
         }
 
-      } catch (e) {
-        console.error(e);
-      }
-      return;
+        const msg = await createDefinitionFollowMessage(workspaceTracker, fromMsg, filteredDefinitions);
+        if (!msg) {
+            console.error("No definition message to push");
+            return;
+        }
+
+
+        // Push the message to goosecode
+        gooseCodeServer?.push(msg);
+
+
+        try {
+            // Navigate in edittor to the definition
+            if (msg.data.oneofKind == "fileCommand" && msg.data.fileCommand.data.oneofKind == "follow" && msg.data.fileCommand.data.follow.data.oneofKind == "connected") {
+                await goToDefinition(
+                    workspaceUri,
+                    msg.data.fileCommand.data.follow.data.connected.to!.location!,
+                    false,
+                );
+            }
+
+        } catch (e) {
+            console.error(e);
+        }
+        return;
     }
 
     const clickedDefinitionRef = await testDefinitionClicked(definitions, selection);
     if (clickedDefinitionRef) {
-      const msg = await createReferencesFollowMessage(workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
-      if (!msg) {
-        console.error("No referencesmessage to push");
-        return;
-      }
+        const msg = await createReferencesFollowMessage(workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
+        if (!msg) {
+            console.error("No referencesmessage to push");
+            return;
+        }
 
-      gooseCodeServer?.push(msg);
+        gooseCodeServer?.push(msg);
     }
 
 }
@@ -147,7 +147,8 @@ export async function createDefinitionFollowMessage(
             fullRange: fullRange,
         }),
     });
-    const defMsg = gc.DefinitionFollow.create({
+    const defMsg = gc.ConnectedFollow.create({
+        type: gc.ConnectedFollowType.DEFINITION,
         from: fromMsg,
         to: toMsg,
     });
@@ -160,7 +161,7 @@ export async function createDefinitionFollowMessage(
     ];
     const fileContexts = await getFileContexts(workspaceTracker, paths);
 
-    
+
     return await wrapFollowDefinition(fileContexts, defMsg);
 }
 
@@ -183,13 +184,44 @@ export async function createReferencesFollowMessage(workspaceTracker: WorkspaceT
 
     console.log("FOLLOW REFERENCE", refs);
 
+    const quickPick = vscode.window.createQuickPick();
+    quickPick.placeholder = "Loading references...";
+    quickPick.busy = true;
+
+    quickPick.onDidChangeSelection(selection => {
+        if (selection[0]) {
+            const loc = (selection[0] as any).location as vscode.Location;
+            vscode.window.showTextDocument(loc.uri, {
+                selection: loc.range
+            });
+            quickPick.hide();
+        }
+    });
+    quickPick.show();
+
+    quickPick.items = await Promise.all(
+        refs.map(async (loc) => {
+            const document = await vscode.workspace.openTextDocument(loc.uri);
+            const lineText = document.lineAt(loc.range.start.line).text.trim();
+            return {
+                label: lineText,
+                description: `Line ${loc.range.start.line + 1}`,
+                detail: workspaceTracker.relativePath(loc.uri.fsPath),
+                location: loc,
+            };
+        })
+    );
+    quickPick.busy = false;
+    quickPick.placeholder = "Select a reference to navigate";
+
     if (clickedDefinitionRef) {
         fromMsg.context = gc.SnippetContext.create({
             fullRange: convertRange(targetFullRangeFromLocation(clickedDefinitionRef)),
         });
     }
 
-    const reference = gc.ReferenceFollow.create({
+    const reference = gc.ConnectedFollow.create({
+        type: gc.ConnectedFollowType.REFERENCE,
         from: fromMsg,
         to: refs.map(
             (ref) =>
@@ -231,7 +263,7 @@ export async function fromRange(selection: vscode.Selection): Promise<gc.Range> 
     });
 }
 
-export async function wrapFollowDefinition(fileContext: gc.FileContext[], defMsg: gc.DefinitionFollow): Promise<gc.PushResponse> {
+export async function wrapFollowDefinition(fileContext: gc.FileContext[], msg: gc.ConnectedFollow): Promise<gc.PushResponse> {
     return gc.PushResponse.create({
         type: gc.PushType.FILE_COMMAND,
         data: {
@@ -242,10 +274,10 @@ export async function wrapFollowDefinition(fileContext: gc.FileContext[], defMsg
                 data: {
                     oneofKind: "follow",
                     follow: gc.FollowPush.create({
-                        type: gc.FollowType.DEFINITION,
+                        type: gc.FollowType.CONNECTED,
                         data: {
-                            oneofKind: "definition",
-                            definition: defMsg,
+                            oneofKind: "connected",
+                            connected: msg,
                         },
                     }),
                 },
@@ -254,7 +286,7 @@ export async function wrapFollowDefinition(fileContext: gc.FileContext[], defMsg
     });
 }
 
-export async function wrapFollowReference(refMsg: gc.ReferenceFollow): Promise<gc.PushResponse> {
+export async function wrapFollowReference(msg: gc.ConnectedFollow): Promise<gc.PushResponse> {
     return gc.PushResponse.create({
         type: gc.PushType.FILE_COMMAND,
         data: {
@@ -264,10 +296,10 @@ export async function wrapFollowReference(refMsg: gc.ReferenceFollow): Promise<g
                 data: {
                     oneofKind: "follow",
                     follow: gc.FollowPush.create({
-                        type: gc.FollowType.REFERENCE,
+                        type: gc.FollowType.CONNECTED,
                         data: {
-                            oneofKind: "reference",
-                            reference: refMsg,
+                            oneofKind: "connected",
+                            connected: msg,
                         },
                     }),
                 },

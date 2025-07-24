@@ -33,30 +33,30 @@ export interface BookmarkPush {
     path: string;
 }
 /**
- * @generated from protobuf message gooseclip.goosecode.ide.v1.DefinitionFollow
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.ConnectedFollow
  */
-export interface DefinitionFollow {
+export interface ConnectedFollow {
     /**
-     * @generated from protobuf field: gooseclip.goosecode.ide.v1.LocationWithContext from = 1
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.ConnectedFollowType type = 1
+     */
+    type: ConnectedFollowType;
+    /**
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.LocationWithContext from = 2
      */
     from?: LocationWithContext;
     /**
-     * @generated from protobuf field: gooseclip.goosecode.ide.v1.LocationWithContext to = 2
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.LocationWithContext to = 3
      */
     to?: LocationWithContext;
 }
 /**
- * @generated from protobuf message gooseclip.goosecode.ide.v1.ReferenceFollow
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.SnippetFollow
  */
-export interface ReferenceFollow {
+export interface SnippetFollow {
     /**
-     * @generated from protobuf field: gooseclip.goosecode.ide.v1.LocationWithContext from = 1
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.LocationWithContext location = 1
      */
-    from?: LocationWithContext;
-    /**
-     * @generated from protobuf field: repeated gooseclip.goosecode.ide.v1.LocationWithContext to = 2
-     */
-    to: LocationWithContext[];
+    location?: LocationWithContext;
 }
 /**
  * @generated from protobuf message gooseclip.goosecode.ide.v1.FollowPush
@@ -70,17 +70,17 @@ export interface FollowPush {
      * @generated from protobuf oneof: data
      */
     data: {
-        oneofKind: "definition";
+        oneofKind: "connected";
         /**
-         * @generated from protobuf field: gooseclip.goosecode.ide.v1.DefinitionFollow definition = 10
+         * @generated from protobuf field: gooseclip.goosecode.ide.v1.ConnectedFollow connected = 10
          */
-        definition: DefinitionFollow;
+        connected: ConnectedFollow;
     } | {
-        oneofKind: "reference";
+        oneofKind: "snippet";
         /**
-         * @generated from protobuf field: gooseclip.goosecode.ide.v1.ReferenceFollow reference = 11
+         * @generated from protobuf field: gooseclip.goosecode.ide.v1.SnippetFollow snippet = 11
          */
-        reference: ReferenceFollow;
+        snippet: SnippetFollow;
     } | {
         oneofKind: undefined;
     };
@@ -235,11 +235,28 @@ export enum FollowType {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: FOLLOW_TYPE_DEFINITION = 1;
+     * @generated from protobuf enum value: FOLLOW_TYPE_CONNECTED = 1;
+     */
+    CONNECTED = 1,
+    /**
+     * @generated from protobuf enum value: FOLLOW_TYPE_SNIPPET = 2;
+     */
+    SNIPPET = 2
+}
+/**
+ * @generated from protobuf enum gooseclip.goosecode.ide.v1.ConnectedFollowType
+ */
+export enum ConnectedFollowType {
+    /**
+     * @generated from protobuf enum value: CONNECTED_FOLLOW_TYPE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: CONNECTED_FOLLOW_TYPE_DEFINITION = 1;
      */
     DEFINITION = 1,
     /**
-     * @generated from protobuf enum value: FOLLOW_TYPE_REFERENCE = 2;
+     * @generated from protobuf enum value: CONNECTED_FOLLOW_TYPE_REFERENCE = 2;
      */
     REFERENCE = 2
 }
@@ -375,28 +392,33 @@ class BookmarkPush$Type extends MessageType<BookmarkPush> {
  */
 export const BookmarkPush = new BookmarkPush$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class DefinitionFollow$Type extends MessageType<DefinitionFollow> {
+class ConnectedFollow$Type extends MessageType<ConnectedFollow> {
     constructor() {
-        super("gooseclip.goosecode.ide.v1.DefinitionFollow", [
-            { no: 1, name: "from", kind: "message", T: () => LocationWithContext },
-            { no: 2, name: "to", kind: "message", T: () => LocationWithContext }
+        super("gooseclip.goosecode.ide.v1.ConnectedFollow", [
+            { no: 1, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.ConnectedFollowType", ConnectedFollowType, "CONNECTED_FOLLOW_TYPE_"] },
+            { no: 2, name: "from", kind: "message", T: () => LocationWithContext },
+            { no: 3, name: "to", kind: "message", T: () => LocationWithContext }
         ]);
     }
-    create(value?: PartialMessage<DefinitionFollow>): DefinitionFollow {
+    create(value?: PartialMessage<ConnectedFollow>): ConnectedFollow {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.type = 0;
         if (value !== undefined)
-            reflectionMergePartial<DefinitionFollow>(this, message, value);
+            reflectionMergePartial<ConnectedFollow>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DefinitionFollow): DefinitionFollow {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConnectedFollow): ConnectedFollow {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* gooseclip.goosecode.ide.v1.LocationWithContext from */ 1:
+                case /* gooseclip.goosecode.ide.v1.ConnectedFollowType type */ 1:
+                    message.type = reader.int32();
+                    break;
+                case /* gooseclip.goosecode.ide.v1.LocationWithContext from */ 2:
                     message.from = LocationWithContext.internalBinaryRead(reader, reader.uint32(), options, message.from);
                     break;
-                case /* gooseclip.goosecode.ide.v1.LocationWithContext to */ 2:
+                case /* gooseclip.goosecode.ide.v1.LocationWithContext to */ 3:
                     message.to = LocationWithContext.internalBinaryRead(reader, reader.uint32(), options, message.to);
                     break;
                 default:
@@ -410,13 +432,16 @@ class DefinitionFollow$Type extends MessageType<DefinitionFollow> {
         }
         return message;
     }
-    internalBinaryWrite(message: DefinitionFollow, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* gooseclip.goosecode.ide.v1.LocationWithContext from = 1; */
+    internalBinaryWrite(message: ConnectedFollow, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* gooseclip.goosecode.ide.v1.ConnectedFollowType type = 1; */
+        if (message.type !== 0)
+            writer.tag(1, WireType.Varint).int32(message.type);
+        /* gooseclip.goosecode.ide.v1.LocationWithContext from = 2; */
         if (message.from)
-            LocationWithContext.internalBinaryWrite(message.from, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* gooseclip.goosecode.ide.v1.LocationWithContext to = 2; */
+            LocationWithContext.internalBinaryWrite(message.from, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* gooseclip.goosecode.ide.v1.LocationWithContext to = 3; */
         if (message.to)
-            LocationWithContext.internalBinaryWrite(message.to, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+            LocationWithContext.internalBinaryWrite(message.to, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -424,34 +449,29 @@ class DefinitionFollow$Type extends MessageType<DefinitionFollow> {
     }
 }
 /**
- * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.DefinitionFollow
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.ConnectedFollow
  */
-export const DefinitionFollow = new DefinitionFollow$Type();
+export const ConnectedFollow = new ConnectedFollow$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ReferenceFollow$Type extends MessageType<ReferenceFollow> {
+class SnippetFollow$Type extends MessageType<SnippetFollow> {
     constructor() {
-        super("gooseclip.goosecode.ide.v1.ReferenceFollow", [
-            { no: 1, name: "from", kind: "message", T: () => LocationWithContext },
-            { no: 2, name: "to", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocationWithContext }
+        super("gooseclip.goosecode.ide.v1.SnippetFollow", [
+            { no: 1, name: "location", kind: "message", T: () => LocationWithContext }
         ]);
     }
-    create(value?: PartialMessage<ReferenceFollow>): ReferenceFollow {
+    create(value?: PartialMessage<SnippetFollow>): SnippetFollow {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.to = [];
         if (value !== undefined)
-            reflectionMergePartial<ReferenceFollow>(this, message, value);
+            reflectionMergePartial<SnippetFollow>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReferenceFollow): ReferenceFollow {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SnippetFollow): SnippetFollow {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* gooseclip.goosecode.ide.v1.LocationWithContext from */ 1:
-                    message.from = LocationWithContext.internalBinaryRead(reader, reader.uint32(), options, message.from);
-                    break;
-                case /* repeated gooseclip.goosecode.ide.v1.LocationWithContext to */ 2:
-                    message.to.push(LocationWithContext.internalBinaryRead(reader, reader.uint32(), options));
+                case /* gooseclip.goosecode.ide.v1.LocationWithContext location */ 1:
+                    message.location = LocationWithContext.internalBinaryRead(reader, reader.uint32(), options, message.location);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -464,13 +484,10 @@ class ReferenceFollow$Type extends MessageType<ReferenceFollow> {
         }
         return message;
     }
-    internalBinaryWrite(message: ReferenceFollow, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* gooseclip.goosecode.ide.v1.LocationWithContext from = 1; */
-        if (message.from)
-            LocationWithContext.internalBinaryWrite(message.from, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* repeated gooseclip.goosecode.ide.v1.LocationWithContext to = 2; */
-        for (let i = 0; i < message.to.length; i++)
-            LocationWithContext.internalBinaryWrite(message.to[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+    internalBinaryWrite(message: SnippetFollow, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* gooseclip.goosecode.ide.v1.LocationWithContext location = 1; */
+        if (message.location)
+            LocationWithContext.internalBinaryWrite(message.location, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -478,16 +495,16 @@ class ReferenceFollow$Type extends MessageType<ReferenceFollow> {
     }
 }
 /**
- * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.ReferenceFollow
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.SnippetFollow
  */
-export const ReferenceFollow = new ReferenceFollow$Type();
+export const SnippetFollow = new SnippetFollow$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class FollowPush$Type extends MessageType<FollowPush> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.FollowPush", [
             { no: 1, name: "type", kind: "enum", T: () => ["gooseclip.goosecode.ide.v1.FollowType", FollowType, "FOLLOW_TYPE_"] },
-            { no: 10, name: "definition", kind: "message", oneof: "data", T: () => DefinitionFollow },
-            { no: 11, name: "reference", kind: "message", oneof: "data", T: () => ReferenceFollow }
+            { no: 10, name: "connected", kind: "message", oneof: "data", T: () => ConnectedFollow },
+            { no: 11, name: "snippet", kind: "message", oneof: "data", T: () => SnippetFollow }
         ]);
     }
     create(value?: PartialMessage<FollowPush>): FollowPush {
@@ -506,16 +523,16 @@ class FollowPush$Type extends MessageType<FollowPush> {
                 case /* gooseclip.goosecode.ide.v1.FollowType type */ 1:
                     message.type = reader.int32();
                     break;
-                case /* gooseclip.goosecode.ide.v1.DefinitionFollow definition */ 10:
+                case /* gooseclip.goosecode.ide.v1.ConnectedFollow connected */ 10:
                     message.data = {
-                        oneofKind: "definition",
-                        definition: DefinitionFollow.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).definition)
+                        oneofKind: "connected",
+                        connected: ConnectedFollow.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).connected)
                     };
                     break;
-                case /* gooseclip.goosecode.ide.v1.ReferenceFollow reference */ 11:
+                case /* gooseclip.goosecode.ide.v1.SnippetFollow snippet */ 11:
                     message.data = {
-                        oneofKind: "reference",
-                        reference: ReferenceFollow.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).reference)
+                        oneofKind: "snippet",
+                        snippet: SnippetFollow.internalBinaryRead(reader, reader.uint32(), options, (message.data as any).snippet)
                     };
                     break;
                 default:
@@ -533,12 +550,12 @@ class FollowPush$Type extends MessageType<FollowPush> {
         /* gooseclip.goosecode.ide.v1.FollowType type = 1; */
         if (message.type !== 0)
             writer.tag(1, WireType.Varint).int32(message.type);
-        /* gooseclip.goosecode.ide.v1.DefinitionFollow definition = 10; */
-        if (message.data.oneofKind === "definition")
-            DefinitionFollow.internalBinaryWrite(message.data.definition, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
-        /* gooseclip.goosecode.ide.v1.ReferenceFollow reference = 11; */
-        if (message.data.oneofKind === "reference")
-            ReferenceFollow.internalBinaryWrite(message.data.reference, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* gooseclip.goosecode.ide.v1.ConnectedFollow connected = 10; */
+        if (message.data.oneofKind === "connected")
+            ConnectedFollow.internalBinaryWrite(message.data.connected, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* gooseclip.goosecode.ide.v1.SnippetFollow snippet = 11; */
+        if (message.data.oneofKind === "snippet")
+            SnippetFollow.internalBinaryWrite(message.data.snippet, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
