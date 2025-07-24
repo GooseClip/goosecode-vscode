@@ -11,20 +11,95 @@ import { getFileContentsAtCommit as getFileContentsAtHead } from "../git";
 import { getFileContexts } from "./context";
 import { GooseCodeServer } from "./server/server";
 
+/* GooseCode Follow
+ * When using cmd+opt+g 3 possible outcomes exist
+ * 1. Go to definition
+ * 2. Go to reference
+ * 3. Snippet (selection length > 0)
+ */
+
 export async function handleFollowCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
     const editor = vscode.window.activeTextEditor!;
+    const selection = editor.selection;
+    
+    // If the selection is not empty we want a snippet follow command
+    console.log(`SELECTION: ${selection}`)
+    if (!selection.isEmpty) {
+        console.log(`SNIPPET FOLLOW`)
+        await snippetFollow(gooseCodeServer, workspaceTracker)
+        return
+    }
+    
+    await connectedFollow(gooseCodeServer, workspaceTracker)
+}
+
+// snippetFollow will dump the selection using the current generation strategy (default swimlane)
+async function snippetFollow(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
+    const editor = vscode.window.activeTextEditor!;
+    const selection = editor.selection;
+
+    const workspace = workspaceTracker.getLastActiveGooseCodeWorkspace();
+    if (workspace === null) {
+        console.error("No active workspace found for snippet follow");
+        return;
+    }
+
+    let range: vscode.Range;
+    let fullRange: vscode.Range;
+
+    range = selection;
+    const startLine = editor.document.lineAt(selection.start.line);
+    const endLine = editor.document.lineAt(selection.end.line);
+    fullRange = new vscode.Range(startLine.range.start, endLine.range.end);
+
+    gooseCodeServer?.push(
+        gc.PushResponse.create({
+            type: gc.PushType.FILE_COMMAND,
+            data: {
+                oneofKind: "fileCommand",
+                fileCommand: gc.FileCommandPush.create({
+                    type: gc.FileCommandType.FOLLOW,
+                    fileContexts: await getFileContexts(workspaceTracker, [workspaceTracker.currentRelativeFilePath()]),
+                    data: {
+                        oneofKind: "follow",
+                        follow: gc.FollowPush.create({
+                            type: gc.FollowType.SNIPPET,
+                            data: {
+                                oneofKind: "snippet",
+                                snippet: gc.SnippetFollow.create({
+                                    location: gc.LocationWithContext.create({
+                                        location: gc.Location.create({
+                                            path: workspaceTracker.currentRelativeFilePath(),
+                                            range: convertRange(range),
+                                        }),
+                                        context: gc.SnippetContext.create({
+                                            fullRange: convertRange(fullRange)
+                                        })
+                                    }),
+                                }),
+                            },
+                        }),
+                    }
+                }),
+            },
+        }),
+    )
+}
+
+// connectedFollow will draw the connected codes using the current generation strategy (default swimlane)
+async function connectedFollow(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
     const workspace = workspaceTracker.getLastActiveGooseCodeWorkspace();
     if (workspace === null) {
         console.error("No active workspace found");
         return;
     }
 
-    console.log("FOLLOW", workspace)
-    const workspaceUri = workspace.uri;
+    const editor = vscode.window.activeTextEditor!;
     const selection = editor.selection;
-    // await getDocumentSymbols();
+    
+    const workspaceUri = workspace.uri;
     let definitions = await getDefinitions();
-    let references = await getReferences();
+    // let references = await getReferences();
 
     const from = await fromRange(selection);
     const fromMsg = gc.LocationWithContext.create({
@@ -35,8 +110,6 @@ export async function handleFollowCommand(gooseCodeServer: GooseCodeServer, work
             range: from,
         }),
     });
-
-
 
     const filteredDefinitions = getDefinitionsWithoutCurrentPosition(definitions, selection);
 
@@ -82,8 +155,8 @@ export async function handleFollowCommand(gooseCodeServer: GooseCodeServer, work
 
         gooseCodeServer?.push(msg);
     }
-
 }
+
 
 // If the user clicks on where something is defined, we return the symbol that was clicked.
 export async function testDefinitionClicked(definitions: LocationOrLocationLink[], selection: vscode.Selection): Promise<LocationOrLocationLink | undefined> {
@@ -184,35 +257,51 @@ export async function createReferencesFollowMessage(workspaceTracker: WorkspaceT
 
     console.log("FOLLOW REFERENCE", refs);
 
-    const quickPick = vscode.window.createQuickPick();
-    quickPick.placeholder = "Loading references...";
-    quickPick.busy = true;
+    const selectedRef = await new Promise<vscode.Location | undefined>(resolve => {
+        const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem & { location: vscode.Location }>();
+        quickPick.placeholder = "Loading references...";
+        quickPick.busy = true;
 
-    quickPick.onDidChangeSelection(selection => {
-        if (selection[0]) {
-            const loc = (selection[0] as any).location as vscode.Location;
-            vscode.window.showTextDocument(loc.uri, {
-                selection: loc.range
-            });
-            quickPick.hide();
-        }
+        quickPick.onDidChangeSelection(selection => {
+            if (selection[0]) {
+                const loc = selection[0].location;
+                vscode.window.showTextDocument(loc.uri, {
+                    selection: loc.range
+                });
+                quickPick.hide();
+                resolve(loc);
+            }
+        });
+
+        quickPick.onDidHide(() => {
+            resolve(undefined);
+            quickPick.dispose();
+        });
+
+        quickPick.show();
+
+        Promise.all(
+            refs.map(async (loc) => {
+                const document = await vscode.workspace.openTextDocument(loc.uri);
+                const lineText = document.lineAt(loc.range.start.line).text.trim();
+                return {
+                    label: lineText,
+                    description: `Line ${loc.range.start.line + 1}`,
+                    detail: workspaceTracker.relativePath(loc.uri.fsPath),
+                    location: loc,
+                };
+            })
+        ).then(items => {
+            quickPick.items = items;
+            quickPick.busy = false;
+            quickPick.placeholder = "Select a reference to navigate";
+        });
     });
-    quickPick.show();
 
-    quickPick.items = await Promise.all(
-        refs.map(async (loc) => {
-            const document = await vscode.workspace.openTextDocument(loc.uri);
-            const lineText = document.lineAt(loc.range.start.line).text.trim();
-            return {
-                label: lineText,
-                description: `Line ${loc.range.start.line + 1}`,
-                detail: workspaceTracker.relativePath(loc.uri.fsPath),
-                location: loc,
-            };
-        })
-    );
-    quickPick.busy = false;
-    quickPick.placeholder = "Select a reference to navigate";
+    if (!selectedRef) {
+        return;
+    }
+
 
     if (clickedDefinitionRef) {
         fromMsg.context = gc.SnippetContext.create({
@@ -220,21 +309,30 @@ export async function createReferencesFollowMessage(workspaceTracker: WorkspaceT
         });
     }
 
+    const toMsg = gc.LocationWithContext.create({
+        location: gc.Location.create({
+            path: workspaceTracker.relativePath(selectedRef.uri.fsPath),
+            range: convertRange(selectedRef.range),
+        }),
+        context: gc.SnippetContext.create({
+            fullRange: convertRange(targetFullRangeFromLocation(selectedRef)),
+        }),
+    });
+
     const reference = gc.ConnectedFollow.create({
         type: gc.ConnectedFollowType.REFERENCE,
         from: fromMsg,
-        to: refs.map(
-            (ref) =>
-                gc.LocationWithContext.create({
-                    location: gc.Location.create({
-                        path: workspaceTracker.relativePath(ref.uri.fsPath),
-                        range: convertRange(ref.range),
-                    }),
-                }),
-        ),
+        to: toMsg,
     });
 
-    return await wrapFollowReference(reference);
+    const paths = [
+        fromMsg.location!.path,
+        toMsg.location!.path,
+    ];
+    const fileContexts = await getFileContexts(workspaceTracker, paths);
+
+
+    return await wrapFollowReference(fileContexts, reference);
 }
 
 
@@ -286,13 +384,14 @@ export async function wrapFollowDefinition(fileContext: gc.FileContext[], msg: g
     });
 }
 
-export async function wrapFollowReference(msg: gc.ConnectedFollow): Promise<gc.PushResponse> {
+export async function wrapFollowReference(fileContext: gc.FileContext[], msg: gc.ConnectedFollow): Promise<gc.PushResponse> {
     return gc.PushResponse.create({
         type: gc.PushType.FILE_COMMAND,
         data: {
             oneofKind: "fileCommand",
             fileCommand: gc.FileCommandPush.create({
                 type: gc.FileCommandType.FOLLOW,
+                fileContexts: fileContext,
                 data: {
                     oneofKind: "follow",
                     follow: gc.FollowPush.create({
