@@ -16,10 +16,8 @@ export function getWordAtPosition(): { word: string, range: vscode.Range } | und
 
     if (wordRange) {
         const word = document.getText(wordRange);
-        vscode.window.showInformationMessage(`Word at position: ${word}`);
         return { word, range: wordRange };
     } else {
-        vscode.window.showInformationMessage('No word found at cursor position.');
         return undefined;
     }
 }

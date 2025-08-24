@@ -24,7 +24,7 @@ export async function handleSnippetCommand(gooseCodeServer: GooseCodeServer, wor
         fullRange = new vscode.Range(startLine.range.start, endLine.range.end);
     }
 
-    gooseCodeServer?.push(
+    gooseCodeServer.push(
         gc.PushResponse.create({
             type: gc.PushType.FILE_COMMAND,
             data: {

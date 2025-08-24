@@ -3,7 +3,7 @@ import { WorkspaceTracker } from "../workspace-tracker";
 import { GooseCodeServer } from "./server/server";
 
 export async function handleMinimapCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
-    gooseCodeServer?.push(
+    gooseCodeServer.push(
         gc.PushResponse.create({
             type: gc.PushType.APP_COMMAND,
             data: {

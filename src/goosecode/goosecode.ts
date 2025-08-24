@@ -4,10 +4,11 @@ import { GooseCodeServer } from "./server/server";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { loadWorkspaceConfiguration } from "../config";
 import * as gc from "../gen/ide";
-import { handleGenerateCommand } from "./goosecode_generate";
+import { GenerateResult, handleGenerateCommand } from "./goosecode_generate";
 import { handleSnippetCommand } from "./goosecode_snippet";
 import { handleMinimapCommand } from "./goosecode_minimap";
 import { handleOverlayCommand } from "./goosecode_overlay";
+import { GenerateType } from "../gen/ide";
 
 
 export function registerGooseCodeCommands(
@@ -27,6 +28,7 @@ export function registerGooseCodeCommands(
         return;
       }
       handleMinimapCommand(gooseCodeServer!, workspaceTracker);
+      vscode.window.showInformationMessage("GooseCode: Minimap toggled");
     },
   );
   subscriptions.push(sub);
@@ -42,6 +44,7 @@ export function registerGooseCodeCommands(
         return;
       }
       handleOverlayCommand(gooseCodeServer!, workspaceTracker);
+      vscode.window.showInformationMessage("GooseCode: Overlay toggled");
     },
   );
   subscriptions.push(sub);
@@ -52,6 +55,7 @@ export function registerGooseCodeCommands(
       return;
     }
     handleSnippetCommand(gooseCodeServer!, workspaceTracker, { minimized: false });
+    vscode.window.setStatusBarMessage("GooseCode: Snippet added ✅", 2000);
   });
   subscriptions.push(sub);
 
@@ -61,6 +65,7 @@ export function registerGooseCodeCommands(
       return;
     }
     handleSnippetCommand(gooseCodeServer!, workspaceTracker, { minimized: true });
+    vscode.window.setStatusBarMessage("GooseCode: Snippet added ✅", 2000);
   });
   subscriptions.push(sub);
 
@@ -68,8 +73,20 @@ export function registerGooseCodeCommands(
     if (!(await guard(gooseCodeServer, workspaceTracker))) {
       return;
     }
-    handleGenerateCommand(gooseCodeServer!, workspaceTracker);
-
+    const res = await handleGenerateCommand(gooseCodeServer!, workspaceTracker);
+    switch (res) {
+      case GenerateResult.SNIPPET:
+        vscode.window.setStatusBarMessage("GooseCode: Snippet generated ✅", 2000);
+        break;
+      case GenerateResult.DEFINITION:
+        vscode.window.setStatusBarMessage("GooseCode: Definition generated ✅", 2000);
+        break;
+      case GenerateResult.REFERENCE:
+        vscode.window.setStatusBarMessage("GooseCode: Reference generated ✅", 2000);
+        break;
+      default:
+        break;
+    }
   });
   subscriptions.push(sub);
 

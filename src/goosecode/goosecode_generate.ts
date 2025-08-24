@@ -18,21 +18,26 @@ import { GooseCodeServer } from "./server/server";
  * 3. Snippet (selection length > 0)
  */
 
-export async function handleGenerateCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
+export enum GenerateResult {
+    SNIPPET,
+    DEFINITION,
+    REFERENCE,
+}
+
+export async function handleGenerateCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker): Promise<GenerateResult | undefined> {
     const editor = vscode.window.activeTextEditor!;
     const selection = editor.selection;
     
     // If the selection is not empty we want a snippet generate command
     if (!selection.isEmpty) {
-        await snippetGenerate(gooseCodeServer, workspaceTracker)
-        return
+        return snippetGenerate(gooseCodeServer, workspaceTracker)
     }
     
-    await connectedGenerate(gooseCodeServer, workspaceTracker)
+    return await connectedGenerate(gooseCodeServer, workspaceTracker)
 }
 
 // snippetGenerate will dump the selection using the current generation strategy (default swimlane)
-async function snippetGenerate(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
+async function snippetGenerate(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) : Promise<GenerateResult | undefined> {
     const editor = vscode.window.activeTextEditor!;
     const selection = editor.selection;
 
@@ -50,7 +55,7 @@ async function snippetGenerate(gooseCodeServer: GooseCodeServer, workspaceTracke
     const endLine = editor.document.lineAt(selection.end.line);
     fullRange = new vscode.Range(startLine.range.start, endLine.range.end);
 
-    gooseCodeServer?.push(
+    gooseCodeServer.push(
         gc.PushResponse.create({
             type: gc.PushType.FILE_COMMAND,
             data: {
@@ -82,10 +87,12 @@ async function snippetGenerate(gooseCodeServer: GooseCodeServer, workspaceTracke
             },
         }),
     )
+
+    return GenerateResult.SNIPPET;
 }
 
 // connectedGenerate will draw the connected codes using the current generation strategy (default swimlane)
-async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
+async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) : Promise<GenerateResult | undefined> {
     const workspace = workspaceTracker.getLastActiveGooseCodeWorkspace();
     if (workspace === null) {
         console.error("No active workspace found");
@@ -124,7 +131,7 @@ async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTrac
 
 
         // Push the message to goosecode
-        gooseCodeServer?.push(msg);
+        gooseCodeServer.push(msg);
 
 
         try {
@@ -139,8 +146,10 @@ async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTrac
 
         } catch (e) {
             console.error(e);
+            return;
         }
-        return;
+
+        return GenerateResult.DEFINITION;
     }
 
     const clickedDefinitionRef = await testDefinitionClicked(definitions, selection);
@@ -151,8 +160,11 @@ async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTrac
             return;
         }
 
-        gooseCodeServer?.push(msg);
+        gooseCodeServer.push(msg);
+        return GenerateResult.REFERENCE;
     }
+
+    return;
 }
 
 
