@@ -6,7 +6,7 @@ import { WorkspaceTracker } from "../workspace-tracker";
 import { GooseCodeServer } from "./server/server";
 import { getFileContexts } from "./context";
 
-export async function handleSnippetCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
+export async function handleSnippetCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker, args: { minimized: boolean }) {
     const editor = vscode.window.activeTextEditor!;
     const selection = editor.selection;
 
@@ -35,6 +35,7 @@ export async function handleSnippetCommand(gooseCodeServer: GooseCodeServer, wor
                     data: {
                         oneofKind: "snippet",
                         snippet: gc.SnippetPush.create({
+                            minimize: args.minimized,
                             location: gc.LocationWithContext.create({
                                 location: gc.Location.create({
                                     path: workspaceTracker.currentRelativeFilePath(),

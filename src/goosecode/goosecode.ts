@@ -4,11 +4,10 @@ import { GooseCodeServer } from "./server/server";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { loadWorkspaceConfiguration } from "../config";
 import * as gc from "../gen/ide";
-import { handleFollowCommand } from "./goosecode_follow";
+import { handleGenerateCommand } from "./goosecode_generate";
 import { handleSnippetCommand } from "./goosecode_snippet";
 import { handleMinimapCommand } from "./goosecode_minimap";
 import { handleOverlayCommand } from "./goosecode_overlay";
-import { handleBookmarkCommand } from "./goosecode_bookmark";
 
 
 export function registerGooseCodeCommands(
@@ -52,50 +51,30 @@ export function registerGooseCodeCommands(
     if (!(await guard(gooseCodeServer, workspaceTracker))) {
       return;
     }
-    handleSnippetCommand(gooseCodeServer!, workspaceTracker);
+    handleSnippetCommand(gooseCodeServer!, workspaceTracker, { minimized: false });
   });
   subscriptions.push(sub);
 
-  // Bookmark File
-  sub = vscode.commands.registerCommand("goosecode.bookmark", async () => {
+  // Create Snippet w/ Minimized
+  sub = vscode.commands.registerCommand("goosecode.snippetMinimized", async () => {
     if (!(await guard(gooseCodeServer, workspaceTracker))) {
       return;
     }
-    handleBookmarkCommand(gooseCodeServer!, workspaceTracker);
+    handleSnippetCommand(gooseCodeServer!, workspaceTracker, { minimized: true });
   });
   subscriptions.push(sub);
 
-  sub = vscode.commands.registerCommand("goosecode.follow", async () => {
+  sub = vscode.commands.registerCommand("goosecode.generate", async () => {
     if (!(await guard(gooseCodeServer, workspaceTracker))) {
       return;
     }
-    handleFollowCommand(gooseCodeServer!, workspaceTracker);
+    handleGenerateCommand(gooseCodeServer!, workspaceTracker);
 
   });
   subscriptions.push(sub);
 
   return subscriptions;
 }
-
-
-  // // Highlight
-  // subscriptions.push(
-  //   vscode.commands.registerCommand("goosecode.highlight", () => {
-  //     const editor = vscode.window.activeTextEditor;
-  //     if (editor) {
-  //       gooseCodeServer.push(
-  //         new PushMessage({
-  //           type: idepb.PushType.PUSH_HIGHLIGHT,
-  //           highlight: new HighlightPush({
-  //             path: currentFilePath(editor),
-  //             range: selectedRange(editor),
-  //             color: 0xaaffffff,
-  //           }),
-  //         }),
-  //       );
-  //     }
-  //   }),
-  // );
 
 
 async function guard(
@@ -146,7 +125,7 @@ async function guard(
       await new Promise((resolve) => setTimeout(resolve, 700));
       return true;
     }
-    vscode.window.showInformationMessage("GooseCode follow not executed");
+    vscode.window.showInformationMessage("GooseCode generate not executed");
     return false;
   }
 

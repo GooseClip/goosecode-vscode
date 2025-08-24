@@ -88,9 +88,21 @@
     },
     "keybindings": [
       {
-        "command": "goosecode.follow",
+        "command": "goosecode.generate",
         "key": "alt+ctrl+g",
         "mac": "alt+cmd+g",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "goosecode.snippet",
+        "key": "alt+ctrl+s",
+        "mac": "alt+ctrl+cmd+s",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "goosecode.snippetMinimized",
+        "key": "alt+ctrl+m",
+        "mac": "alt+ctrl+cmd+m",
         "when": "editorTextFocus"
       }
     ],
@@ -171,23 +183,18 @@
         "category": "GooseCode"
       },
       {
-        "command": "goosecode.open",
-        "title": "Open",
-        "category": "GooseCode"
-      },
-      {
-        "command": "goosecode.pin",
-        "title": "Pin",
-        "category": "GooseCode"
-      },
-      {
         "command": "goosecode.snippet",
         "title": "Snippet",
         "category": "GooseCode"
       },
       {
-        "command": "goosecode.follow",
-        "title": "Follow",
+        "command": "goosecode.snippetMinimized",
+        "title": "Snippet [Minimized]",
+        "category": "GooseCode"
+      },
+      {
+        "command": "goosecode.generate",
+        "title": "Generate",
         "category": "GooseCode"
       }
     ],
@@ -235,19 +242,15 @@
           "command": "goosecode.regenerateCertificatesAndPassword"
         },
         {
-          "command": "goosecode.open",
-          "when": "false"
-        },
-        {
-          "command": "goosecode.pin",
-          "when": "false"
-        },
-        {
           "command": "goosecode.snippet",
           "when": "false"
         },
         {
-          "command": "goosecode.follow",
+          "command": "goosecode.snippetMinimized",
+          "when": "false"
+        },
+        {
+          "command": "goosecode.generate",
           "when": "false"
         }
       ],
@@ -288,34 +291,19 @@
       ],
       "goosecode.submenu": [
         {
-          "when": "editorTextFocus && goosecode.connected == true",
-          "command": "goosecode.open",
-          "group": "goosecode@1"
-        },
-        {
-          "when": "editorTextFocus && goosecode.connected == true",
-          "command": "goosecode.pin",
-          "group": "goosecode@3"
-        },
-        {
           "when": "editorHasSelection && goosecode.connected == true",
           "command": "goosecode.snippet",
           "group": "goosecode@4"
         },
         {
+          "when": "editorHasSelection && goosecode.connected == true",
+          "command": "goosecode.snippetMinimized",
+          "group": "goosecode@4"
+        },
+        {
           "when": "editorTextFocus && goosecode.connected == true",
-          "command": "goosecode.follow",
+          "command": "goosecode.generate",
           "group": "goosecode@6"
-        },
-        {
-          "when": "goosecode.connected == true",
-          "command": "goosecode.appcommand.minimap",
-          "group": "goosecode@7"
-        },
-        {
-          "when": "goosecode.connected == true",
-          "command": "goosecode.appcommand.overlay",
-          "group": "goosecode@8"
         },
         {
           "when": "goosecode.connected == false && goosecode.started == false && goosecode.initialized == true",
@@ -439,29 +427,29 @@
           {
             "id": "firstcommand",
             "title": "Your First Command",
-            "description": "Open a code file.\nRight click > GooseCode > Open.",
+            "description": "Create a snippet.\nRight click > GooseCode > Snippet.",
             "media": {
               "markdown": "media/walkthrough_first_command.md"
             },
             "completionEvents": [
-              "onCommand:goosecode.open"
+              "onCommand:goosecode.snippet"
             ]
           },
           {
             "id": "generationcommands",
             "title": "Generating Commands",
-            "description": "Unleash the full potential of GooseCode by using the 'follow' command. GooseCode will generate snippets of code as you navigate through your codebase.\nEither use the context menu 'follow' or the keyboard shortcut 'alt+ctrl+g' (windows) or 'cmd+option+g' (mac).\nThe works much in the same way as the built in 'go to definition' command.\nCurrently there are two strategies for generating snippets, linear and swimlane.",
+            "description": "Unleash the full potential of GooseCode by using the 'generate' command. GooseCode will generate snippets of code as you navigate through your codebase.\nEither use the context menu 'generate' or the keyboard shortcut 'alt+ctrl+g' (windows) or 'cmd+option+g' (mac).\nThe works much in the same way as the built in 'go to definition' command.\nCurrently there are two strategies for generating snippets, linear and swimlane.",
             "media": {
               "markdown": "media/walkthrough_generation_commands.md"
             },
             "completionEvents": [
-              "onCommand:goosecode.follow"
+              "onCommand:goosecode.generate"
             ]
           },
           {
             "id": "generationcontrols",
             "title": "About Generation",
-            "description": "When you first generate using the 'follow' command, a 'session' is started.\n[I Understand](command:getting-started-goosecode.aboutGeneration)",
+            "description": "When you first generate using the 'generate' command, a 'session' is started.\n[I Understand](command:getting-started-goosecode.aboutGeneration)",
             "media": {
               "markdown": "media/walkthrough_generation_controls.md"
             },

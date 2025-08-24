@@ -11,10 +11,8 @@ This VS Code extension enables integration with the [GooseCode App](https://goos
 
 *   **Seamless Integration:** Connects VS Code to the GooseCode App for enhanced code visualization and navigation.
 *   **Code Sources Management:** Easily enable or disable workspaces (code sources) for use with GooseCode directly from the VS Code activity bar.
-*   **Context Menu Commands:** Access GooseCode actions like `Open`, `Pin`, `Snippet`, and `Follow` directly from the editor context menu.
-*   **Follow Command:** Generate code snippets in GooseCode as you navigate your codebase using `Go to Definition` or the `Follow` command (`Alt+Cmd+G` on Mac, `Alt+Ctrl+G` on Windows/Linux). Supports `Linear` and `Swimlane` generation strategies.
-    *   **Linear Strategy:** Generates snippets sequentially, stacking them for the same file. Ideal for tracking execution flow.
-        ![Linear Strategy](https://storage.googleapis.com/goosecode-prod-public/screenshots/walkthrough_linear_strategy.png)
+*   **Context Menu Commands:** Access GooseCode actions like `Snippet` and `Generate` directly from the editor context menu.
+*   **Generate Command:** Generate code snippets in GooseCode as you navigate your codebase using `Go to Definition` or the `Generate` command (`Alt+Cmd+G` on Mac, `Alt+Ctrl+G` on Windows/Linux). Supports `Swimlane` generation strategies.
     *   **Swimlane Strategy:** Organizes snippets by file into columns. Great for understanding inter-file dependencies.
         ![Swimlane Strategy](https://storage.googleapis.com/goosecode-prod-public/screenshots/walkthrough_swimlane_strategy.png)
 *   **Session Management:** Manage generation sessions in the Activity Bar - regenerate, step through, save, or discard sessions.
@@ -45,7 +43,7 @@ This VS Code extension enables integration with the [GooseCode App](https://goos
 7.  **Explore:**
     *   Open a code file.
     *   Right-click in the editor -> GooseCode -> `Open` to send the file context to the GooseCode app.
-    *   Use the `Follow` command (`Alt+Cmd+G` / `Alt+Ctrl+G` or via the context menu) while navigating code to generate visualizations.
+    *   Use the `Generate` command (`Alt+Cmd+G` / `Alt+Ctrl+G` or via the context menu) while navigating code to generate visualizations.
     *   Explore other commands in the context menu and the Activity Bar views.
 
 ## Commands
@@ -57,8 +55,7 @@ This VS Code extension enables integration with the [GooseCode App](https://goos
 *   `GooseCode: Restart`: Restarts the extension's connection server.
 *   `GooseCode: Toggle Minimap`: Toggles the GooseCode minimap overlay.
 *   `GooseCode: Toggle Overlay`: Toggles the full GooseCode application overlay.
-*   `GooseCode: Follow`: Generates a code snippet in GooseCode based on the cursor position (used for code navigation).
-*   `GooseCode: Open`: Sends the current file/location to GooseCode.
+*   `GooseCode: Generate`: Generates a code snippet in GooseCode based on the cursor position (used for code navigation).
 *   (View specific commands for managing Code Sources and Active Sessions are available in the Activity Bar)
 
 ## Extension Settings

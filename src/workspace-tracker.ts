@@ -178,7 +178,8 @@ export class WorkspaceTracker {
   }
 
   public relativePath(filePath: string, from?: string): string {
-    const rel = path.relative(from ?? this.lastWorkspace!.uri.fsPath, filePath);
+    const fromPath = from ?? this.getLastActiveGooseCodeWorkspace()!.uri.fsPath;
+    const rel = path.relative(fromPath, filePath);
     return rel;
   }
 }

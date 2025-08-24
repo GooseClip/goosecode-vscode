@@ -11,36 +11,34 @@ import { getFileContentsAtCommit as getFileContentsAtHead } from "../git";
 import { getFileContexts } from "./context";
 import { GooseCodeServer } from "./server/server";
 
-/* GooseCode Follow
+/* GooseCode Generate
  * When using cmd+opt+g 3 possible outcomes exist
  * 1. Go to definition
  * 2. Go to reference
  * 3. Snippet (selection length > 0)
  */
 
-export async function handleFollowCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
+export async function handleGenerateCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
     const editor = vscode.window.activeTextEditor!;
     const selection = editor.selection;
     
-    // If the selection is not empty we want a snippet follow command
-    console.log(`SELECTION: ${selection}`)
+    // If the selection is not empty we want a snippet generate command
     if (!selection.isEmpty) {
-        console.log(`SNIPPET FOLLOW`)
-        await snippetFollow(gooseCodeServer, workspaceTracker)
+        await snippetGenerate(gooseCodeServer, workspaceTracker)
         return
     }
     
-    await connectedFollow(gooseCodeServer, workspaceTracker)
+    await connectedGenerate(gooseCodeServer, workspaceTracker)
 }
 
-// snippetFollow will dump the selection using the current generation strategy (default swimlane)
-async function snippetFollow(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
+// snippetGenerate will dump the selection using the current generation strategy (default swimlane)
+async function snippetGenerate(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
     const editor = vscode.window.activeTextEditor!;
     const selection = editor.selection;
 
     const workspace = workspaceTracker.getLastActiveGooseCodeWorkspace();
     if (workspace === null) {
-        console.error("No active workspace found for snippet follow");
+        console.error("No active workspace found for snippet generate");
         return;
     }
 
@@ -58,15 +56,15 @@ async function snippetFollow(gooseCodeServer: GooseCodeServer, workspaceTracker:
             data: {
                 oneofKind: "fileCommand",
                 fileCommand: gc.FileCommandPush.create({
-                    type: gc.FileCommandType.FOLLOW,
+                    type: gc.FileCommandType.GENERATE,
                     fileContexts: await getFileContexts(workspaceTracker, [workspaceTracker.currentRelativeFilePath()]),
                     data: {
-                        oneofKind: "follow",
-                        follow: gc.FollowPush.create({
-                            type: gc.FollowType.SNIPPET,
+                        oneofKind: "generate",
+                        generate: gc.GeneratePush.create({
+                            type: gc.GenerateType.SNIPPET,
                             data: {
                                 oneofKind: "snippet",
-                                snippet: gc.SnippetFollow.create({
+                                snippet: gc.SnippetGenerate.create({
                                     location: gc.LocationWithContext.create({
                                         location: gc.Location.create({
                                             path: workspaceTracker.currentRelativeFilePath(),
@@ -86,8 +84,8 @@ async function snippetFollow(gooseCodeServer: GooseCodeServer, workspaceTracker:
     )
 }
 
-// connectedFollow will draw the connected codes using the current generation strategy (default swimlane)
-async function connectedFollow(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
+// connectedGenerate will draw the connected codes using the current generation strategy (default swimlane)
+async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
     const workspace = workspaceTracker.getLastActiveGooseCodeWorkspace();
     if (workspace === null) {
         console.error("No active workspace found");
@@ -118,7 +116,7 @@ async function connectedFollow(gooseCodeServer: GooseCodeServer, workspaceTracke
             console.warn("Multiple definitions found. Going to the first one");
         }
 
-        const msg = await createDefinitionFollowMessage(workspaceTracker, fromMsg, filteredDefinitions);
+        const msg = await createDefinitionGenerateMessage(workspaceTracker, fromMsg, filteredDefinitions);
         if (!msg) {
             console.error("No definition message to push");
             return;
@@ -131,10 +129,10 @@ async function connectedFollow(gooseCodeServer: GooseCodeServer, workspaceTracke
 
         try {
             // Navigate in edittor to the definition
-            if (msg.data.oneofKind == "fileCommand" && msg.data.fileCommand.data.oneofKind == "follow" && msg.data.fileCommand.data.follow.data.oneofKind == "connected") {
+            if (msg.data.oneofKind == "fileCommand" && msg.data.fileCommand.data.oneofKind == "generate" && msg.data.fileCommand.data.generate.data.oneofKind == "connected") {
                 await goToDefinition(
                     workspaceUri,
-                    msg.data.fileCommand.data.follow.data.connected.to!.location!,
+                    msg.data.fileCommand.data.generate.data.connected.to!.location!,
                     false,
                 );
             }
@@ -147,7 +145,7 @@ async function connectedFollow(gooseCodeServer: GooseCodeServer, workspaceTracke
 
     const clickedDefinitionRef = await testDefinitionClicked(definitions, selection);
     if (clickedDefinitionRef) {
-        const msg = await createReferencesFollowMessage(workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
+        const msg = await createReferencesGenerateMessage(workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
         if (!msg) {
             console.error("No referencesmessage to push");
             return;
@@ -194,7 +192,7 @@ export function getDefinitionsWithoutCurrentPosition(definitions: LocationOrLoca
     });
 }
 
-export async function createDefinitionFollowMessage(
+export async function createDefinitionGenerateMessage(
     workspaceTracker: WorkspaceTracker,
     fromMsg: gc.LocationWithContext,
     definitions: LocationOrLocationLink[],
@@ -220,13 +218,11 @@ export async function createDefinitionFollowMessage(
             fullRange: fullRange,
         }),
     });
-    const defMsg = gc.ConnectedFollow.create({
-        type: gc.ConnectedFollowType.DEFINITION,
+    const defMsg = gc.ConnectedGenerate.create({
+        type: gc.ConnectedGenerateType.DEFINITION,
         from: fromMsg,
         to: toMsg,
     });
-
-    console.log("FOLLOW DEFINITION", definitions);
 
     const paths = [
         fromMsg.location!.path,
@@ -235,11 +231,11 @@ export async function createDefinitionFollowMessage(
     const fileContexts = await getFileContexts(workspaceTracker, paths);
 
 
-    return await wrapFollowDefinition(fileContexts, defMsg);
+    return await wrapGenerateDefinition(fileContexts, defMsg);
 }
 
 
-export async function createReferencesFollowMessage(workspaceTracker: WorkspaceTracker,
+export async function createReferencesGenerateMessage(workspaceTracker: WorkspaceTracker,
     selection: vscode.Selection,
     fromMsg: gc.LocationWithContext,
     clickedDefinitionRef: LocationOrLocationLink
@@ -255,7 +251,6 @@ export async function createReferencesFollowMessage(workspaceTracker: WorkspaceT
 
     if (!refs.length) return;
 
-    console.log("FOLLOW REFERENCE", refs);
 
     const selectedRef = await new Promise<vscode.Location | undefined>(resolve => {
         const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem & { location: vscode.Location }>();
@@ -319,8 +314,8 @@ export async function createReferencesFollowMessage(workspaceTracker: WorkspaceT
         }),
     });
 
-    const reference = gc.ConnectedFollow.create({
-        type: gc.ConnectedFollowType.REFERENCE,
+    const reference = gc.ConnectedGenerate.create({
+        type: gc.ConnectedGenerateType.REFERENCE,
         from: fromMsg,
         to: toMsg,
     });
@@ -332,7 +327,7 @@ export async function createReferencesFollowMessage(workspaceTracker: WorkspaceT
     const fileContexts = await getFileContexts(workspaceTracker, paths);
 
 
-    return await wrapFollowReference(fileContexts, reference);
+    return await wrapGenerateReference(fileContexts, reference);
 }
 
 
@@ -361,18 +356,18 @@ export async function fromRange(selection: vscode.Selection): Promise<gc.Range> 
     });
 }
 
-export async function wrapFollowDefinition(fileContext: gc.FileContext[], msg: gc.ConnectedFollow): Promise<gc.PushResponse> {
+export async function wrapGenerateDefinition(fileContext: gc.FileContext[], msg: gc.ConnectedGenerate): Promise<gc.PushResponse> {
     return gc.PushResponse.create({
         type: gc.PushType.FILE_COMMAND,
         data: {
             oneofKind: "fileCommand",
             fileCommand: gc.FileCommandPush.create({
-                type: gc.FileCommandType.FOLLOW,
+                type: gc.FileCommandType.GENERATE,
                 fileContexts: fileContext,
                 data: {
-                    oneofKind: "follow",
-                    follow: gc.FollowPush.create({
-                        type: gc.FollowType.CONNECTED,
+                    oneofKind: "generate",
+                    generate: gc.GeneratePush.create({
+                        type: gc.GenerateType.CONNECTED,
                         data: {
                             oneofKind: "connected",
                             connected: msg,
@@ -384,18 +379,18 @@ export async function wrapFollowDefinition(fileContext: gc.FileContext[], msg: g
     });
 }
 
-export async function wrapFollowReference(fileContext: gc.FileContext[], msg: gc.ConnectedFollow): Promise<gc.PushResponse> {
+export async function wrapGenerateReference(fileContext: gc.FileContext[], msg: gc.ConnectedGenerate): Promise<gc.PushResponse> {
     return gc.PushResponse.create({
         type: gc.PushType.FILE_COMMAND,
         data: {
             oneofKind: "fileCommand",
             fileCommand: gc.FileCommandPush.create({
-                type: gc.FileCommandType.FOLLOW,
+                type: gc.FileCommandType.GENERATE,
                 fileContexts: fileContext,
                 data: {
-                    oneofKind: "follow",
-                    follow: gc.FollowPush.create({
-                        type: gc.FollowType.CONNECTED,
+                    oneofKind: "generate",
+                    generate: gc.GeneratePush.create({
+                        type: gc.GenerateType.CONNECTED,
                         data: {
                             oneofKind: "connected",
                             connected: msg,
