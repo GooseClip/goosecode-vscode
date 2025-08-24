@@ -291,12 +291,12 @@
       ],
       "goosecode.submenu": [
         {
-          "when": "editorHasSelection && goosecode.connected == true",
+          "when": "editorTextFocus && goosecode.connected == true",
           "command": "goosecode.snippet",
           "group": "goosecode@4"
         },
         {
-          "when": "editorHasSelection && goosecode.connected == true",
+          "when": "editorTextFocus && goosecode.connected == true",
           "command": "goosecode.snippetMinimized",
           "group": "goosecode@4"
         },
