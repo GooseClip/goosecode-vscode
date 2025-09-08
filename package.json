@@ -196,6 +196,15 @@
         "command": "goosecode.generate",
         "title": "Generate",
         "category": "GooseCode"
+      },
+      {
+        "command": "goosecode.broadcast",
+        "title": "Broadcast for 60s",
+        "category": "GooseCode",
+        "icon": {
+          "light": "resources/light/step.svg",
+          "dark": "resources/dark/step.svg"
+        }
       }
     ],
     "menus": {
@@ -259,6 +268,11 @@
           "command": "goosecode.codeSources.refresh",
           "group": "navigation",
           "when": "view == goosecode.codeSources"
+        },
+        {
+          "command": "goosecode.broadcast",
+          "when": "view == goosecode.connection && goosecode.started == true",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -537,6 +551,7 @@
     "webpack-cli": "^5.0.2"
   },
   "dependencies": {
+    "bonjour-service": "^1.3.0",
     "express": "^4.18.2",
     "express-ws": "^5.0.2",
     "google-protobuf": "^3.21.2",

@@ -26,6 +26,106 @@ var codeSourcesProvider: CodeSourcesProvider | null = null;
 var connectionProvider: ConnectionProvider | null = null;
 var activeSessionProvider: ActiveSessionProvider | null = null;
 
+
+
+// package.json (dependencies)
+// "bonjour-service": "^1.2.1"
+
+import Bonjour from 'bonjour-service';
+
+let bonjour: Bonjour | undefined;
+let bonjourService: any;
+let bonjourTimeout: NodeJS.Timeout | undefined;
+
+export function isBonjourRunning(): boolean {
+  return !!bonjourService;
+}
+
+async function startBonjourService(
+  context: vscode.ExtensionContext,
+  durationSeconds?: number,
+) {
+  await stopBonjourService();
+
+  const port = gooseCodeServer?.port;
+  if (!port) {
+    console.warn(
+      "Cannot start bonjour service, server not running or port not available.",
+    );
+    return;
+  }
+  bonjour = new Bonjour();
+
+  // TXT records are handy for metadata: version, instanceId, public key hash, etc.
+  bonjourService = bonjour.publish({
+    name: `GooseCode on ${require("os").hostname()}`,
+    type: "goosecode", // creates _goosecode._tcp.local
+    protocol: "tcp",
+    port,
+    txt: {
+      proto: 'https', // Added: Specify HTTPS protocol
+      v: '1.0',
+      id: context.globalState.get('instanceId') ?? 'default'
+    }
+  });
+
+  // Make sure the advertisement is up before you rely on it
+  bonjourService.on("up", () => {
+    console.log("mDNS service announced");
+    connectionProvider?.refresh();
+  });
+
+  if (durationSeconds && durationSeconds > 0) {
+    if (bonjourTimeout) {
+      clearTimeout(bonjourTimeout);
+    }
+    bonjourTimeout = setTimeout(() => {
+      stopBonjourService();
+      console.log(`mDNS service stopped after ${durationSeconds} seconds.`);
+    }, durationSeconds * 1000);
+  }
+}
+
+export function stopBonjourService(): Promise<void> {
+  return new Promise((resolve) => {
+    if (bonjourTimeout) {
+      clearTimeout(bonjourTimeout);
+      bonjourTimeout = undefined;
+    }
+    if (!bonjourService) {
+      if (bonjour) {
+        try {
+          bonjour.destroy();
+        } catch {}
+        bonjour = undefined;
+      }
+      connectionProvider?.refresh();
+      resolve();
+      return;
+    }
+
+    const cleanup = () => {
+      try {
+        bonjour?.destroy();
+      } catch {}
+      bonjour = undefined;
+      bonjourService = undefined;
+      connectionProvider?.refresh();
+      resolve();
+    };
+
+    try {
+      bonjourService.stop(() => {
+        console.log("mDNS service stopped.");
+        cleanup();
+      });
+    } catch (e) {
+      console.error("Error stopping bonjour service", e);
+      cleanup();
+    }
+  });
+}
+
 async function startServer(
   context: vscode.ExtensionContext,
   config: GooseCodeExtensionConfig,
@@ -361,6 +461,19 @@ export async function activate(context: vscode.ExtensionContext) {
       stopServer(context);
     },
   });
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("goosecode.broadcast", () => {
+      if (gooseCodeServer) {
+        startBonjourService(context, 60);
+        vscode.window.showInformationMessage(
+          "Broadcasting GooseCode service for 60 seconds.",
+        );
+      } else {
+        vscode.window.showWarningMessage("GooseCode server is not running.");
+      }
+    }),
+  );
 }
 
 // This method is called when your extension is deactivated

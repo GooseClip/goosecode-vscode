@@ -22,6 +22,10 @@ export class GooseCodeServer {
     return this.server !== null;
   }
 
+  public get port(): number {
+    return this.extensionConfig.settings.port;
+  }
+
   private pushStream: stream.Duplex | null = null;
 
 

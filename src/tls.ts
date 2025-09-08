@@ -30,6 +30,8 @@ export async function createTLSOptions(
       cert.validity.notBefore.getFullYear() + 1,
     ); // 1 year validity
 
+    // const hostname = require("os").hostname();
+
     // Add extensions and subject details
     var attrs = [
       {
@@ -64,6 +66,19 @@ export async function createTLSOptions(
       {
         name: "subjectKeyIdentifier",
       },
+      // {
+      //   name: "subjectAltName",
+      //   altNames: [
+      //     {
+      //       type: 2, // DNS
+      //       value: "localhost",
+      //     },
+      //     {
+      //       type: 2, // DNS
+      //       value: hostname,
+      //     },
+      //   ],
+      // },
     ]);
 
     // Self-sign the certificate

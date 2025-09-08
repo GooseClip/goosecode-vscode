@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { Uri } from "vscode";
 import { GooseCodeServer } from "../goosecode/server/server";
+import { isBonjourRunning } from "../extension";
 
 export class ConnectionProvider implements vscode.TreeDataProvider<Connection> {
   private _onDidChangeTreeData: vscode.EventEmitter<
@@ -30,7 +31,7 @@ export class ConnectionProvider implements vscode.TreeDataProvider<Connection> {
       return Promise.resolve([]);
     }
 
-    return Promise.resolve([
+    const items = [
       new Connection(
         "Server running",
         vscode.TreeItemCollapsibleState.None,
@@ -42,7 +43,19 @@ export class ConnectionProvider implements vscode.TreeDataProvider<Connection> {
         vscode.TreeItemCollapsibleState.None,
         server?.connected ?? false,
       ),
-    ]);
+    ];
+
+    if (server !== null) {
+      items.push(
+        new Connection(
+          "Discoverable",
+          vscode.TreeItemCollapsibleState.None,
+          isBonjourRunning(),
+        ),
+      );
+    }
+
+    return Promise.resolve(items);
   }
 }
 
@@ -59,7 +72,7 @@ export class Connection extends vscode.TreeItem {
 
     this.tooltip = `${this.label}-${this.enabled}`;
     // this.description = this.tooltip;
-  }
+  } 
 
   iconPath = {
     light: path.join(
