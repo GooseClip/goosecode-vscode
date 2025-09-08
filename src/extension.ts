@@ -241,6 +241,34 @@ async function persistentCommands(
   subscriptions.push(sub);
 
   sub = vscode.commands.registerCommand(
+    "goosecode.connections.enableLocalhostOnly",
+    async () => {
+      await vscode.workspace
+        .getConfiguration("goosecode")
+        .update(
+          "connections.localhostOnly",
+          true,
+          ConfigurationTarget.Global,
+        );
+    },
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.connections.disableLocalhostOnly",
+    async () => {
+      await vscode.workspace
+        .getConfiguration("goosecode")
+        .update(
+          "connections.localhostOnly",
+          false,
+          ConfigurationTarget.Global,
+        );
+    },
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
     "goosecode.enableAutoStart",
     async () => {
       vscode.workspace
@@ -271,6 +299,16 @@ async function persistentCommands(
   subscriptions.push(sub);
 
   return subscriptions;
+}
+
+async function updateLocalhostOnlyContext() {
+  const config = workspace.getConfiguration("goosecode");
+  const isLocalhostOnly = config.get("connections.localhostOnly");
+  await vscode.commands.executeCommand(
+    "setContext",
+    "goosecode.isLocalhostOnly",
+    isLocalhostOnly,
+  );
 }
 
 function createTreeProviders(
@@ -361,6 +399,19 @@ function createTreeProviders(
   );
   subscriptions.push(sub);
 
+  sub = vscode.commands.registerCommand("goosecode.copyPassword", async () => {
+    const config = await loadGlobalConfigurations(context);
+    if (config.settings.password) {
+      vscode.env.clipboard.writeText(config.settings.password);
+      vscode.window.showInformationMessage(
+        "GooseCode password copied to clipboard.",
+      );
+    } else {
+      vscode.window.showErrorMessage("Could not find GooseCode password to copy.");
+    }
+  });
+  subscriptions.push(sub);
+
   return subscriptions;
 }
 
@@ -436,6 +487,8 @@ export async function activate(context: vscode.ExtensionContext) {
           await restartServer(context);
           vscode.window.showInformationMessage("GooseCode server restarted");
         }
+        connectionProvider?.refresh();
+        await updateLocalhostOnlyContext();
       }
     },
   );
@@ -444,6 +497,8 @@ export async function activate(context: vscode.ExtensionContext) {
   // Persistent commands
   const persistentCommandSubscriptions = await persistentCommands(context);
   context.subscriptions.push(...persistentCommandSubscriptions);
+
+  await updateLocalhostOnlyContext();
 
   // Getting started commands
   const gettingStartedCommandSubscriptions = gettingStarted(context, () => {

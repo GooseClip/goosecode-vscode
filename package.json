@@ -205,6 +205,33 @@
           "light": "resources/light/step.svg",
           "dark": "resources/dark/step.svg"
         }
+      },
+      {
+        "command": "goosecode.copyPassword",
+        "title": "Copy Connection Password",
+        "category": "GooseCode",
+        "icon": {
+          "light": "resources/light/copy.svg",
+          "dark": "resources/dark/copy.svg"
+        }
+      },
+      {
+        "command": "goosecode.connections.enableLocalhostOnly",
+        "title": "Enable Localhost Only",
+        "category": "GooseCode",
+        "icon": {
+          "light": "resources/light/toggle_off.svg",
+          "dark": "resources/dark/toggle_off.svg"
+        }
+      },
+      {
+        "command": "goosecode.connections.disableLocalhostOnly",
+        "title": "Disable Localhost Only",
+        "category": "GooseCode",
+        "icon": {
+          "light": "resources/light/toggle_on.svg",
+          "dark": "resources/dark/toggle_on.svg"
+        }
       }
     ],
     "menus": {
@@ -261,6 +288,18 @@
         {
           "command": "goosecode.generate",
           "when": "false"
+        },
+        {
+          "command": "goosecode.copyPassword",
+          "when": "goosecode.started == true"
+        },
+        {
+          "command": "goosecode.connections.enableLocalhostOnly",
+          "when": "goosecode.started == true"
+        },
+        {
+          "command": "goosecode.connections.disableLocalhostOnly",
+          "when": "goosecode.started == true"
         }
       ],
       "view/title": [
@@ -270,6 +309,11 @@
           "when": "view == goosecode.codeSources"
         },
         {
+          "command": "goosecode.copyPassword",
+          "when": "view == goosecode.connection && goosecode.started == true",
+          "group": "navigation"
+        },
+        {
           "command": "goosecode.broadcast",
           "when": "view == goosecode.connection && goosecode.started == true",
           "group": "navigation"
@@ -277,24 +321,33 @@
       ],
       "view/item/context": [
         {
-          "command": "goosecode.start",
-          "group": "inline",
-          "when": "viewItem == disabled && view == goosecode.connection"
-        },
-        {
           "command": "goosecode.stop",
-          "group": "inline",
-          "when": "viewItem == enabled && view == goosecode.connection"
+          "when": "view == goosecode.connection && viewItem == enabled",
+          "group": "inline"
         },
         {
-          "command": "goosecode.codeSources.enableCodeSource",
-          "group": "inline",
-          "when": "viewItem == disabled && view == goosecode.codeSources"
+          "command": "goosecode.start",
+          "when": "view == goosecode.connection && viewItem == disabled",
+          "group": "inline"
         },
         {
-          "command": "goosecode.codeSources.disableCodeSource",
-          "group": "inline",
-          "when": "viewItem == enabled && view == goosecode.codeSources"
+          "command": "goosecode.regenerateCertificatesAndPassword",
+          "when": "view == goosecode.connection"
+        },
+        {
+          "command": "goosecode.connections.enableLocalhostOnly",
+          "when": "view == goosecode.connection && viewItem == localhostItem && !goosecode.isLocalhostOnly",
+          "group": "inline"
+        },
+        {
+          "command": "goosecode.connections.disableLocalhostOnly",
+          "when": "view == goosecode.connection && viewItem == localhostItem && goosecode.isLocalhostOnly",
+          "group": "inline"
+        },
+        {
+          "command": "goosecode.broadcast",
+          "when": "view == goosecode.connection && viewItem == discoverableItem",
+          "group": "inline"
         }
       ],
       "editor/context": [

@@ -31,6 +31,8 @@ export class ConnectionProvider implements vscode.TreeDataProvider<Connection> {
       return Promise.resolve([]);
     }
 
+    const localhostOnly = server.extensionConfig.settings.localhostOnly;
+
     const items = [
       new Connection(
         "Server running",
@@ -46,11 +48,29 @@ export class ConnectionProvider implements vscode.TreeDataProvider<Connection> {
     ];
 
     if (server !== null) {
+      const localhostOnly = server.extensionConfig.settings.localhostOnly;
+      items.push(
+        new Connection(
+          "Localhost Only",
+          vscode.TreeItemCollapsibleState.None,
+          localhostOnly,
+          true,
+          undefined,
+          undefined,
+          "status",
+          "localhostItem",
+        ),
+      );
       items.push(
         new Connection(
           "Discoverable",
           vscode.TreeItemCollapsibleState.None,
           isBonjourRunning(),
+          true,
+          undefined,
+          undefined,
+          "status",
+          "discoverableItem",
         ),
       );
     }
@@ -67,35 +87,46 @@ export class Connection extends vscode.TreeItem {
     private readonly showContextButtons: boolean = false,
     public readonly resourceUri?: Uri,
     public readonly command?: vscode.Command,
+    iconStyle: "status" | "toggle" = "status",
+    contextValueOverride?: string,
   ) {
     super(label, collapsibleState);
 
     this.tooltip = `${this.label}-${this.enabled}`;
     // this.description = this.tooltip;
-  } 
 
-  iconPath = {
-    light: path.join(
-      __filename,
-      "..",
-      "..",
-      "resources",
-      "light",
-      this.enabled ? "enabled.svg" : "disabled.svg",
-    ),
-    dark: path.join(
-      __filename,
-      "..",
-      "..",
-      "resources",
-      "dark",
-      this.enabled ? "enabled.svg" : "disabled.svg",
-    ),
-  };
+    if (contextValueOverride) {
+      this.contextValue = contextValueOverride;
+    } else {
+      this.contextValue = !this.showContextButtons
+        ? undefined
+        : this.enabled
+          ? "enabled"
+          : "disabled";
+    }
 
-  contextValue = !this.showContextButtons
-    ? undefined
-    : this.enabled
-      ? "enabled"
-      : "disabled";
+    const enabledIcon =
+      iconStyle === "status" ? "enabled.svg" : "toggle_on.svg";
+    const disabledIcon =
+      iconStyle === "status" ? "disabled.svg" : "toggle_off.svg";
+
+    this.iconPath = {
+      light: path.join(
+        __filename,
+        "..",
+        "..",
+        "resources",
+        "light",
+        this.enabled ? enabledIcon : disabledIcon,
+      ),
+      dark: path.join(
+        __filename,
+        "..",
+        "..",
+        "resources",
+        "dark",
+        this.enabled ? enabledIcon : disabledIcon,
+      ),
+    };
+  }
 }

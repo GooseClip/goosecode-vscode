@@ -13,7 +13,7 @@ import * as stream from "streamx";
 export class GooseCodeServer {
   constructor(
     private readonly workspaceTracker: WorkspaceTracker,
-    private readonly extensionConfig: GooseCodeExtensionConfig,
+    public readonly extensionConfig: GooseCodeExtensionConfig,
     private readonly onConnected: () => void,
     private readonly onClosed: () => void,
   ) { }
