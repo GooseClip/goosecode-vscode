@@ -9,6 +9,8 @@ import { Workspace, WorkspaceTracker } from '../../workspace-tracker';
 import { getGitInfoFromVscodeApi } from '../../git';
 import * as vscode from "vscode";
 import * as stream from "streamx";
+import { handleListFilesRequest } from './handlers/list-files';
+import { handleGoToDefinition } from './handlers/go-to';
 
 export class GooseCodeServer {
   constructor(
@@ -185,7 +187,7 @@ export class GooseCodeServer {
         if (workspace === null) {
           throw new ApiError(`Workspace not found: ${request.context!.versionControlInfo?.repositoryFullname}`, 422);
         }
-      
+
         const res = await handleGetFilesRequest(request, workspace!.uri!);
         return res;
       } catch (e) {
@@ -202,9 +204,20 @@ export class GooseCodeServer {
       context.trailers = {
         'status': '...done'
       };
-      return gc.ListFilesResponse.create({
-        filePaths: [],
-      });
+      try {
+        const workspace = this.workspaceTracker.getWorkspaceFromContext(
+          request.context!,
+        );
+
+        if (workspace === null) {
+          throw new ApiError(`Workspace not found: ${request.context!.versionControlInfo?.repositoryFullname}`, 422);
+        }
+
+        return handleListFilesRequest(request, workspace.uri!);
+      } catch (e) {
+        console.error(e);
+        throw new ApiError("Internal error", 500);
+      }
     },
 
     select: async (request: gc.SelectRequest, context: rpc.ServerCallContext): Promise<gc.SelectResponse> => {
@@ -220,19 +233,8 @@ export class GooseCodeServer {
     },
 
     navigate: async (request: gc.NavigateRequest, context: rpc.ServerCallContext): Promise<gc.NavigateResponse> => {
-      /*
-       console.log("GO TO DEFINITION REQUEST");
-        try {
-          const request: RequestMessage = req.body as RequestMessage;
-          const workspace = this.workspaceTracker.getWorkspaceFromFingerprint(
-            request.repository_snapshot_fingerprint,
-          );
-          await handleGoToDefinition(req.body, workspace!.uri!, (m) =>
-            this.send(res, m),
-          );
-        } catch (e) {
-          next(e);
-        }*/
+
+      console.log("GO TO DEFINITION REQUEST");
 
       // wait for the requested amount of milliseconds
       context.sendResponseHeaders({
@@ -242,6 +244,19 @@ export class GooseCodeServer {
       context.trailers = {
         'status': '...done'
       };
+
+      try {
+        const workspace = this.workspaceTracker.getWorkspaceFromContext(
+          request.context!,
+        );
+
+        await handleGoToDefinition(request, workspace!.uri!);
+      } catch (e) {
+        console.error(e)
+      }
+
+
+
       return gc.NavigateResponse.create({
       });
     },

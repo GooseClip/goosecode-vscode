@@ -4,6 +4,7 @@ import * as path from "path";
 import * as gc from "../../gen/ide";
 import { LocationOrLocationLink, DocumentSymbolOrSymbolInformation } from "../../types";
 import { Uri } from "vscode";
+import { exec } from "child_process";
 
 
 const defaultExclusions = [
@@ -153,10 +154,21 @@ export async function goToDefinition(
   select: boolean,
 ): Promise<boolean> {
   const activeEditor = vscode.window.activeTextEditor;
-
   if (!activeEditor) {
     return false;
   }
+
+  try {
+    const isCursor = process.env.VSCODE_IPC_HOOK?.toLocaleLowerCase().includes("cursor") || process.env.VSCODE_NLS_CONFIG?.toLocaleLowerCase().includes("cursor")
+    if (isCursor) {
+      exec(`cursor .`, { cwd: workspaceUri.fsPath })
+    } else {
+      exec(`code .`, { cwd: workspaceUri.fsPath })
+    }
+  } catch (e) {
+    console.error(`failed to bring to front`)
+  }
+
   const document = await vscode.workspace.openTextDocument(
     path.join(workspaceUri.fsPath, loc.path),
   );
@@ -164,11 +176,20 @@ export async function goToDefinition(
     Number(loc.range?.start?.line),
     Number(loc.range?.start?.character),
   );
+
+  const endChar = loc.range?.end?.line != null ? loc.range?.end?.character ?? document.lineAt(Number(loc!.range!.end!.character)).range.end : 0;
+
+  console.log("RANGE", loc.range);
+  console.log("SELECT", select);
+  console.log("START", startPos);
   const endPos = !select
     ? startPos
-    : new vscode.Position(Number(loc.range?.end?.line), Number(loc.range?.end?.character));
-  const editor = await vscode.window.showTextDocument(document);
+    : new vscode.Position(Number(loc.range?.end?.line), Number(endChar));
+  const editor = await vscode.window.showTextDocument(document, undefined, false);
   editor.selection = new vscode.Selection(startPos, endPos);
+
+  console.log("END", startPos);
+
 
   // Only reveal if not already visible
   const inView = editor.visibleRanges.some((range) =>
@@ -200,7 +221,22 @@ export async function goToDefinition(
   // After 1 second, remove the highlight
   setTimeout(() => {
     decoration.dispose();
-  }, 1000);
+  }, 2000);
 
   return true;
+}
+
+export async function listProjectFiles(
+  workspaceUri: Uri,
+  exclusions?: string[],
+): Promise<string[]> {
+
+  const root = await workspaceUri.fsPath;
+  const excludePattern = exclusions
+    ? `{${exclusions.join(",")}}`
+    : `{${defaultExclusions.join(",")}}`;
+  const searchPattern = new vscode.RelativePattern(workspaceUri, "**/*");
+  const files = await vscode.workspace.findFiles(searchPattern, excludePattern);
+
+  return files.map((file) => path.relative(root, file.fsPath));
 }

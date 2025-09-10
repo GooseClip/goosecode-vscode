@@ -56,6 +56,34 @@ async function startBonjourService(
   }
   bonjour = new Bonjour();
 
+
+  let localIP;
+  var os = require('os');
+  var ifaces = os.networkInterfaces();
+  Object.keys(ifaces).forEach(function (ifname) {
+    var alias = 0;
+
+    ifaces[ifname].forEach(function (iface : any) {
+      if ('IPv4' !== iface.family || iface.internal !== false) {
+        // Skip over internal (i.e. 127.0.0.1) and non-IPv4 addresses
+        return;
+      }
+
+      if (ifname === 'Ethernet') {
+        if (alias >= 1) {
+          // This single interface has multiple IPv4 addresses
+          // console.log(ifname + ':' + alias, iface.address);
+        } else {
+          // This interface has only one IPv4 address
+          // console.log(ifname, iface.address);
+        }
+        ++alias;
+        localIP = iface.address;
+      }
+    });
+  });
+  console.log(localIP);
+
   // TXT records are handy for metadata: version, instanceId, public key hash, etc.
   bonjourService = bonjour.publish({
     name: `GooseCode on ${require("os").hostname()}`,
@@ -96,7 +124,7 @@ export function stopBonjourService(): Promise<void> {
       if (bonjour) {
         try {
           bonjour.destroy();
-        } catch {}
+        } catch { }
         bonjour = undefined;
       }
       connectionProvider?.refresh();
@@ -107,7 +135,7 @@ export function stopBonjourService(): Promise<void> {
     const cleanup = () => {
       try {
         bonjour?.destroy();
-      } catch {}
+      } catch { }
       bonjour = undefined;
       bonjourService = undefined;
       connectionProvider?.refresh();
@@ -375,14 +403,14 @@ function createTreeProviders(
       console.log(`Disable goosecode: ${config?.repositoryFullName}`);
       const workspaces = await workspaceTracker!.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces, gc.WorkspaceDetails.create({
-          workspaceRoot: codeSource.resourceUri!.fsPath,
-          versionControlInfo: gc.VersionControlInfo.create({
-            repositoryFullname: config?.repositoryFullName ?? "",
-            branch: config?.branch ?? "",
-            commit: config?.commit ?? "",
-          }),
-          deleted: true,
+        workspaceRoot: codeSource.resourceUri!.fsPath,
+        versionControlInfo: gc.VersionControlInfo.create({
+          repositoryFullname: config?.repositoryFullName ?? "",
+          branch: config?.branch ?? "",
+          commit: config?.commit ?? "",
         }),
+        deleted: true,
+      }),
       );
     },
   );
@@ -532,4 +560,4 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }

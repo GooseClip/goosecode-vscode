@@ -6,22 +6,19 @@ import * as gc from "../../../gen/ide";
 async function handleGoToDefinition(
   request: gc.NavigateRequest,
   workspaceUri: Uri,
-  send: (msg: gc.NavigateResponse) => void,
-) {
+): Promise<gc.NavigateResponse> {
   const req = request.data as {
     oneofKind: "goToDefinition";
     goToDefinition: gc.GoToDefinitionRequest
   };
   const location = req.goToDefinition.location;
-
+  console.log("REQUEST", request)
   // Open IDE
   if (!(await goToDefinition(workspaceUri, location!, req.goToDefinition.select))) {
     throw new ApiError("Failed to go to definition", 500);
   }
 
-  const response = gc.NavigateResponse.create();
-
-  send(response);
+  return gc.NavigateResponse.create({});
 }
 
 export { handleGoToDefinition };
