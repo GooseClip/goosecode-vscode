@@ -6,11 +6,12 @@ import { GooseCodeExtensionConfig } from '../../config';
 import { handleGetFilesRequest } from './handlers/get-files';
 import { ApiError } from '../errors';
 import { Workspace, WorkspaceTracker } from '../../workspace-tracker';
-import { getGitInfoFromVscodeApi } from '../../git';
+import { getGitInfoFromVscodeApi, GitInfo } from '../../git';
 import * as vscode from "vscode";
 import * as stream from "streamx";
 import { handleListFilesRequest } from './handlers/list-files';
 import { handleGoToDefinition } from './handlers/go-to';
+import * as path from 'path';
 
 export class GooseCodeServer {
   constructor(
@@ -41,13 +42,36 @@ export class GooseCodeServer {
           console.error("[PUSH]", "No active workspace found");
           return;
         }
+        const filepath = this.workspaceTracker.currentFilePath();
+        const workspaceRoot = activeWorkspace.uri.fsPath;
+        const isExternal =
+          !(filepath === workspaceRoot || filepath.startsWith(workspaceRoot + path.sep)) ||
+          /[\\/]node_modules[\\/]/.test(filepath);
 
-        const gitInfo = await getGitInfoFromVscodeApi(
-          vscode.Uri.file(this.workspaceTracker.currentFilePath()),
-        );
+        let gitInfo: GitInfo | null;
+        if (isExternal) {
+          gitInfo = {
+            repositoryRoot: workspaceRoot,
+            repositoryFullName: activeWorkspace.config!.config.repositoryFullName,
+            branch: 'ext-dep',
+            commit: 'ext-dep',
+            stagedFiles: [],
+            unstagedFiles: [],
+          };
+        } else {
+          gitInfo = await getGitInfoFromVscodeApi(
+            vscode.Uri.file(filepath),
+          );
+        }
 
-        // console.log(`Workspace: ${activeWorkspace.uri.fsPath}`);
-        // console.log(`Git info: ${JSON.stringify(gitInfo)}`);
+        console.log(`Workspace: ${activeWorkspace.uri.fsPath}`);
+        console.log(`Git info: ${JSON.stringify(gitInfo ?? {})}`);
+        console.log(`Filepath: ${filepath}`);
+
+        
+   
+
+        
         // console.log(`Time taken: ${endTime - startTime}ms`);
         // Inject the workspace root so GooseCode can automatically associate the connection
         message.context = gc.PushContext.create({
@@ -260,6 +284,9 @@ export class GooseCodeServer {
         const workspace = await this.workspaceTracker.getWorkspaceFromContext(
           request.context!,
         );
+        if (workspace === null) {
+          throw new ApiError(`Workspace not found: ${request.context!.versionControlInfo?.repositoryFullname}`, 422);
+        }
 
         await handleGoToDefinition(request, workspace!.uri!);
       } catch (e) {

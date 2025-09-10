@@ -111,6 +111,8 @@ export async function getDefinitions(): Promise<LocationOrLocationLink[]> {
         "[WARN][DEFINITIONS]",
         "No definition found for the symbol under the cursor.",
       );
+      vscode.window.setStatusBarMessage("GooseCode: No definition found at cursor 🚨", 2000);
+
     }
   } else {
     console.log("[WARN][DEFINITIONS]", "No active text editor found.");
@@ -132,15 +134,13 @@ export async function getReferences(): Promise<vscode.Location[]> {
     );
 
     if (references && references.length > 0) {
-      // for (const r of references) {
-      //   console.log("[INFO][GET REFERENCES]", "Reference", r);
-      // }
       return references;
     } else {
       console.log(
         "[WARN][FIND USES]",
         "No references found for the symbol at the cursor position.",
       );
+      vscode.window.setStatusBarMessage("GooseCode: No references found at cursor 🚨", 2000);
     }
   } else {
     console.log("[WARN][FIND USES]", "No active text editor found.");

@@ -48,7 +48,11 @@ export class WorkspaceTracker {
     if (!config) {
       return null;
     }
-    const hit = this.workspaces.find((w) => w.config?.config.path === config.path);
+    let hit = this.workspaces.find((w) => w.config?.config.path === config.path);
+    if (!hit) {
+      await this.refresh();
+      hit = this.workspaces.find((w) => w.config?.config.path === config.path);
+    }
     return hit || null;
   }
 

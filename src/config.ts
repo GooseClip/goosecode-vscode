@@ -104,10 +104,12 @@ export async function findWorkspace(
     const hit = workspaces.find(
       (w) =>
         w.repositoryFullName ===
-          context.versionControlInfo?.repositoryFullname &&
+        context.versionControlInfo?.repositoryFullname &&
         w.commit === context.versionControlInfo?.commit,
     );
-    return hit || null;
+    if (hit) {
+      return hit;
+    }
   }
 
   // Use the repository fullname in search
