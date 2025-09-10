@@ -123,7 +123,8 @@ export class GooseCodeServer {
 
       if (this.pushStream) {
         console.warn('A client is already connected to the push stream. Replacing with new connection.');
-        this.pushStream.end();
+        // this.pushStream.end();
+        this.pushStream.destroy(new Error("Replaced by new connection"));
         this.pushStream = null;
       }
 
@@ -159,8 +160,8 @@ export class GooseCodeServer {
         // If this stream is still the active one, then its closure means we're disconnected.
         if (this.pushStream === myStream) {
           this.pushStream = null;
-          this.onClosed();
         }
+        this.onClosed();
       };
 
       // Handle cancellation
