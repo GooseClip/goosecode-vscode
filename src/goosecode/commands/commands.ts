@@ -158,20 +158,46 @@ export async function goToDefinition(
     return false;
   }
 
-  const document = await vscode.workspace.openTextDocument(
-    path.join(workspaceUri.fsPath, loc.path),
-  );
+  const fileUri = vscode.Uri.file(path.join(workspaceUri.fsPath, loc.path));
+  // openTextDocument will either open the file or return the existing document
+  const document = await vscode.workspace.openTextDocument(fileUri);
+
+  // Find the view column if the tab is already open anywhere
+  let viewColumn: vscode.ViewColumn | undefined;
+  for (const tabGroup of vscode.window.tabGroups.all) {
+    for (const tab of tabGroup.tabs) {
+      // The tab input can be other things, so we check if it has a uri property
+      const tabUri = (tab.input as { uri?: vscode.Uri })?.uri;
+      if (tabUri?.path === fileUri.path) {
+        viewColumn = tabGroup.viewColumn;
+        break;
+      }
+    }
+    if (viewColumn) {
+      break;
+    }
+  }
+
   const startPos = new vscode.Position(
     Number(loc.range?.start?.line),
     Number(loc.range?.start?.character),
   );
 
-  const endChar = loc.range?.end?.line != null ? loc.range?.end?.character ?? document.lineAt(Number(loc!.range!.end!.character)).range.end : 0;
+  let endPos = startPos;
+  if (select && loc.range?.end) {
+    const endLine = Number(loc.range.end.line);
+    const endCharacter =
+      loc.range.end.character != null
+        ? Number(loc.range.end.character)
+        : document.lineAt(endLine).range.end.character;
+    endPos = new vscode.Position(endLine, endCharacter);
+  }
 
-  const endPos = !select
-    ? startPos
-    : new vscode.Position(Number(loc.range?.end?.line), Number(endChar));
-  const editor = await vscode.window.showTextDocument(document, undefined, false);
+  const editor = await vscode.window.showTextDocument(document, {
+    preview: true,
+    preserveFocus: false,
+    viewColumn: viewColumn, // undefined will use the active column
+  });
   editor.selection = new vscode.Selection(startPos, endPos);
 
   // Only reveal if not already visible
@@ -185,18 +211,20 @@ export async function goToDefinition(
     );
   }
 
-  // Don't use the selection range for highlighting
-  const highlightRange: vscode.Range = new vscode.Range(
-    startPos,
-    new vscode.Position(Number(loc.range?.end?.line), Number(loc.range?.end?.character)),
-  );
+  // Use the full range from the location for highlighting
+  const highlightEndPos = loc.range?.end
+    ? new vscode.Position(
+        Number(loc.range.end.line),
+        Number(loc.range.end.character),
+      )
+    : endPos;
+  const highlightRange: vscode.Range = new vscode.Range(startPos, highlightEndPos);
 
   // Highlight range
   const decoration = vscode.window.createTextEditorDecorationType({
     backgroundColor: new vscode.ThemeColor(
       "editor.findMatchHighlightBackground",
     ),
-    // isWholeLine: true,
   });
 
   editor.setDecorations(decoration, [highlightRange]);
@@ -224,13 +252,13 @@ export async function listProjectFiles(
   return files.map((file) => path.relative(root, file.fsPath));
 }
 
-  // try {
-  //   const isCursor = process.env.VSCODE_IPC_HOOK?.toLocaleLowerCase().includes("cursor") || process.env.VSCODE_NLS_CONFIG?.toLocaleLowerCase().includes("cursor")
-  //   if (isCursor) {
-  //     exec(`cursor .`, { cwd: workspaceUri.fsPath })
-  //   } else {
-  //     exec(`code .`, { cwd: workspaceUri.fsPath })
-  //   }
-  // } catch (e) {
-  //   console.error(`failed to bring to front`)
-  // }
+// try {
+//   const isCursor = process.env.VSCODE_IPC_HOOK?.toLocaleLowerCase().includes("cursor") || process.env.VSCODE_NLS_CONFIG?.toLocaleLowerCase().includes("cursor")
+//   if (isCursor) {
+//     exec(`cursor .`, { cwd: workspaceUri.fsPath })
+//   } else {
+//     exec(`code .`, { cwd: workspaceUri.fsPath })
+//   }
+// } catch (e) {
+//   console.error(`failed to bring to front`)
+// }
