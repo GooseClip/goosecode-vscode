@@ -348,6 +348,16 @@
           "command": "goosecode.broadcast",
           "when": "view == goosecode.connection && viewItem == discoverableItem",
           "group": "inline"
+        },
+        {
+          "command": "goosecode.codeSources.enableCodeSource",
+          "when": "view == goosecode.codeSources && viewItem == codeSource:disabled",
+          "group": "inline"
+        },
+        {
+          "command": "goosecode.codeSources.disableCodeSource",
+          "when": "view == goosecode.codeSources && viewItem == codeSource:enabled",
+          "group": "inline"
         }
       ],
       "editor/context": [

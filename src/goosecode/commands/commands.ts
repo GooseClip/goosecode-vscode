@@ -158,17 +158,6 @@ export async function goToDefinition(
     return false;
   }
 
-  try {
-    const isCursor = process.env.VSCODE_IPC_HOOK?.toLocaleLowerCase().includes("cursor") || process.env.VSCODE_NLS_CONFIG?.toLocaleLowerCase().includes("cursor")
-    if (isCursor) {
-      exec(`cursor .`, { cwd: workspaceUri.fsPath })
-    } else {
-      exec(`code .`, { cwd: workspaceUri.fsPath })
-    }
-  } catch (e) {
-    console.error(`failed to bring to front`)
-  }
-
   const document = await vscode.workspace.openTextDocument(
     path.join(workspaceUri.fsPath, loc.path),
   );
@@ -179,17 +168,11 @@ export async function goToDefinition(
 
   const endChar = loc.range?.end?.line != null ? loc.range?.end?.character ?? document.lineAt(Number(loc!.range!.end!.character)).range.end : 0;
 
-  console.log("RANGE", loc.range);
-  console.log("SELECT", select);
-  console.log("START", startPos);
   const endPos = !select
     ? startPos
     : new vscode.Position(Number(loc.range?.end?.line), Number(endChar));
   const editor = await vscode.window.showTextDocument(document, undefined, false);
   editor.selection = new vscode.Selection(startPos, endPos);
-
-  console.log("END", startPos);
-
 
   // Only reveal if not already visible
   const inView = editor.visibleRanges.some((range) =>
@@ -240,3 +223,14 @@ export async function listProjectFiles(
 
   return files.map((file) => path.relative(root, file.fsPath));
 }
+
+  // try {
+  //   const isCursor = process.env.VSCODE_IPC_HOOK?.toLocaleLowerCase().includes("cursor") || process.env.VSCODE_NLS_CONFIG?.toLocaleLowerCase().includes("cursor")
+  //   if (isCursor) {
+  //     exec(`cursor .`, { cwd: workspaceUri.fsPath })
+  //   } else {
+  //     exec(`code .`, { cwd: workspaceUri.fsPath })
+  //   }
+  // } catch (e) {
+  //   console.error(`failed to bring to front`)
+  // }

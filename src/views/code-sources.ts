@@ -115,5 +115,5 @@ export class CodeSource extends vscode.TreeItem {
    * ```
    * This will show action `extension.deleteFolder` only for items with `contextValue` is `folder`.
    */
-  contextValue = this.enabled ? "enabled" : "disabled";
+  contextValue = "codeSource:" + (this.enabled ? "enabled" : "disabled");
 }

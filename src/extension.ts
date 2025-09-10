@@ -18,6 +18,7 @@ import { ConnectionProvider } from "./views/connection";
 import { ActiveSessionProvider } from "./views/active-session";
 import * as gc from "./gen/ide";
 
+import { v4 as uuidv4 } from "uuid";
 
 var workspaceTracker: WorkspaceTracker | null = null;
 var gooseCodeServer: GooseCodeServer | null = null;
@@ -25,7 +26,6 @@ var goosecodeSubscriptions: Array<vscode.Disposable> = [];
 var codeSourcesProvider: CodeSourcesProvider | null = null;
 var connectionProvider: ConnectionProvider | null = null;
 var activeSessionProvider: ActiveSessionProvider | null = null;
-
 
 
 // package.json (dependencies)
@@ -55,41 +55,18 @@ async function startBonjourService(
     return;
   }
   bonjour = new Bonjour();
+  const instanceId = String(context.globalState.get("instanceId") ?? "default");
+  const smallId = instanceId.slice(0, 8);
+  const mdnsHost = `goosecode-${smallId}.local`;
 
-
-  let localIP;
-  var os = require('os');
-  var ifaces = os.networkInterfaces();
-  Object.keys(ifaces).forEach(function (ifname) {
-    var alias = 0;
-
-    ifaces[ifname].forEach(function (iface : any) {
-      if ('IPv4' !== iface.family || iface.internal !== false) {
-        // Skip over internal (i.e. 127.0.0.1) and non-IPv4 addresses
-        return;
-      }
-
-      if (ifname === 'Ethernet') {
-        if (alias >= 1) {
-          // This single interface has multiple IPv4 addresses
-          // console.log(ifname + ':' + alias, iface.address);
-        } else {
-          // This interface has only one IPv4 address
-          // console.log(ifname, iface.address);
-        }
-        ++alias;
-        localIP = iface.address;
-      }
-    });
-  });
-  console.log(localIP);
 
   // TXT records are handy for metadata: version, instanceId, public key hash, etc.
   bonjourService = bonjour.publish({
-    name: `GooseCode on ${require("os").hostname()}`,
+    name: `GooseCode (${smallId})`,
     type: "goosecode", // creates _goosecode._tcp.local
     protocol: "tcp",
     port,
+    host: mdnsHost,
     txt: {
       proto: 'https', // Added: Specify HTTPS protocol
       v: '1.0',
@@ -101,6 +78,14 @@ async function startBonjourService(
   bonjourService.on("up", () => {
     console.log("mDNS service announced");
     connectionProvider?.refresh();
+  });
+
+  bonjourService.on("error", (err: unknown) => {
+    console.error("mDNS error:", err);
+  });
+
+  bonjourService.on("down", () => {
+    console.log("mDNS service withdrawn");
   });
 
   if (durationSeconds && durationSeconds > 0) {
@@ -120,40 +105,33 @@ export function stopBonjourService(): Promise<void> {
       clearTimeout(bonjourTimeout);
       bonjourTimeout = undefined;
     }
-    if (!bonjourService) {
-      if (bonjour) {
-        try {
-          bonjour.destroy();
-        } catch { }
-        bonjour = undefined;
-      }
-      connectionProvider?.refresh();
-      resolve();
-      return;
-    }
 
-    const cleanup = () => {
-      try {
-        bonjour?.destroy();
-      } catch { }
+    const finalize = () => {
+      try { bonjour?.unpublishAll(); } catch { }
+      try { bonjour?.destroy(); } catch { }
       bonjour = undefined;
       bonjourService = undefined;
       connectionProvider?.refresh();
       resolve();
     };
 
+    if (!bonjourService) {
+      finalize();
+      return;
+    }
+
     try {
+      // Prefer the explicit stop callback so the library flushes “goodbye”
       bonjourService.stop(() => {
         console.log("mDNS service stopped.");
-        cleanup();
+        finalize();
       });
     } catch (e) {
       console.error("Error stopping bonjour service", e);
-      cleanup();
+      finalize();
     }
   });
 }
-
 async function startServer(
   context: vscode.ExtensionContext,
   config: GooseCodeExtensionConfig,
@@ -199,7 +177,7 @@ async function startServer(
   vscode.commands.executeCommand("setContext", "goosecode.started", true);
 }
 
-async function stopServer(context: vscode.ExtensionContext) {
+function stopServer() {
   gooseCodeServer?.stop();
   gooseCodeServer = null;
 
@@ -213,7 +191,7 @@ async function stopServer(context: vscode.ExtensionContext) {
 }
 
 async function restartServer(context: vscode.ExtensionContext) {
-  await stopServer(context);
+  stopServer();
   const config = await loadGlobalConfigurations(context);
   await startServer(context, config);
 }
@@ -236,7 +214,7 @@ async function persistentCommands(
     if (gooseCodeServer === null) {
       return;
     }
-    await stopServer(context);
+    await stopServer();
     vscode.window.showInformationMessage("GooseCode server stopped");
   });
   subscriptions.push(sub);
@@ -384,9 +362,10 @@ function createTreeProviders(
       try {
         const root = codeSource.resourceUri!.fsPath;
         console.log(`Enabling goosecode: ${root}`);
-        loadWorkspaceConfiguration(root, true);
+        await loadWorkspaceConfiguration(root, true);
         const workspaces = await workspaceTracker!.refresh();
         gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
+        codeSourcesProvider?.refresh();
       } catch (e) {
         console.error(e);
       }
@@ -397,17 +376,16 @@ function createTreeProviders(
   sub = vscode.commands.registerCommand(
     "goosecode.codeSources.disableCodeSource",
     async (codeSource: CodeSource) => {
-      const config = await removeWorkspaceConfiguration(
+      const removed = await removeWorkspaceConfiguration(
         codeSource.resourceUri!.fsPath,
       );
-      console.log(`Disable goosecode: ${config?.repositoryFullName}`);
       const workspaces = await workspaceTracker!.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces, gc.WorkspaceDetails.create({
         workspaceRoot: codeSource.resourceUri!.fsPath,
         versionControlInfo: gc.VersionControlInfo.create({
-          repositoryFullname: config?.repositoryFullName ?? "",
-          branch: config?.branch ?? "",
-          commit: config?.commit ?? "",
+          repositoryFullname: removed?.repositoryFullName ?? "",
+          branch: removed?.branch ?? "",
+          commit: removed?.commit ?? "",
         }),
         deleted: true,
       }),
@@ -444,6 +422,10 @@ function createTreeProviders(
 }
 
 export async function activate(context: vscode.ExtensionContext) {
+  if (!context.globalState.get("instanceId")) {
+    context.globalState.update("instanceId", uuidv4());
+  }
+
   workspaceTracker = new WorkspaceTracker((options) => {
     console.log("Workspaces refreshed");
     if (options.refreshCodeSources) {
@@ -491,6 +473,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const treeSubscriptions = createTreeProviders(context);
   context.subscriptions.push(...treeSubscriptions);
 
+  await workspaceTracker!.refresh();
+
   // Detect workspace changes
   const workspaceChangeSubscription =
     vscode.workspace.onDidChangeWorkspaceFolders(async (event) => {
@@ -529,19 +513,15 @@ export async function activate(context: vscode.ExtensionContext) {
   await updateLocalhostOnlyContext();
 
   // Getting started commands
-  const gettingStartedCommandSubscriptions = gettingStarted(context, () => {
-    workspaceTracker!.workspaces.forEach((workspace) => {
-      loadWorkspaceConfiguration(workspace.uri.fsPath, true);
-    });
-    workspaceTracker!.refresh();
-    codeSourcesProvider?.refresh();
-    gooseCodeServer?.pushWorkspacesToGooseCode(workspaceTracker!.workspaces);
+  const gettingStartedCommandSubscriptions = gettingStarted(context, async () => {
+    const workspaces = await workspaceTracker!.refresh();
+    gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
   });
   context.subscriptions.push(...gettingStartedCommandSubscriptions);
 
   context.subscriptions.push({
     dispose: () => {
-      stopServer(context);
+      stopServer();
     },
   });
 
@@ -560,4 +540,6 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() { }
+export async function deactivate(): Promise<void> {
+  await Promise.all([stopBonjourService(), stopServer()]);
+}

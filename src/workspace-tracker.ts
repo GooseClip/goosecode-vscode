@@ -5,6 +5,7 @@ import {
   GooseCodeWorkspaceConfig,
   loadWorkspaceConfiguration,
   updateWorkspaceConfiguration,
+  findWorkspace,
 } from "./config";
 import { onDidChangeCommit } from "./git";
 
@@ -40,23 +41,14 @@ export class WorkspaceTracker {
     return this.workspaces.filter((w) => w.isEnabled);
   }
 
-  public getWorkspaceFromContext(
+  public async getWorkspaceFromContext(
     context: gc.Context,
-  ): Workspace | null {
-    
-
-    // Use the repository fullname and commit in search
-    if(context.versionControlInfo?.commit){
-      const hit = this.activeWorkspaces().find(
-        (w) => w.config!.config.repositoryFullName === context.versionControlInfo?.repositoryFullname && w.config!.config.commit === context.versionControlInfo?.commit,
-      );
-      return hit || null;
+  ): Promise<Workspace | null> {
+    const config = await findWorkspace(context);
+    if (!config) {
+      return null;
     }
-
-    // Use the repository fullname in search
-    const hit = this.activeWorkspaces().find(
-      (w) => w.config!.config.repositoryFullName === context.versionControlInfo?.repositoryFullname,
-    );
+    const hit = this.workspaces.find((w) => w.config?.config.path === config.path);
     return hit || null;
   }
 
@@ -138,7 +130,7 @@ export class WorkspaceTracker {
     console.log(workspace)
     console.log("-----------")
     if(workspace && workspace.config){
-      workspace.config!.config = config.GooseCode;
+      workspace.config!.config = config.config;
     }else{
       console.log("Config doesn't exist")
     }

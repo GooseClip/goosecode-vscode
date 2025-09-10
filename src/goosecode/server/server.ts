@@ -128,7 +128,8 @@ export class GooseCodeServer {
       }
 
       console.log('Client connected to push stream.');
-      this.pushStream = new stream.Duplex()
+      const myStream = new stream.Duplex();
+      this.pushStream = myStream;
       this.onConnected();
 
 
@@ -149,8 +150,17 @@ export class GooseCodeServer {
 
 
       // Set up cleanup handler
+      let cleanedUp = false;
       const cleanup = () => {
-        this.onClosed();
+        if (cleanedUp) {
+          return;
+        }
+        cleanedUp = true;
+        // If this stream is still the active one, then its closure means we're disconnected.
+        if (this.pushStream === myStream) {
+          this.pushStream = null;
+          this.onClosed();
+        }
       };
 
       // Handle cancellation
@@ -160,7 +170,7 @@ export class GooseCodeServer {
       });
 
       try {
-        for await (const m of this.pushStream) {
+        for await (const m of myStream) {
           responses.send(m);
         }
       } catch (e) {
@@ -180,7 +190,7 @@ export class GooseCodeServer {
         'status': '...done'
       };
       try {
-        const workspace = this.workspaceTracker.getWorkspaceFromContext(
+        const workspace = await this.workspaceTracker.getWorkspaceFromContext(
           request.context!,
         );
 
@@ -205,7 +215,7 @@ export class GooseCodeServer {
         'status': '...done'
       };
       try {
-        const workspace = this.workspaceTracker.getWorkspaceFromContext(
+        const workspace = await this.workspaceTracker.getWorkspaceFromContext(
           request.context!,
         );
 
@@ -246,7 +256,7 @@ export class GooseCodeServer {
       };
 
       try {
-        const workspace = this.workspaceTracker.getWorkspaceFromContext(
+        const workspace = await this.workspaceTracker.getWorkspaceFromContext(
           request.context!,
         );
 

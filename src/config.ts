@@ -11,20 +11,41 @@ import { createTLSOptions } from "./tls";
 import * as path from "node:path";
 import { getGitInfoFromVscodeApi } from "./git";
 import { Uri } from "vscode";
+import * as os from "os";
+import * as gc from "./gen/ide";
+
+const globalConfigDir = path.join(
+  os.homedir(),
+  ".config",
+  "gooseclip",
+  "goosecode",
+);
+const globalConfigPath = path.join(
+  globalConfigDir,
+  "goosecode-vscode-extension.toml",
+);
 
 const configFileName = ".goose";
 
+function getWorkspaceId(p: string): string {
+  return crypto.createHash("md5").update(p).digest("hex");
+}
+
 // Define the GooseCode type
 type GooseCodeWorkspace = {
+  path: string;
   repositoryFullName: string;
   branch: string;
   commit: string;
 };
 
-// Define the outer structure with GooseCode
-// NOTE: There are plans for broader GooseClip product integrations
-export type GooseClipConfig = {
-  GooseCode: GooseCodeWorkspace;
+// New types
+export type GooseCodeWorkspaces = {
+  [path: string]: GooseCodeWorkspace;
+};
+
+export type ConfigWrapper = {
+  GooseCode: GooseCodeWorkspaces;
 };
 
 export type GooseCodeSettings = {
@@ -43,79 +64,126 @@ export type GooseCodeExtensionConfig = {
   tlsOptions: ServerOptions;
 };
 
+function getGlobalConfigPath(): string {
+  if (!fs.existsSync(globalConfigDir)) {
+    fs.mkdirSync(globalConfigDir, { recursive: true });
+  }
+  return globalConfigPath;
+}
+
+async function loadAllWorkspaces(): Promise<ConfigWrapper> {
+  const p = getGlobalConfigPath();
+  if (!fs.existsSync(p)) {
+    console.warn("config file doesn't exist: $p")
+    return { GooseCode: {} };
+  }
+  const content = fs.readFileSync(p, "utf-8");
+  const parsed = parse(content) as any;
+  if (!parsed.GooseCode) {
+    console.warn("failed to parse config")
+    return { GooseCode: {} };
+  }
+  return parsed as ConfigWrapper;
+}
+
+async function saveAllWorkspaces(config: ConfigWrapper): Promise<void> {
+  console.log(`SAVE WORKSPACES`)
+  const p = getGlobalConfigPath();
+  const content = stringify(config);
+  fs.writeFileSync(p, content);
+}
+
+export async function findWorkspace(
+  context: gc.Context,
+): Promise<GooseCodeWorkspace | null> {
+  const allWorkspaces = await loadAllWorkspaces();
+  const workspaces = Object.values(allWorkspaces.GooseCode);
+
+  // Use the repository fullname and commit in search
+  if (context.versionControlInfo?.commit) {
+    const hit = workspaces.find(
+      (w) =>
+        w.repositoryFullName ===
+          context.versionControlInfo?.repositoryFullname &&
+        w.commit === context.versionControlInfo?.commit,
+    );
+    return hit || null;
+  }
+
+  // Use the repository fullname in search
+  const hit = workspaces.find(
+    (w) =>
+      w.repositoryFullName === context.versionControlInfo?.repositoryFullname,
+  );
+  return hit || null;
+}
+
 export async function updateWorkspaceConfiguration(
   config: GooseCodeWorkspaceConfig,
   root: string,
   commit: string,
   branch?: string,
-): Promise<GooseClipConfig> {
-
-  const c: GooseClipConfig = {
-    GooseCode: {
-      repositoryFullName: config?.config?.repositoryFullName ?? "",
-      branch: branch ?? "",
-      commit: commit,
-    },
+): Promise<GooseCodeWorkspaceConfig> {
+  const globalConfig = await loadAllWorkspaces();
+  const newWorkspaceConfig: GooseCodeWorkspace = {
+    path: root,
+    repositoryFullName: config?.config?.repositoryFullName ?? "",
+    branch: branch ?? "",
+    commit: commit,
   };
-  const t = stringify(c);
 
-  const p = path.join(root, configFileName);
-  console.log(`[DEBUG][UPDATE CONFIG] ${p} ${t}`);
-  fs.writeFileSync(p, t);
-
-  return c;
+  globalConfig.GooseCode[getWorkspaceId(root)] = newWorkspaceConfig;
+  await saveAllWorkspaces(globalConfig);
+  return { config: newWorkspaceConfig };
 }
 
 export async function removeWorkspaceConfiguration(
   root: string,
 ): Promise<GooseCodeWorkspace | null> {
-  const p = path.join(root, configFileName);
-  const config = await loadWorkspaceConfiguration(root, false);
-  const exists = fs.existsSync(p);
-  if (exists) {
-    fs.unlinkSync(p);
+  const globalConfig = await loadAllWorkspaces();
+  const workspaceId = getWorkspaceId(root);
+  const existing = globalConfig.GooseCode[workspaceId];
+  if (existing) {
+    delete globalConfig.GooseCode[workspaceId];
+    await saveAllWorkspaces(globalConfig);
+    return existing;
   }
-  return config?.config ?? null;
+
+  return null;
 }
 
 export async function loadWorkspaceConfiguration(
   root: string,
   create: boolean,
 ): Promise<GooseCodeWorkspaceConfig | null> {
-  const p = path.join(root, configFileName);
-  const exists = fs.existsSync(p);
+  const globalConfig = await loadAllWorkspaces();
+  const workspaceId = getWorkspaceId(root);
+  let workspaceConfig = globalConfig.GooseCode[workspaceId];
+  if (workspaceConfig) {
+    return { config: workspaceConfig };
+  }
 
-  if (!create && !exists) {
+  if (!create) {
     return null;
   }
 
-  // const fingerprint = Buffer.from(`${config?.config?.repositoryFullName}@${commit}`).toString('base64');
-  // const fingerprint = valid ? Buffer.from(`${gitInfo?.repositoryFullName}@${gitInfo?.commit}`).toString('base64') : uuidv4();
-
   // If file doesn't exist, create it
-  if (!exists) {
-    // Generate a uuid
-    const gitInfo = await getGitInfoFromVscodeApi(Uri.file(root));
-    // dart: base64Encode(utf8.encode("${repository.fullName}@${commit}"))
-    const valid = gitInfo?.repositoryFullName && gitInfo?.commit;
-    const c: GooseClipConfig = {
-      GooseCode: {
-        repositoryFullName: gitInfo?.repositoryFullName ?? "",
-        branch: gitInfo?.branch ?? "",
-        commit: gitInfo?.commit ?? "",
-      },
-    };
-    const t = stringify(c);
-    fs.writeFileSync(p, t);
-  }
+  // Generate a uuid
+  const gitInfo = await getGitInfoFromVscodeApi(Uri.file(root));
+  // dart: base64Encode(utf8.encode("${repository.fullName}@${commit}"))
+  const valid = gitInfo?.repositoryFullName && gitInfo?.commit;
+  const c: GooseCodeWorkspace = {
+    path: root,
+    repositoryFullName: gitInfo?.repositoryFullName ?? "",
+    branch: gitInfo?.branch ?? "",
+    commit: gitInfo?.commit ?? "",
+  };
 
-  const c = fs.readFileSync(p, "utf-8");
-  const parsed = parse(c);
-
-  const config: GooseCodeWorkspace = (parsed as GooseClipConfig).GooseCode;
+  globalConfig.GooseCode[workspaceId] = c;
+  await saveAllWorkspaces(globalConfig);
 
   return {
-    config: config,
+    config: c,
   };
 }
 
