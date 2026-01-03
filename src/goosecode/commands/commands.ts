@@ -11,7 +11,6 @@ const defaultExclusions = [
   "**/node_modules/**",
   "**/dist/**",
   "**/build/**",
-  "**/lib/**",
   "**/out/**",
   "**/target/**",
   "**/__pycache__/**",

@@ -1,6 +1,7 @@
 import { getFileContents } from "../../commands/commands";
 
 import * as vscode from "vscode";
+import * as path from "path";
 
 import * as gc from "../../../gen/ide";
 import { getDiffToHead, getFileContentsAtCommit as getFileContentsAtHead } from "../../../git";
@@ -24,7 +25,7 @@ async function handleGetFilesRequest(
 
     var head = null;
     try {
-      head = await getFileContentsAtHead(vscode.Uri.file(vscode.window.activeTextEditor!.document.uri.fsPath));
+      head = await getFileContentsAtHead(vscode.Uri.file(path.join(workspaceUri.fsPath, v)));
     } catch (e) {
       console.error("Failed to get patch")
     }

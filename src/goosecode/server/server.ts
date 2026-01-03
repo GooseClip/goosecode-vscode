@@ -13,6 +13,11 @@ import { handleListFilesRequest } from './handlers/list-files';
 import { handleGoToDefinition } from './handlers/go-to';
 import * as path from 'path';
 
+interface ClientConnection {
+  stream: stream.Duplex;
+  clientId: string;
+}
+
 export class GooseCodeServer {
   constructor(
     private readonly workspaceTracker: WorkspaceTracker,
@@ -29,65 +34,69 @@ export class GooseCodeServer {
     return this.extensionConfig.settings.port;
   }
 
-  private pushStream: stream.Duplex | null = null;
+  // Map of clientId -> client connection (supports multiple concurrent clients)
+  private clientConnections: Map<string, ClientConnection> = new Map();
 
 
   public async push(message: gc.PushResponse) {
-    if (this.pushStream) {
-      console.log("Pushing =>", gc.PushType[message.type]);
-      if (message.type === gc.PushType.FILE_COMMAND) {
-        const activeWorkspace =
-          this.workspaceTracker.getLastActiveGooseCodeWorkspace();
-        if (!activeWorkspace) {
-          console.error("[PUSH]", "No active workspace found");
-          return;
-        }
-        const filepath = this.workspaceTracker.currentFilePath();
-        const workspaceRoot = activeWorkspace.uri.fsPath;
-        const isExternal =
-          !(filepath === workspaceRoot || filepath.startsWith(workspaceRoot + path.sep)) ||
-          /[\\/]node_modules[\\/]/.test(filepath);
+    if (this.clientConnections.size === 0) {
+      console.warn("Cannot push message: no clients connected.");
+      return;
+    }
 
-        let gitInfo: GitInfo | null;
-        if (isExternal) {
-          gitInfo = {
-            repositoryRoot: workspaceRoot,
-            repositoryFullName: activeWorkspace.config!.config.repositoryFullName,
-            branch: 'ext-dep',
-            commit: 'ext-dep',
-            stagedFiles: [],
-            unstagedFiles: [],
-          };
-        } else {
-          gitInfo = await getGitInfoFromVscodeApi(
-            vscode.Uri.file(filepath),
-          );
-        }
+    console.log("Pushing =>", gc.PushType[message.type], `to ${this.clientConnections.size} client(s)`);
+    
+    if (message.type === gc.PushType.FILE_COMMAND) {
+      const activeWorkspace =
+        this.workspaceTracker.getLastActiveGooseCodeWorkspace();
+      if (!activeWorkspace) {
+        console.error("[PUSH]", "No active workspace found");
+        return;
+      }
+      const filepath = this.workspaceTracker.currentFilePath();
+      const workspaceRoot = activeWorkspace.uri.fsPath;
+      const isExternal =
+        !(filepath === workspaceRoot || filepath.startsWith(workspaceRoot + path.sep)) ||
+        /[\\/]node_modules[\\/]/.test(filepath);
 
-        console.log(`Workspace: ${activeWorkspace.uri.fsPath}`);
-        console.log(`Git info: ${JSON.stringify(gitInfo ?? {})}`);
-        console.log(`Filepath: ${filepath}`);
-
-        
-   
-
-        
-        // console.log(`Time taken: ${endTime - startTime}ms`);
-        // Inject the workspace root so GooseCode can automatically associate the connection
-        message.context = gc.PushContext.create({
-          workspaceRoot: activeWorkspace.uri.fsPath,
-          versionControl: gc.VersionControlInfo.create({
-            repositoryFullname: gitInfo?.repositoryFullName ?? "",
-            branch: gitInfo?.branch ?? "",
-            commit: gitInfo?.commit ?? "",
-          }),
-        });
-
+      let gitInfo: GitInfo | null;
+      if (isExternal) {
+        gitInfo = {
+          repositoryRoot: workspaceRoot,
+          repositoryFullName: activeWorkspace.config!.config.repositoryFullName,
+          branch: 'ext-dep',
+          commit: 'ext-dep',
+          stagedFiles: [],
+          unstagedFiles: [],
+        };
+      } else {
+        gitInfo = await getGitInfoFromVscodeApi(
+          vscode.Uri.file(filepath),
+        );
       }
 
-      this.pushStream.push(message);
-    } else {
-      console.warn("Cannot push message: no client connected to the push stream.");
+      console.log(`Workspace: ${activeWorkspace.uri.fsPath}`);
+      console.log(`Git info: ${JSON.stringify(gitInfo ?? {})}`);
+      console.log(`Filepath: ${filepath}`);
+
+      // Inject the workspace root so GooseCode can automatically associate the connection
+      message.context = gc.PushContext.create({
+        workspaceRoot: activeWorkspace.uri.fsPath,
+        versionControl: gc.VersionControlInfo.create({
+          repositoryFullname: gitInfo?.repositoryFullName ?? "",
+          branch: gitInfo?.branch ?? "",
+          commit: gitInfo?.commit ?? "",
+        }),
+      });
+    }
+
+    // Push to all connected clients
+    for (const [clientId, connection] of this.clientConnections) {
+      try {
+        connection.stream.push(message);
+      } catch (e) {
+        console.error(`Failed to push to client ${clientId}:`, e);
+      }
     }
   }
 
@@ -135,7 +144,11 @@ export class GooseCodeServer {
     // how can you:
     // - send no messages, just an error status *with trailer metadata*
     push: async (request: gc.PushRequest, responses: rpc.RpcInputStream<gc.PushResponse>, context: rpc.ServerCallContext): Promise<void> => {
-      console.log("NEW CONNECTION");
+      // Extract client ID from headers, or generate a random one
+      const clientIdHeader = context.headers['x-client-id'];
+      const clientId = (Array.isArray(clientIdHeader) ? clientIdHeader[0] : clientIdHeader) || `anon-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      console.log(`NEW CONNECTION from client: ${clientId}`);
 
       context.sendResponseHeaders({
         'status': 'processing...'
@@ -145,18 +158,22 @@ export class GooseCodeServer {
         'status': '...done'
       };
 
-      if (this.pushStream) {
-        console.warn('A client is already connected to the push stream. Replacing with new connection.');
-        // this.pushStream.end();
-        this.pushStream.destroy(new Error("Replaced by new connection"));
-        this.pushStream = null;
+      // Check if this specific client already has a connection
+      const existingConnection = this.clientConnections.get(clientId);
+      if (existingConnection) {
+        console.warn(`Client ${clientId} is reconnecting. Replacing their existing connection.`);
+        existingConnection.stream.destroy(new Error("Replaced by new connection from same client"));
+        this.clientConnections.delete(clientId);
       }
 
-      console.log('Client connected to push stream.');
+      console.log(`Client ${clientId} connected to push stream. Total clients: ${this.clientConnections.size + 1}`);
       const myStream = new stream.Duplex();
-      this.pushStream = myStream;
-      this.onConnected();
-
+      this.clientConnections.set(clientId, { stream: myStream, clientId });
+      
+      if (this.clientConnections.size === 1) {
+        // First client connected
+        this.onConnected();
+      }
 
       try {
         responses.send(gc.PushResponse.create({
@@ -166,13 +183,11 @@ export class GooseCodeServer {
         console.log("ERROR", e);
       }
 
-
       const workspaces = await this.workspaceTracker.refresh();
-      // After delay, send refresh
+      // After delay, send refresh to this client
       setTimeout(() => {
         this.pushWorkspacesToGooseCode(workspaces);
       }, 1000);
-
 
       // Set up cleanup handler
       let cleanedUp = false;
@@ -181,16 +196,22 @@ export class GooseCodeServer {
           return;
         }
         cleanedUp = true;
-        // If this stream is still the active one, then its closure means we're disconnected.
-        if (this.pushStream === myStream) {
-          this.pushStream = null;
+        
+        // Only remove if this is still the active connection for this client
+        const currentConnection = this.clientConnections.get(clientId);
+        if (currentConnection?.stream === myStream) {
+          this.clientConnections.delete(clientId);
+          console.log(`Client ${clientId} disconnected. Remaining clients: ${this.clientConnections.size}`);
         }
-        this.onClosed();
+        
+        if (this.clientConnections.size === 0) {
+          this.onClosed();
+        }
       };
 
       // Handle cancellation
       context.onCancel(() => {
-        console.log('Push stream cancelled by client.');
+        console.log(`Push stream cancelled by client ${clientId}.`);
         cleanup();
       });
 
@@ -199,9 +220,9 @@ export class GooseCodeServer {
           responses.send(m);
         }
       } catch (e) {
-        console.error("Error reading from client push stream", e);
+        console.error(`Error reading from client ${clientId} push stream:`, e);
       } finally {
-        console.log("Client push stream ended.");
+        console.log(`Client ${clientId} push stream ended.`);
         cleanup();
       }
     },
@@ -426,8 +447,12 @@ export class GooseCodeServer {
   }
 
   public stop() {
-    this.pushStream?.end();
-    this.pushStream = null;
+    // Close all client connections
+    for (const [clientId, connection] of this.clientConnections) {
+      console.log(`Closing connection for client ${clientId}`);
+      connection.stream.end();
+    }
+    this.clientConnections.clear();
     this.server?.forceShutdown();
     this.server = null;
   }
