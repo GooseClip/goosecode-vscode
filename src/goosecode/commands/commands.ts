@@ -219,11 +219,13 @@ export async function goToDefinition(
     : endPos;
   const highlightRange: vscode.Range = new vscode.Range(startPos, highlightEndPos);
 
-  // Highlight range
+  // Highlight range with a distinctive style (not selection-like)
   const decoration = vscode.window.createTextEditorDecorationType({
-    backgroundColor: new vscode.ThemeColor(
-      "editor.findMatchHighlightBackground",
-    ),
+    backgroundColor: "rgba(255, 213, 79, 0.15)",
+    border: "1px solid rgba(255, 193, 7, 0.6)",
+    borderRadius: "2px",
+    overviewRulerColor: "rgba(255, 193, 7, 0.8)",
+    overviewRulerLane: vscode.OverviewRulerLane.Center,
   });
 
   editor.setDecorations(decoration, [highlightRange]);
