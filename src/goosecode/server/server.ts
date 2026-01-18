@@ -44,8 +44,6 @@ export class GooseCodeServer {
       console.warn("Cannot push message: no clients connected.");
       return;
     }
-
-    console.log("Pushing =>", gc.PushType[message.type], `to ${this.clientConnections.size} client(s)`);
     
     if (message.type === gc.PushType.FILE_COMMAND) {
       const activeWorkspace =
@@ -75,10 +73,6 @@ export class GooseCodeServer {
           vscode.Uri.file(filepath),
         );
       }
-
-      console.log(`Workspace: ${activeWorkspace.uri.fsPath}`);
-      console.log(`Git info: ${JSON.stringify(gitInfo ?? {})}`);
-      console.log(`Filepath: ${filepath}`);
 
       // Inject the workspace root so GooseCode can automatically associate the connection
       message.context = gc.PushContext.create({
@@ -149,8 +143,6 @@ export class GooseCodeServer {
       const clientIdHeader = context.headers['x-client-id'];
       const clientId = (Array.isArray(clientIdHeader) ? clientIdHeader[0] : clientIdHeader) || `anon-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      console.log(`NEW CONNECTION from client: ${clientId}`);
-
       context.sendResponseHeaders({
         'status': 'processing...'
       });
@@ -181,7 +173,7 @@ export class GooseCodeServer {
           type: gc.PushType.UNSPECIFIED,
         }));
       } catch (e) {
-        console.log("ERROR", e);
+        console.error("Failed to send initial response", e);
       }
 
       const workspaces = await this.workspaceTracker.refresh();
@@ -202,7 +194,6 @@ export class GooseCodeServer {
         const currentConnection = this.clientConnections.get(clientId);
         if (currentConnection?.stream === myStream) {
           this.clientConnections.delete(clientId);
-          console.log(`Client ${clientId} disconnected. Remaining clients: ${this.clientConnections.size}`);
         }
         
         if (this.clientConnections.size === 0) {
@@ -212,7 +203,6 @@ export class GooseCodeServer {
 
       // Handle cancellation
       context.onCancel(() => {
-        console.log(`Push stream cancelled by client ${clientId}.`);
         cleanup();
       });
 
@@ -223,7 +213,6 @@ export class GooseCodeServer {
       } catch (e) {
         console.error(`Error reading from client ${clientId} push stream:`, e);
       } finally {
-        console.log(`Client ${clientId} push stream ended.`);
         cleanup();
       }
     },
@@ -290,8 +279,6 @@ export class GooseCodeServer {
     },
 
     navigate: async (request: gc.NavigateRequest, context: rpc.ServerCallContext): Promise<gc.NavigateResponse> => {
-
-      console.log("GO TO DEFINITION REQUEST");
 
       // wait for the requested amount of milliseconds
       context.sendResponseHeaders({
@@ -361,8 +348,6 @@ export class GooseCodeServer {
     },
 
     resolveSymbol: async (request: gc.ResolveSymbolRequest, context: rpc.ServerCallContext): Promise<gc.ResolveSymbolResponse> => {
-      console.log("RESOLVE SYMBOL REQUEST");
-
       context.sendResponseHeaders({
         'status': 'processing...'
       });
@@ -476,7 +461,6 @@ export class GooseCodeServer {
   public stop() {
     // Close all client connections
     for (const [clientId, connection] of this.clientConnections) {
-      console.log(`Closing connection for client ${clientId}`);
       connection.stream.end();
     }
     this.clientConnections.clear();
@@ -511,7 +495,6 @@ function authInterceptorFactory(password: string): grpc.ServerInterceptor {
   return (methodDescriptor: grpc.ServerMethodDefinition<any, any>, call: grpc.ServerInterceptingCallInterface) => {
     const listener = (new grpc.ServerListenerBuilder())
       .withOnReceiveMetadata((metadata, next) => {
-        console.log("Method: ", methodDescriptor.path);
         if (validateAuthorizationMetadata(metadata, password)) {
           next(metadata);
         } else {

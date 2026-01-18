@@ -76,7 +76,6 @@ async function startBonjourService(
 
   // Make sure the advertisement is up before you rely on it
   bonjourService.on("up", () => {
-    console.log("mDNS service announced");
     connectionProvider?.refresh();
   });
 
@@ -85,7 +84,7 @@ async function startBonjourService(
   });
 
   bonjourService.on("down", () => {
-    console.log("mDNS service withdrawn");
+    // Service withdrawn
   });
 
   if (durationSeconds && durationSeconds > 0) {
@@ -94,7 +93,6 @@ async function startBonjourService(
     }
     bonjourTimeout = setTimeout(() => {
       stopBonjourService();
-      console.log(`mDNS service stopped after ${durationSeconds} seconds.`);
     }, durationSeconds * 1000);
   }
 }
@@ -361,7 +359,6 @@ function createTreeProviders(
     async (codeSource: CodeSource) => {
       try {
         const root = codeSource.resourceUri!.fsPath;
-        console.log(`Enabling goosecode: ${root}`);
         await loadWorkspaceConfiguration(root, true);
         const workspaces = await workspaceTracker!.refresh();
         gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
@@ -427,7 +424,6 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 
   workspaceTracker = new WorkspaceTracker((options) => {
-    console.log("Workspaces refreshed");
     if (options.refreshCodeSources) {
       codeSourcesProvider!.refresh();
     }
@@ -478,13 +474,6 @@ export async function activate(context: vscode.ExtensionContext) {
   // Detect workspace changes
   const workspaceChangeSubscription =
     vscode.workspace.onDidChangeWorkspaceFolders(async (event) => {
-      event.added.forEach((folder) => {
-        console.log(`Workspace folder added: ${folder.uri.fsPath}`);
-      });
-      event.removed.forEach((folder) => {
-        console.log(`Workspace folder removed: ${folder.uri.fsPath}`);
-      });
-
       const workspaces = await workspaceTracker!.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
     });

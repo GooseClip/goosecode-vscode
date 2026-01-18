@@ -2,7 +2,7 @@
   "name": "goosecode",
   "displayName": "GooseCode",
   "description": "Your codebase minimap and more.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "gooseclip",
   "engines": {
     "vscode": "^1.77.0"

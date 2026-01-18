@@ -87,7 +87,6 @@ async function loadAllWorkspaces(): Promise<ConfigWrapper> {
 }
 
 async function saveAllWorkspaces(config: ConfigWrapper): Promise<void> {
-  console.log(`SAVE WORKSPACES`);
   const p = getGlobalConfigPath();
   const content = stringify(config);
   fs.writeFileSync(p, content);
@@ -207,8 +206,6 @@ export async function loadGlobalConfigurations(
       .getConfiguration("goosecode")
       .get("connections.password") as string,
   };
-
-  console.log("GooseCode settings: ", settings);
 
   const { tlsOptions, created } = await createTLSOptions(context);
 

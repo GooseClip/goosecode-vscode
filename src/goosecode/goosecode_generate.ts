@@ -66,8 +66,7 @@ async function snippetGenerate(gooseCodeServer: GooseCodeServer, workspaceTracke
 
     const workspace = workspaceTracker.getLastActiveGooseCodeWorkspace();
     if (workspace === null) {
-        console.error("No active workspace found for snippet generate");
-        return;
+      return;
     }
 
     let range: vscode.Range;
@@ -118,7 +117,6 @@ async function snippetGenerate(gooseCodeServer: GooseCodeServer, workspaceTracke
 async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) : Promise<GenerateResult | undefined> {
     const workspace = workspaceTracker.getLastActiveGooseCodeWorkspace();
     if (workspace === null) {
-        console.error("No active workspace found");
         return;
     }
 
@@ -142,13 +140,8 @@ async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTrac
     const filteredDefinitions = getDefinitionsWithoutCurrentPosition(definitions, selection);
 
     if (filteredDefinitions.length > 0) {
-        if (filteredDefinitions.length > 1) {
-            console.warn("Multiple definitions found. Going to the first one");
-        }
-
         const msg = await createDefinitionGenerateMessage(workspaceTracker, fromMsg, filteredDefinitions);
         if (!msg) {
-            console.error("No definition message to push");
             return;
         }
 
@@ -168,7 +161,7 @@ async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTrac
             }
 
         } catch (e) {
-            console.error(e);
+            console.error("Failed to navigate to definition", e);
             return;
         }
 
@@ -202,7 +195,6 @@ export async function testDefinitionClicked(definitions: LocationOrLocationLink[
     for (const def of definitions) {
         if (def instanceof vscode.Location) {
             if (def.range.intersection(selection)) {
-                console.log("Assigning current definition [Location]", def);
                 return def;
             }
             continue;
@@ -210,7 +202,6 @@ export async function testDefinitionClicked(definitions: LocationOrLocationLink[
 
         const ll = def as vscode.LocationLink;
         if (ll.targetSelectionRange && ll.originSelectionRange?.intersection(ll.targetSelectionRange)) {
-            console.log("Assigning current definition [Location Link]", ll);
             return ll;
         }
     }
