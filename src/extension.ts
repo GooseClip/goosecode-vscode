@@ -11,7 +11,7 @@ import {
   loadWorkspaceConfiguration,
   removeWorkspaceConfiguration,
 } from "./config";
-import { gettingStarted, openSettingsPage } from "./getting-started";
+import { openSettingsPage } from "./getting-started";
 import { WorkspaceTracker } from "./workspace-tracker";
 import { registerGooseCodeCommands } from "./goosecode/goosecode";
 import { ConnectionProvider } from "./views/connection";
@@ -288,20 +288,11 @@ async function persistentCommands(
   sub = vscode.commands.registerCommand(
     "goosecode.openWalkthrough",
     async () => {
-      // Cursor doesn't support walkthroughs, fall back to external documentation
-      if (vscode.env.appName.toLowerCase().includes("cursor")) {
-        vscode.env.openExternal(
-          vscode.Uri.parse(
-            "https://gooseclip.gitbook.io/goosecode/application/ide-integration-alpha",
-          ),
-        );
-      } else {
-        vscode.commands.executeCommand(
-          "workbench.action.openWalkthrough",
-          "gooseclip.goosecode#goosecode",
-          false,
-        );
-      }
+      vscode.env.openExternal(
+        vscode.Uri.parse(
+          "https://gooseclip.gitbook.io/goosecode/application/ide-integration-alpha",
+        ),
+      );
     },
   );
   subscriptions.push(sub);
@@ -521,12 +512,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await updateLocalhostOnlyContext();
 
-  // Getting started commands
-  const gettingStartedCommandSubscriptions = gettingStarted(context, async () => {
-    const workspaces = await workspaceTracker!.refresh();
-    gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
-  });
-  context.subscriptions.push(...gettingStartedCommandSubscriptions);
 
   context.subscriptions.push({
     dispose: () => {
