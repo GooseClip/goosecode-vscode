@@ -416,8 +416,7 @@
             "title": "Download GooseCode",
             "description": "Download GooseCode from the [GooseCode App](https://goosecode.app) website. Available for Windows, Mac, and iPadOS.\n[I have GooseCode](command:getting-started-goosecode.downloadComplete)",
             "media": {
-              "image": "media/walkthrough_download_goosecode.png",
-              "altText": "Image of GooseCode"
+              "markdown": "media/walkthrough_download_goosecode.md"
             },
             "completionEvents": [
               "onCommand:getting-started-goosecode.downloadComplete"
@@ -618,7 +617,6 @@
     "express": "^4.18.2",
     "express-ws": "^5.0.2",
     "google-protobuf": "^3.21.2",
-    "monaco-editor": "^0.39.0",
     "node-forge": "^1.3.1",
     "smol-toml": "^1.3.0",
     "streamx": "^2.22.1",
