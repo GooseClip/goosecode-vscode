@@ -288,11 +288,20 @@ async function persistentCommands(
   sub = vscode.commands.registerCommand(
     "goosecode.openWalkthrough",
     async () => {
-      vscode.commands.executeCommand(
-        "workbench.action.openWalkthrough",
-        "gooseclip.goosecode#goosecode",
-        false,
-      );
+      // Cursor doesn't support walkthroughs, fall back to external documentation
+      if (vscode.env.appName.toLowerCase().includes("cursor")) {
+        vscode.env.openExternal(
+          vscode.Uri.parse(
+            "https://gooseclip.gitbook.io/goosecode/application/ide-integration-alpha",
+          ),
+        );
+      } else {
+        vscode.commands.executeCommand(
+          "workbench.action.openWalkthrough",
+          "gooseclip.goosecode#goosecode",
+          false,
+        );
+      }
     },
   );
   subscriptions.push(sub);
