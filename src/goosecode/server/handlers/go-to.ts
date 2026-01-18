@@ -12,7 +12,6 @@ async function handleGoToDefinition(
     goToDefinition: gc.GoToDefinitionRequest
   };
   const location = req.goToDefinition.location;
-  console.log("REQUEST", request)
   // Open IDE
   if (!(await goToDefinition(workspaceUri, location!, req.goToDefinition.select))) {
     throw new ApiError("Failed to go to definition", 500);

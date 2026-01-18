@@ -103,13 +103,11 @@ export class WorkspaceTracker {
     this.commitSubscriptions.length = 0;
 
 
-    console.log("!!!!!!!!!!!!!!!!Subscribing to commit changes!!!!!!!!!!!!")
     // Subscribe to commit changes
-    console.log("Workspaces", this.workspaces.length)
     for(var i = 0; i < this.workspaces.length; i++){
       const workspace = this.workspaces[i];
       if(!workspace){
-        console.log("Workspace doesn't exist")
+        console.warn("Workspace doesn't exist");
       }
       const subscription = await onDidChangeCommit(workspace.uri, this.handleCommitChange.bind(this));
       if (subscription) {
@@ -130,13 +128,10 @@ export class WorkspaceTracker {
     }
 
     const config = await updateWorkspaceConfiguration(workspace!.config!, workspace!.uri.fsPath, commit, branch);
-    console.log("-----------")
-    console.log(workspace)
-    console.log("-----------")
     if(workspace && workspace.config){
       workspace.config!.config = config.config;
     }else{
-      console.log("Config doesn't exist")
+      console.warn("Config doesn't exist");
     }
     this.onRefreshed({ refreshCodeSources: true });
   }

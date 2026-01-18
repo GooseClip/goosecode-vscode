@@ -312,7 +312,7 @@ export class GooseCodeServer {
 
         await handleGoToDefinition(request, workspace!.uri!);
       } catch (e) {
-        console.error(e)
+        console.error(e);
       }
 
 
@@ -413,7 +413,7 @@ export class GooseCodeServer {
       return gc.LintResponse.create({
       });
     },
-  }
+  };
 
 
   public async start() {

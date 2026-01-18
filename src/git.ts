@@ -19,7 +19,7 @@ export interface GitInfo {
 
 // Helper function to parse GitHub repository name from URL
 function parseRepoFullName(url: string): string | null {
-    if (!url) return null;
+    if (!url) {return null;}
     // Matches HTTPS and SSH URLs
     // Example HTTPS: https://github.com/owner/repo.git
     // Example SSH:   git@github.com:owner/repo.git

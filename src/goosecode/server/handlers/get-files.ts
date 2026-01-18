@@ -13,8 +13,6 @@ async function handleGetFilesRequest(
 ): Promise<gc.GetFilesResponse> {
   const fileContext: gc.FileContext[] = [];
 
-  console.log(`WORKSPACE ${workspaceUri}`)
-  console.log(`REQUEST ${request.filePaths}`)
   for (var v of request.filePaths) {
     // Use raw binary file reading
     const rawResults = await getFileContentsRaw(
@@ -35,7 +33,7 @@ async function handleGetFilesRequest(
     try {
       head = await getFileContentsAtHead(vscode.Uri.file(path.join(workspaceUri.fsPath, v)));
     } catch (e) {
-      console.error("Failed to get head content")
+      console.error("Failed to get head content");
     }
 
     fileContext.push(gc.FileContext.create({

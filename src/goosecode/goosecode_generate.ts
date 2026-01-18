@@ -53,10 +53,10 @@ export async function handleGenerateCommand(gooseCodeServer: GooseCodeServer, wo
     
     // If the selection is not empty we want a snippet generate command
     if (!selection.isEmpty) {
-        return snippetGenerate(gooseCodeServer, workspaceTracker)
+        return snippetGenerate(gooseCodeServer, workspaceTracker);
     }
     
-    return await connectedGenerate(gooseCodeServer, workspaceTracker)
+    return await connectedGenerate(gooseCodeServer, workspaceTracker);
 }
 
 // snippetGenerate will dump the selection using the current generation strategy (default swimlane)
@@ -109,7 +109,7 @@ async function snippetGenerate(gooseCodeServer: GooseCodeServer, workspaceTracke
                 }),
             },
         }),
-    )
+    );
 
     return GenerateResult.SNIPPET;
 }

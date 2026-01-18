@@ -74,20 +74,20 @@ function getGlobalConfigPath(): string {
 async function loadAllWorkspaces(): Promise<ConfigWrapper> {
   const p = getGlobalConfigPath();
   if (!fs.existsSync(p)) {
-    console.warn("config file doesn't exist: $p")
+    console.warn("config file doesn't exist: $p");
     return { GooseCode: {} };
   }
   const content = fs.readFileSync(p, "utf-8");
   const parsed = parse(content) as any;
   if (!parsed.GooseCode) {
-    console.warn("failed to parse config")
+    console.warn("failed to parse config");
     return { GooseCode: {} };
   }
   return parsed as ConfigWrapper;
 }
 
 async function saveAllWorkspaces(config: ConfigWrapper): Promise<void> {
-  console.log(`SAVE WORKSPACES`)
+  console.log(`SAVE WORKSPACES`);
   const p = getGlobalConfigPath();
   const content = stringify(config);
   fs.writeFileSync(p, content);
