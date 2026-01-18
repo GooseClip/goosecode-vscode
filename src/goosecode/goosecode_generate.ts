@@ -18,6 +18,29 @@ import { GooseCodeServer } from "./server/server";
  * 3. Snippet (selection length > 0)
  */
 
+type NoReferencesFallback = 'nothing' | 'snippet';
+
+async function showNoReferencesQuickPick(): Promise<NoReferencesFallback> {
+    const items: Array<vscode.QuickPickItem & { action: NoReferencesFallback }> = [
+        {
+            label: "$(circle-slash) Do nothing",
+            description: "Cancel the generate command",
+            action: 'nothing',
+        },
+        {
+            label: "$(code) Generate as snippet",
+            description: "Generate the current word/position as a snippet",
+            action: 'snippet',
+        },
+    ];
+
+    const selection = await vscode.window.showQuickPick(items, {
+        placeHolder: "No definitions or references found. What would you like to do?",
+    });
+
+    return selection?.action ?? 'nothing';
+}
+
 export enum GenerateResult {
     SNIPPET,
     DEFINITION,
@@ -154,14 +177,20 @@ async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTrac
 
     const clickedDefinitionRef = await testDefinitionClicked(definitions, selection);
     if (clickedDefinitionRef) {
-        const msg = await createReferencesGenerateMessage(workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
+        const msg = await createReferencesGenerateMessage(gooseCodeServer, workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
         if (!msg) {
-            console.error("No referencesmessage to push");
+            // User cancelled or chose "do nothing"
             return;
         }
 
         gooseCodeServer.push(msg);
         return GenerateResult.REFERENCE;
+    }
+
+    // No definitions or references found - offer fallback options
+    const fallbackChoice = await showNoReferencesQuickPick();
+    if (fallbackChoice === 'snippet') {
+        return snippetGenerate(gooseCodeServer, workspaceTracker);
     }
 
     return;
@@ -247,7 +276,9 @@ export async function createDefinitionGenerateMessage(
 }
 
 
-export async function createReferencesGenerateMessage(workspaceTracker: WorkspaceTracker,
+export async function createReferencesGenerateMessage(
+    gooseCodeServer: GooseCodeServer,
+    workspaceTracker: WorkspaceTracker,
     selection: vscode.Selection,
     fromMsg: gc.LocationWithContext,
     clickedDefinitionRef: LocationOrLocationLink
@@ -261,7 +292,16 @@ export async function createReferencesGenerateMessage(workspaceTracker: Workspac
         return true;
     });
 
-    if (!refs.length) return;
+    if (!refs.length) {
+        // No references found - offer fallback options
+        const fallbackChoice = await showNoReferencesQuickPick();
+        if (fallbackChoice === 'snippet') {
+            const snippetResult = await snippetGenerate(gooseCodeServer, workspaceTracker);
+            // Return a special marker to indicate we handled it via snippet
+            return undefined;
+        }
+        return undefined;
+    }
 
 
     const selectedRef = await new Promise<vscode.Location | undefined>(resolve => {

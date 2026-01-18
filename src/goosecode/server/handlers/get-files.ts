@@ -1,4 +1,4 @@
-import { getFileContents } from "../../commands/commands";
+import { getFileContentsRaw } from "../../commands/commands";
 
 import * as vscode from "vscode";
 import * as path from "path";
@@ -16,29 +16,40 @@ async function handleGetFilesRequest(
   console.log(`WORKSPACE ${workspaceUri}`)
   console.log(`REQUEST ${request.filePaths}`)
   for (var v of request.filePaths) {
-    const current = await getFileContents(
+    // Use raw binary file reading
+    const rawResults = await getFileContentsRaw(
       workspaceUri,
       [v],
     );
     
-    console.log(`CURRENT:${current}`);
+    const rawResult = rawResults[0];
+    if (!rawResult) {
+      console.error(`Failed to read file: ${v}`);
+      continue;
+    }
+
+    const { content, isBinary } = rawResult;
+    console.log(`FILE: ${v}, isBinary: ${isBinary}, size: ${content.length}`);
 
     var head = null;
     try {
       head = await getFileContentsAtHead(vscode.Uri.file(path.join(workspaceUri.fsPath, v)));
     } catch (e) {
-      console.error("Failed to get patch")
+      console.error("Failed to get head content")
     }
 
     fileContext.push(gc.FileContext.create({
       filePath: v,
-      headContent:  head ?? "",
-      currentContent: current[0],
+      headContent: head ?? "",
+      // Keep currentContent for backward compatibility with text files
+      currentContent: isBinary ? "" : content.toString("utf-8"),
+      // New fields for binary support
+      rawContent: new Uint8Array(content),
+      isBinary: isBinary,
     }));
   }
 
   const response = gc.GetFilesResponse.create({
-    // fileContents: [],
     fileContext: fileContext,
   });
 

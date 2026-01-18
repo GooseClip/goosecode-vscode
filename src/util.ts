@@ -1,8 +1,6 @@
 import * as vscode from "vscode";
-import { RawData } from "ws";
 
-
-import * as gc from "./gen/ide"
+import * as gc from "./gen/ide";
 
 function isEntireWord(selection: vscode.Selection): boolean {
   const document = vscode.window.activeTextEditor?.document;
@@ -15,32 +13,6 @@ function isEntireWord(selection: vscode.Selection): boolean {
 
   return regex.test(selectedText);
 }
-
-// function convertLocations(workspaceUri: Uri, vsLocations: vscode.Location[]): Location[] {
-//   const pblocs: Location[] = [];
-//   for (const l of vsLocations) {
-//     const startPos = new Position({
-//       line: l.range.start.line,
-//       character: l.range.start.character,
-//     });
-//
-//     const endPos = new Position({
-//       line: l.range.end.line,
-//       character: l.range.end.character,
-//     });
-//
-//     const loc = new Location({
-//       path: l.uri.path.replace(workspaceUri.fsPath, ""),
-//       range: new Range({
-//         start: startPos,
-//         end: endPos,
-//       }),
-//     });
-//
-//     pblocs.push(loc);
-//   }
-//   return pblocs;
-// }
 
 function convertSymbolKind(symbolKind: vscode.SymbolKind): number {
   switch (symbolKind) {

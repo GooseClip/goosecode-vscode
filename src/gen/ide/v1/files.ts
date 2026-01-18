@@ -21,11 +21,19 @@ export interface FileContext {
     /**
      * @generated from protobuf field: string head_content = 2
      */
-    headContent: string; // The content of the file at the commit head
+    headContent: string; // The content of the file at the commit head (deprecated, use raw_content)
     /**
      * @generated from protobuf field: string current_content = 3
      */
-    currentContent: string; // The current state of the file - might have uncommited content
+    currentContent: string; // The current state of the file - might have uncommited content (deprecated, use raw_content)
+    /**
+     * @generated from protobuf field: bytes raw_content = 4
+     */
+    rawContent: Uint8Array; // Raw file bytes (for all file types including binary)
+    /**
+     * @generated from protobuf field: bool is_binary = 5
+     */
+    isBinary: boolean; // Whether file is binary (cannot be decoded as UTF-8)
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class FileContext$Type extends MessageType<FileContext> {
@@ -33,7 +41,9 @@ class FileContext$Type extends MessageType<FileContext> {
         super("gooseclip.goosecode.ide.v1.FileContext", [
             { no: 1, name: "file_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "head_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "current_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "current_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "raw_content", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 5, name: "is_binary", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<FileContext>): FileContext {
@@ -41,6 +51,8 @@ class FileContext$Type extends MessageType<FileContext> {
         message.filePath = "";
         message.headContent = "";
         message.currentContent = "";
+        message.rawContent = new Uint8Array(0);
+        message.isBinary = false;
         if (value !== undefined)
             reflectionMergePartial<FileContext>(this, message, value);
         return message;
@@ -58,6 +70,12 @@ class FileContext$Type extends MessageType<FileContext> {
                     break;
                 case /* string current_content */ 3:
                     message.currentContent = reader.string();
+                    break;
+                case /* bytes raw_content */ 4:
+                    message.rawContent = reader.bytes();
+                    break;
+                case /* bool is_binary */ 5:
+                    message.isBinary = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -80,6 +98,12 @@ class FileContext$Type extends MessageType<FileContext> {
         /* string current_content = 3; */
         if (message.currentContent !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.currentContent);
+        /* bytes raw_content = 4; */
+        if (message.rawContent.length)
+            writer.tag(4, WireType.LengthDelimited).bytes(message.rawContent);
+        /* bool is_binary = 5; */
+        if (message.isBinary !== false)
+            writer.tag(5, WireType.Varint).bool(message.isBinary);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

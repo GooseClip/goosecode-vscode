@@ -8,6 +8,8 @@ import { LintResponse } from "./api";
 import { LintRequest } from "./api";
 import { VersionControlDetailsResponse } from "./api";
 import { VersionControlDetailsRequest } from "./api";
+import { ResolveSymbolResponse } from "./api";
+import { ResolveSymbolRequest } from "./api";
 import { RefactorResponse } from "./api";
 import { RefactorRequest } from "./api";
 import { ProbeResponse } from "./api";
@@ -55,6 +57,10 @@ export interface IIDEService<T = ServerCallContext> {
      * @generated from protobuf rpc: Refactor
      */
     refactor(request: RefactorRequest, context: T): Promise<RefactorResponse>;
+    /**
+     * @generated from protobuf rpc: ResolveSymbol
+     */
+    resolveSymbol(request: ResolveSymbolRequest, context: T): Promise<ResolveSymbolResponse>;
     /**
      * @generated from protobuf rpc: VersionControlDetails
      */

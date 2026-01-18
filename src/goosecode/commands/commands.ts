@@ -40,7 +40,57 @@ const defaultExclusions = [
   "**/.*",
 ];
 
-// Returns the content of a file by filepath
+/**
+ * Check if a buffer contains valid UTF-8 text.
+ * Returns false if the buffer contains null bytes or invalid UTF-8 sequences.
+ */
+function isUtf8Text(buffer: Buffer): boolean {
+  // Check for null bytes (common in binary files)
+  if (buffer.includes(0)) {
+    return false;
+  }
+  
+  // Try to decode as UTF-8 and check for replacement characters
+  try {
+    const text = buffer.toString("utf-8");
+    // Check if decoding produced replacement characters (indicates invalid UTF-8)
+    return !text.includes("\uFFFD");
+  } catch {
+    return false;
+  }
+}
+
+export interface RawFileContent {
+  content: Buffer;
+  isBinary: boolean;
+}
+
+/**
+ * Returns the raw binary content of files by filepath.
+ * Also detects whether each file is binary or text.
+ */
+export async function getFileContentsRaw(
+  workspaceUri: Uri,
+  filePaths: string[],
+): Promise<RawFileContent[]> {
+  try {
+    const results: RawFileContent[] = [];
+
+    for (const f of filePaths) {
+      const absolutePath = path.join(workspaceUri.fsPath, f);
+      const buffer = await fs.promises.readFile(absolutePath); // No encoding = Buffer
+      const isBinary = !isUtf8Text(buffer);
+      results.push({ content: buffer, isBinary });
+    }
+
+    return results;
+  } catch (error) {
+    console.error(`Error reading file content: ${error}`);
+    return [];
+  }
+}
+
+// Returns the content of a file by filepath (legacy string-based version)
 export async function getFileContents(
   workspaceUri: Uri,
   filePaths: string[],

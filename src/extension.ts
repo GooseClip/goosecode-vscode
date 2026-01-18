@@ -20,12 +20,12 @@ import * as gc from "./gen/ide";
 
 import { v4 as uuidv4 } from "uuid";
 
-var workspaceTracker: WorkspaceTracker | null = null;
-var gooseCodeServer: GooseCodeServer | null = null;
-var goosecodeSubscriptions: Array<vscode.Disposable> = [];
-var codeSourcesProvider: CodeSourcesProvider | null = null;
-var connectionProvider: ConnectionProvider | null = null;
-var activeSessionProvider: ActiveSessionProvider | null = null;
+let workspaceTracker: WorkspaceTracker | null = null;
+let gooseCodeServer: GooseCodeServer | null = null;
+let goosecodeSubscriptions: Array<vscode.Disposable> = [];
+let codeSourcesProvider: CodeSourcesProvider | null = null;
+let connectionProvider: ConnectionProvider | null = null;
+let activeSessionProvider: ActiveSessionProvider | null = null;
 
 
 // package.json (dependencies)

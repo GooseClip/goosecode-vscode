@@ -11,6 +11,7 @@ import * as vscode from "vscode";
 import * as stream from "streamx";
 import { handleListFilesRequest } from './handlers/list-files';
 import { handleGoToDefinition } from './handlers/go-to';
+import { handleResolveSymbol } from './handlers/resolve-symbol';
 import * as path from 'path';
 
 interface ClientConnection {
@@ -357,6 +358,32 @@ export class GooseCodeServer {
       // wait for the requested amount of milliseconds
       return gc.RefactorResponse.create({
       });
+    },
+
+    resolveSymbol: async (request: gc.ResolveSymbolRequest, context: rpc.ServerCallContext): Promise<gc.ResolveSymbolResponse> => {
+      console.log("RESOLVE SYMBOL REQUEST");
+
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
+
+      context.trailers = {
+        'status': '...done'
+      };
+
+      try {
+        const workspace = await this.workspaceTracker.getWorkspaceFromContext(
+          request.context!,
+        );
+        if (workspace === null) {
+          throw new ApiError(`Workspace not found: ${request.context!.versionControlInfo?.repositoryFullname}`, 422);
+        }
+
+        return await handleResolveSymbol(request, workspace!.uri!);
+      } catch (e) {
+        console.error(e);
+        return gc.ResolveSymbolResponse.create({ found: false });
+      }
     },
 
     versionControlDetails: async (request: gc.VersionControlDetailsRequest, context: rpc.ServerCallContext): Promise<gc.VersionControlDetailsResponse> => {

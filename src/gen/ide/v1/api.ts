@@ -13,6 +13,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { LocationWithContext } from "./vscode";
 import { DocumentSymbol } from "./vscode";
 import { Location } from "./vscode";
 import { FileContext } from "./files";
@@ -343,6 +344,65 @@ export interface ProbeResponse {
     } | {
         oneofKind: undefined;
     };
+}
+// //////////////////////////////////////////////////////////////////////////////////////////
+// Symbol Resolution
+// //////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.ResolveSymbolRequest
+ */
+export interface ResolveSymbolRequest {
+    /**
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.Context context = 1
+     */
+    context?: Context;
+    /**
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.Location location = 2
+     */
+    location?: Location;
+}
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.ResolveSymbolResponse
+ */
+export interface ResolveSymbolResponse {
+    /**
+     * The definition location of the symbol
+     *
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.LocationWithContext definition = 1
+     */
+    definition?: LocationWithContext;
+    /**
+     * File contexts for both the source and definition files
+     *
+     * @generated from protobuf field: repeated gooseclip.goosecode.ide.v1.FileContext file_contexts = 2
+     */
+    fileContexts: FileContext[];
+    /**
+     * Whether a definition was found
+     *
+     * @generated from protobuf field: bool found = 3
+     */
+    found: boolean;
+    /**
+     * Whether the clicked position is on a definition (vs a usage/reference)
+     * If true, references will be populated instead of definition
+     *
+     * @generated from protobuf field: bool is_on_definition = 4
+     */
+    isOnDefinition: boolean;
+    /**
+     * References to the symbol (populated when is_on_definition is true)
+     *
+     * @generated from protobuf field: repeated gooseclip.goosecode.ide.v1.LocationWithContext references = 5
+     */
+    references: LocationWithContext[];
+    /**
+     * The word range and context at the clicked position (for the "from" location)
+     *
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.LocationWithContext from_context = 6
+     */
+    fromContext?: LocationWithContext;
 }
 // //////////////////////////////////////////////////////////////////////////////////////////
 // Refactoring
@@ -1629,6 +1689,144 @@ class ProbeResponse$Type extends MessageType<ProbeResponse> {
  */
 export const ProbeResponse = new ProbeResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ResolveSymbolRequest$Type extends MessageType<ResolveSymbolRequest> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.ResolveSymbolRequest", [
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "location", kind: "message", T: () => Location, options: { "buf.validate.field": { required: true } } }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveSymbolRequest>): ResolveSymbolRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ResolveSymbolRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveSymbolRequest): ResolveSymbolRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* gooseclip.goosecode.ide.v1.Context context */ 1:
+                    message.context = Context.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* gooseclip.goosecode.ide.v1.Location location */ 2:
+                    message.location = Location.internalBinaryRead(reader, reader.uint32(), options, message.location);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveSymbolRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* gooseclip.goosecode.ide.v1.Context context = 1; */
+        if (message.context)
+            Context.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* gooseclip.goosecode.ide.v1.Location location = 2; */
+        if (message.location)
+            Location.internalBinaryWrite(message.location, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.ResolveSymbolRequest
+ */
+export const ResolveSymbolRequest = new ResolveSymbolRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveSymbolResponse$Type extends MessageType<ResolveSymbolResponse> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.ResolveSymbolResponse", [
+            { no: 1, name: "definition", kind: "message", T: () => LocationWithContext },
+            { no: 2, name: "file_contexts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FileContext },
+            { no: 3, name: "found", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "is_on_definition", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "references", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocationWithContext },
+            { no: 6, name: "from_context", kind: "message", T: () => LocationWithContext }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveSymbolResponse>): ResolveSymbolResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.fileContexts = [];
+        message.found = false;
+        message.isOnDefinition = false;
+        message.references = [];
+        if (value !== undefined)
+            reflectionMergePartial<ResolveSymbolResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveSymbolResponse): ResolveSymbolResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* gooseclip.goosecode.ide.v1.LocationWithContext definition */ 1:
+                    message.definition = LocationWithContext.internalBinaryRead(reader, reader.uint32(), options, message.definition);
+                    break;
+                case /* repeated gooseclip.goosecode.ide.v1.FileContext file_contexts */ 2:
+                    message.fileContexts.push(FileContext.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* bool found */ 3:
+                    message.found = reader.bool();
+                    break;
+                case /* bool is_on_definition */ 4:
+                    message.isOnDefinition = reader.bool();
+                    break;
+                case /* repeated gooseclip.goosecode.ide.v1.LocationWithContext references */ 5:
+                    message.references.push(LocationWithContext.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* gooseclip.goosecode.ide.v1.LocationWithContext from_context */ 6:
+                    message.fromContext = LocationWithContext.internalBinaryRead(reader, reader.uint32(), options, message.fromContext);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveSymbolResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* gooseclip.goosecode.ide.v1.LocationWithContext definition = 1; */
+        if (message.definition)
+            LocationWithContext.internalBinaryWrite(message.definition, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated gooseclip.goosecode.ide.v1.FileContext file_contexts = 2; */
+        for (let i = 0; i < message.fileContexts.length; i++)
+            FileContext.internalBinaryWrite(message.fileContexts[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* bool found = 3; */
+        if (message.found !== false)
+            writer.tag(3, WireType.Varint).bool(message.found);
+        /* bool is_on_definition = 4; */
+        if (message.isOnDefinition !== false)
+            writer.tag(4, WireType.Varint).bool(message.isOnDefinition);
+        /* repeated gooseclip.goosecode.ide.v1.LocationWithContext references = 5; */
+        for (let i = 0; i < message.references.length; i++)
+            LocationWithContext.internalBinaryWrite(message.references[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* gooseclip.goosecode.ide.v1.LocationWithContext from_context = 6; */
+        if (message.fromContext)
+            LocationWithContext.internalBinaryWrite(message.fromContext, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.ResolveSymbolResponse
+ */
+export const ResolveSymbolResponse = new ResolveSymbolResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class Rename$Type extends MessageType<Rename> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.Rename", [
@@ -1989,6 +2187,7 @@ export const IDEService = new ServiceType("gooseclip.goosecode.ide.v1.IDEService
     { name: "Search", options: {}, I: SearchRequest, O: SearchResponse },
     { name: "Probe", options: {}, I: ProbeRequest, O: ProbeResponse },
     { name: "Refactor", options: {}, I: RefactorRequest, O: RefactorResponse },
+    { name: "ResolveSymbol", options: {}, I: ResolveSymbolRequest, O: ResolveSymbolResponse },
     { name: "VersionControlDetails", options: {}, I: VersionControlDetailsRequest, O: VersionControlDetailsResponse },
     { name: "Lint", options: {}, I: LintRequest, O: LintResponse },
     { name: "Push", serverStreaming: true, options: {}, I: PushRequest, O: PushResponse }
