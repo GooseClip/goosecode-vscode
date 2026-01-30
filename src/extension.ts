@@ -17,6 +17,7 @@ import { registerGooseCodeCommands } from "./goosecode/goosecode";
 import { ConnectionProvider } from "./views/connection";
 import { ActiveSessionProvider } from "./views/active-session";
 import * as gc from "./gen/ide";
+import { findAvailablePort } from "./util";
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -26,6 +27,21 @@ let goosecodeSubscriptions: Array<vscode.Disposable> = [];
 let codeSourcesProvider: CodeSourcesProvider | null = null;
 let connectionProvider: ConnectionProvider | null = null;
 let activeSessionProvider: ActiveSessionProvider | null = null;
+let extensionContext: vscode.ExtensionContext | null = null;
+
+// Server error state
+let serverError: { code: string; message: string; port: number } | null = null;
+
+export function getServerError(): { code: string; message: string; port: number } | null {
+  return serverError;
+}
+
+export function getInstanceId(): string {
+  if (!extensionContext) {
+    return "default";
+  }
+  return String(extensionContext.globalState.get("instanceId") ?? "default");
+}
 
 
 // package.json (dependencies)
@@ -133,7 +149,11 @@ export function stopBonjourService(): Promise<void> {
 async function startServer(
   context: vscode.ExtensionContext,
   config: GooseCodeExtensionConfig,
-) {
+): Promise<{ success: boolean; error?: { code: string; message: string } }> {
+  // Clear any previous error state
+  serverError = null;
+  vscode.commands.executeCommand("setContext", "goosecode.portConflict", false);
+
   gooseCodeServer = new GooseCodeServer(
     workspaceTracker!,
     config,
@@ -162,7 +182,50 @@ async function startServer(
       connectionProvider?.refresh();
     },
   );
-  await gooseCodeServer.start();
+  const result = await gooseCodeServer.start();
+
+  if (!result.success) {
+    // Check if EADDRINUSE - either as error code or in the message
+    const isPortInUse = result.error?.code === 'EADDRINUSE' || 
+      result.error?.message?.includes('EADDRINUSE');
+    
+    // Store the error state with port info
+    serverError = {
+      code: isPortInUse ? 'EADDRINUSE' : (result.error?.code ?? 'UNKNOWN'),
+      message: result.error?.message ?? 'Unknown error',
+      port: config.settings.port,
+    };
+
+    // Clean up the server reference since it failed
+    gooseCodeServer = null;
+    
+    if (isPortInUse) {
+      vscode.commands.executeCommand("setContext", "goosecode.portConflict", true);
+      
+      // Show user-friendly error with action to change port
+      vscode.window.showErrorMessage(
+        `GooseCode: Port ${config.settings.port} is already in use - please change the port in settings.`,
+        "Change Port for Workspace",
+        "Open Settings"
+      ).then((selection) => {
+        if (selection === "Change Port for Workspace") {
+          vscode.commands.executeCommand("goosecode.changePortForWorkspace");
+        } else if (selection === "Open Settings") {
+          vscode.commands.executeCommand("goosecode.openSettings");
+        }
+      });
+    } else {
+      // For other errors, show a simplified message
+      vscode.window.showErrorMessage(
+        `GooseCode server failed to start. Check the output panel for details.`
+      );
+      console.error("GooseCode server error:", result.error?.message);
+    }
+
+    connectionProvider?.refresh();
+    vscode.commands.executeCommand("setContext", "goosecode.started", false);
+    return result;
+  }
 
   // Register real commands
   goosecodeSubscriptions.forEach((s) => s.dispose());
@@ -173,11 +236,16 @@ async function startServer(
   );
   connectionProvider?.refresh();
   vscode.commands.executeCommand("setContext", "goosecode.started", true);
+  return result;
 }
 
 function stopServer() {
   gooseCodeServer?.stop();
   gooseCodeServer = null;
+
+  // Clear error state
+  serverError = null;
+  vscode.commands.executeCommand("setContext", "goosecode.portConflict", false);
 
   // Register dummy commands
   goosecodeSubscriptions.forEach((s) => s.dispose());
@@ -189,9 +257,17 @@ function stopServer() {
 }
 
 async function restartServer(context: vscode.ExtensionContext) {
+  // Check if Bonjour was running before restart
+  const wasBonjour = isBonjourRunning();
+  
   stopServer();
   const config = await loadGlobalConfigurations(context);
-  await startServer(context, config);
+  const result = await startServer(context, config);
+  
+  // Re-advertise with new port if Bonjour was active and server started successfully
+  if (result.success && wasBonjour) {
+    await startBonjourService(context);
+  }
 }
 
 async function persistentCommands(
@@ -300,6 +376,52 @@ async function persistentCommands(
       workspaceTracker!.onActiveFileChanged(editor.document.uri);
     }
   });
+  subscriptions.push(sub);
+
+  // Command to change port for this workspace
+  sub = vscode.commands.registerCommand(
+    "goosecode.changePortForWorkspace",
+    async () => {
+      const currentPort = vscode.workspace
+        .getConfiguration("goosecode")
+        .get("connections.port") as number;
+      
+      // Find a suggested available port
+      const suggestedPort = await findAvailablePort(currentPort + 1);
+      
+      const input = await vscode.window.showInputBox({
+        prompt: "Enter a new port number for this workspace",
+        value: suggestedPort?.toString() ?? (currentPort + 1).toString(),
+        validateInput: (value) => {
+          const port = parseInt(value, 10);
+          if (isNaN(port) || port < 1024 || port > 65535) {
+            return "Please enter a valid port number (1024-65535)";
+          }
+          return null;
+        },
+      });
+
+      if (input) {
+        const newPort = parseInt(input, 10);
+        
+        // Save to workspace settings if a workspace is open, otherwise use global
+        const hasWorkspace = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0;
+        const target = hasWorkspace ? ConfigurationTarget.Workspace : ConfigurationTarget.Global;
+        
+        await vscode.workspace
+          .getConfiguration("goosecode")
+          .update("connections.port", newPort, target);
+        
+        // Restart the server with the new port
+        await restartServer(context);
+        
+        const scopeMsg = hasWorkspace ? "for this workspace" : "globally";
+        vscode.window.showInformationMessage(
+          `GooseCode port changed to ${newPort} ${scopeMsg}.`,
+        );
+      }
+    },
+  );
   subscriptions.push(sub);
 
   return subscriptions;
@@ -419,6 +541,9 @@ function createTreeProviders(
 }
 
 export async function activate(context: vscode.ExtensionContext) {
+  // Store context reference for getInstanceId
+  extensionContext = context;
+
   if (!context.globalState.get("instanceId")) {
     context.globalState.update("instanceId", uuidv4());
   }

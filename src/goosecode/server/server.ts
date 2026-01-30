@@ -12,7 +12,9 @@ import * as stream from "streamx";
 import { handleListFilesRequest } from './handlers/list-files';
 import { handleGoToDefinition } from './handlers/go-to';
 import { handleResolveSymbol } from './handlers/resolve-symbol';
+import { handleSearchRequest } from './handlers/search';
 import * as path from 'path';
+import { toUnixPath } from '../../util';
 
 interface ClientConnection {
   stream: stream.Duplex;
@@ -76,7 +78,7 @@ export class GooseCodeServer {
 
       // Inject the workspace root so GooseCode can automatically associate the connection
       message.context = gc.PushContext.create({
-        workspaceRoot: activeWorkspace.uri.fsPath,
+        workspaceRoot: toUnixPath(activeWorkspace.uri.fsPath),
         versionControl: gc.VersionControlInfo.create({
           repositoryFullname: gitInfo?.repositoryFullName ?? "",
           branch: gitInfo?.branch ?? "",
@@ -104,7 +106,7 @@ export class GooseCodeServer {
     if (workspaces) {
       for (const workspace of workspaces) {
         toSend.push(gc.WorkspaceDetails.create({
-          workspaceRoot: workspace.uri.fsPath,
+          workspaceRoot: toUnixPath(workspace.uri.fsPath),
           versionControlInfo: gc.VersionControlInfo.create({
             repositoryFullname: workspace.config!.config.repositoryFullName,
             branch: workspace.config!.config.branch,
@@ -316,8 +318,25 @@ export class GooseCodeServer {
       context.trailers = {
         'status': '...done'
       };
-      return gc.SearchResponse.create({
-      });
+
+      try {
+        if (!request.context) {
+          throw new ApiError("Request context is required", 400);
+        }
+
+        const workspace = await this.workspaceTracker.getWorkspaceFromContext(
+          request.context,
+        );
+
+        if (workspace === null) {
+          throw new ApiError(`Workspace not found: ${request.context.versionControlInfo?.repositoryFullname}`, 422);
+        }
+
+        return await handleSearchRequest(request, workspace.uri!);
+      } catch (e) {
+        console.error("Search error:", e);
+        return gc.SearchResponse.create({});
+      }
     },
 
     probe: async (request: gc.ProbeRequest, context: rpc.ServerCallContext): Promise<gc.ProbeResponse> => {
@@ -401,7 +420,7 @@ export class GooseCodeServer {
   };
 
 
-  public async start() {
+  public async start(): Promise<{ success: boolean; error?: { code: string; message: string } }> {
     this.extensionConfig.tlsOptions;
 
     const port = this.extensionConfig.settings.port;
@@ -413,7 +432,7 @@ export class GooseCodeServer {
     const server = this.getServer();
 
     if (!this.extensionConfig.tlsOptions.key || !this.extensionConfig.tlsOptions.cert) {
-      throw new Error('TLS key or certificate is missing');
+      return { success: false, error: { code: 'TLS_ERROR', message: 'TLS key or certificate is missing' } };
     }
 
     // Convert key and cert to Buffer if they're strings
@@ -423,7 +442,7 @@ export class GooseCodeServer {
     } else if (typeof this.extensionConfig.tlsOptions.key === 'string') {
       privateKey = Buffer.from(this.extensionConfig.tlsOptions.key, 'utf-8');
     } else {
-      throw new Error('Invalid TLS key format');
+      return { success: false, error: { code: 'TLS_ERROR', message: 'Invalid TLS key format' } };
     }
 
     let certChain: Buffer;
@@ -432,30 +451,34 @@ export class GooseCodeServer {
     } else if (typeof this.extensionConfig.tlsOptions.cert === 'string') {
       certChain = Buffer.from(this.extensionConfig.tlsOptions.cert, 'utf-8');
     } else {
-      throw new Error('Invalid TLS certificate format');
+      return { success: false, error: { code: 'TLS_ERROR', message: 'Invalid TLS certificate format' } };
     }
 
-    server.bindAsync(
-      host,
-      // grpc.ServerCredentials.createInsecure(),
-      grpc.ServerCredentials.createSsl(
-        null, // rootCerts - null since we're not validating client certs
-        [{
-          private_key: privateKey,
-          cert_chain: certChain
-        }],
-        false // checkClientCertificate - matches rejectUnauthorized setting
-      ),
-      (err: Error | null, port: number) => {
-        if (err) {
-          console.error(`Server error: ${err.message}`);
-        } else {
-          console.log(`Server bound on port: ${port}`);
-        }
-      }
+    const credentials = grpc.ServerCredentials.createSsl(
+      null, // rootCerts - null since we're not validating client certs
+      [{
+        private_key: privateKey,
+        cert_chain: certChain
+      }],
+      false // checkClientCertificate - matches rejectUnauthorized setting
     );
 
-    console.log("Server started: ", host);
+    return new Promise((resolve) => {
+      server.bindAsync(host, credentials, (err: Error | null, boundPort: number) => {
+        if (err) {
+          const errorCode = (err as NodeJS.ErrnoException).code ?? 'UNKNOWN';
+          console.error(`Server error: ${err.message} (${errorCode})`);
+          // Clean up the server on error
+          this.server?.forceShutdown();
+          this.server = null;
+          resolve({ success: false, error: { code: errorCode, message: err.message } });
+        } else {
+          console.log(`Server bound on port: ${boundPort}`);
+          console.log("Server started: ", host);
+          resolve({ success: true });
+        }
+      });
+    });
   }
 
   public stop() {

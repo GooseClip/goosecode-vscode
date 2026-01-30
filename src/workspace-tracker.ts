@@ -8,6 +8,7 @@ import {
   findWorkspace,
 } from "./config";
 import { onDidChangeCommit } from "./git";
+import { toUnixPath } from "./util";
 
 export class Workspace {
   constructor(
@@ -158,7 +159,7 @@ export class WorkspaceTracker {
   }
 
   public currentFilePath(): string {
-    return vscode.window.activeTextEditor!.document.uri.fsPath;
+    return toUnixPath(vscode.window.activeTextEditor!.document.uri.fsPath);
   }
 
   public currentRelativeFilePath(): string {
@@ -171,6 +172,6 @@ export class WorkspaceTracker {
   public relativePath(filePath: string, from?: string): string {
     const fromPath = from ?? this.getLastActiveGooseCodeWorkspace()!.uri.fsPath;
     const rel = path.relative(fromPath, filePath);
-    return rel;
+    return toUnixPath(rel);
   }
 }

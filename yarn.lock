@@ -1934,11 +1934,6 @@ mocha@^10.2.0:
     yargs-parser "20.2.4"
     yargs-unparser "2.0.0"
 
-monaco-editor@^0.39.0:
-  version "0.39.0"
-  resolved "https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.39.0.tgz"
-  integrity sha512-zhbZ2Nx93tLR8aJmL2zI1mhJpsl87HMebNBM6R8z4pLfs8pj604pIVIVwyF1TivcfNtIPpMXL+nb3DsBmE/x6Q==
-
 ms@2.0.0:
   version "2.0.0"
   resolved "https://registry.npmjs.org/ms/-/ms-2.0.0.tgz"

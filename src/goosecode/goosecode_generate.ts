@@ -5,7 +5,7 @@ import { getSelectedOneofValue, setOneofValue } from "@protobuf-ts/runtime";
 
 import { convertRange } from "../util";
 import { LocationOrLocationLink } from "../types";
-import { getDefinitions, getFileContents, getReferences, goToDefinition } from "./commands/commands";
+import { getDefinitions, getFileContents, getReferences, getImplementations, goToDefinition } from "./commands/commands";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { getFileContentsAtCommit as getFileContentsAtHead } from "../git";
 import { getFileContexts } from "./context";
@@ -15,7 +15,8 @@ import { GooseCodeServer } from "./server/server";
  * When using cmd+opt+g 3 possible outcomes exist
  * 1. Go to definition
  * 2. Go to reference
- * 3. Snippet (selection length > 0)
+ * 3. Go to implementation
+ * 4. Snippet (selection length > 0)
  */
 
 type NoReferencesFallback = 'nothing' | 'snippet';
@@ -45,6 +46,7 @@ export enum GenerateResult {
     SNIPPET,
     DEFINITION,
     REFERENCE,
+    IMPLEMENTATION,
 }
 
 export async function handleGenerateCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker): Promise<GenerateResult | undefined> {
@@ -125,7 +127,6 @@ async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTrac
     
     const workspaceUri = workspace.uri;
     let definitions = await getDefinitions();
-    // let references = await getReferences();
 
     const from = await fromRange(selection);
     const fromMsg = gc.LocationWithContext.create({
@@ -170,14 +171,14 @@ async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTrac
 
     const clickedDefinitionRef = await testDefinitionClicked(definitions, selection);
     if (clickedDefinitionRef) {
-        const msg = await createReferencesGenerateMessage(gooseCodeServer, workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
-        if (!msg) {
+        const result = await createReferencesOrImplementationsMessage(gooseCodeServer, workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
+        if (!result) {
             // User cancelled or chose "do nothing"
             return;
         }
 
-        gooseCodeServer.push(msg);
-        return GenerateResult.REFERENCE;
+        gooseCodeServer.push(result.msg);
+        return result.type;
     }
 
     // No definitions or references found - offer fallback options
@@ -266,14 +267,20 @@ export async function createDefinitionGenerateMessage(
     return await wrapGenerateDefinition(fileContexts, defMsg);
 }
 
+type SymbolType = 'reference' | 'implementation';
 
-export async function createReferencesGenerateMessage(
+interface QuickPickSymbolItem extends vscode.QuickPickItem {
+    location: vscode.Location;
+    symbolType: SymbolType;
+}
+
+export async function createReferencesOrImplementationsMessage(
     gooseCodeServer: GooseCodeServer,
     workspaceTracker: WorkspaceTracker,
     selection: vscode.Selection,
     fromMsg: gc.LocationWithContext,
     clickedDefinitionRef: LocationOrLocationLink
-): Promise<gc.PushResponse | undefined> {
+): Promise<{ msg: gc.PushResponse; type: GenerateResult } | undefined> {
 
     // Filter out references that are in the current selection
     let refs = (await getReferences()).filter((ref) => {
@@ -283,31 +290,44 @@ export async function createReferencesGenerateMessage(
         return true;
     });
 
-    if (!refs.length) {
-        // No references found - offer fallback options
+    // Get implementations and filter out the current position
+    let impls = (await getImplementations()).filter((impl) => {
+        if (impl instanceof vscode.Location) {
+            if (impl.range?.intersection(selection)) {
+                return false;
+            }
+            return true;
+        }
+        const ll = impl as vscode.LocationLink;
+        if (ll.targetSelectionRange?.intersection(selection)) {
+            return false;
+        }
+        return true;
+    });
+
+    if (!refs.length && !impls.length) {
+        // No references or implementations found - offer fallback options
         const fallbackChoice = await showNoReferencesQuickPick();
         if (fallbackChoice === 'snippet') {
-            const snippetResult = await snippetGenerate(gooseCodeServer, workspaceTracker);
-            // Return a special marker to indicate we handled it via snippet
+            await snippetGenerate(gooseCodeServer, workspaceTracker);
             return undefined;
         }
         return undefined;
     }
 
-
-    const selectedRef = await new Promise<vscode.Location | undefined>(resolve => {
-        const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem & { location: vscode.Location }>();
-        quickPick.placeholder = "Loading references...";
+    const selectedItem = await new Promise<QuickPickSymbolItem | undefined>(resolve => {
+        const quickPick = vscode.window.createQuickPick<QuickPickSymbolItem>();
+        quickPick.placeholder = "Loading references and implementations...";
         quickPick.busy = true;
 
         quickPick.onDidChangeSelection(selection => {
             if (selection[0]) {
-                const loc = selection[0].location;
-                vscode.window.showTextDocument(loc.uri, {
-                    selection: loc.range
+                const item = selection[0];
+                vscode.window.showTextDocument(item.location.uri, {
+                    selection: item.location.range
                 });
                 quickPick.hide();
-                resolve(loc);
+                resolve(item);
             }
         });
 
@@ -318,28 +338,54 @@ export async function createReferencesGenerateMessage(
 
         quickPick.show();
 
-        Promise.all(
-            refs.map(async (loc) => {
-                const document = await vscode.workspace.openTextDocument(loc.uri);
-                const lineText = document.lineAt(loc.range.start.line).text.trim();
-                return {
-                    label: lineText,
-                    description: `Line ${loc.range.start.line + 1}`,
-                    detail: workspaceTracker.relativePath(loc.uri.fsPath),
+        // Build items for both references and implementations
+        const buildItems = async (): Promise<QuickPickSymbolItem[]> => {
+            const items: QuickPickSymbolItem[] = [];
+
+            // Add implementations first (usually fewer, more important for interface navigation)
+            for (const impl of impls) {
+                const uri = uriFromLocation(impl);
+                const range = targetRangeFromLocation(impl);
+                const loc = new vscode.Location(uri, range);
+                const document = await vscode.workspace.openTextDocument(uri);
+                const lineText = document.lineAt(range.start.line).text.trim();
+                items.push({
+                    label: `$(symbol-class) ${lineText}`,
+                    description: `Line ${range.start.line + 1}`,
+                    detail: `[impl] ${workspaceTracker.relativePath(uri.fsPath)}`,
                     location: loc,
-                };
-            })
-        ).then(items => {
+                    symbolType: 'implementation',
+                });
+            }
+
+            // Add references
+            for (const ref of refs) {
+                const document = await vscode.workspace.openTextDocument(ref.uri);
+                const lineText = document.lineAt(ref.range.start.line).text.trim();
+                items.push({
+                    label: `$(symbol-reference) ${lineText}`,
+                    description: `Line ${ref.range.start.line + 1}`,
+                    detail: `[ref] ${workspaceTracker.relativePath(ref.uri.fsPath)}`,
+                    location: ref,
+                    symbolType: 'reference',
+                });
+            }
+
+            return items;
+        };
+
+        buildItems().then(items => {
             quickPick.items = items;
             quickPick.busy = false;
-            quickPick.placeholder = "Select a reference to navigate";
+            const refCount = refs.length;
+            const implCount = impls.length;
+            quickPick.placeholder = `Select: ${refCount} references, ${implCount} implementations`;
         });
     });
 
-    if (!selectedRef) {
+    if (!selectedItem) {
         return;
     }
-
 
     if (clickedDefinitionRef) {
         fromMsg.context = gc.SnippetContext.create({
@@ -349,16 +395,20 @@ export async function createReferencesGenerateMessage(
 
     const toMsg = gc.LocationWithContext.create({
         location: gc.Location.create({
-            path: workspaceTracker.relativePath(selectedRef.uri.fsPath),
-            range: convertRange(selectedRef.range),
+            path: workspaceTracker.relativePath(selectedItem.location.uri.fsPath),
+            range: convertRange(selectedItem.location.range),
         }),
         context: gc.SnippetContext.create({
-            fullRange: convertRange(targetFullRangeFromLocation(selectedRef)),
+            fullRange: convertRange(targetFullRangeFromLocation(selectedItem.location)),
         }),
     });
 
-    const reference = gc.ConnectedGenerate.create({
-        type: gc.ConnectedGenerateType.REFERENCE,
+    const connectedType = selectedItem.symbolType === 'implementation' 
+        ? gc.ConnectedGenerateType.IMPLEMENTATION 
+        : gc.ConnectedGenerateType.REFERENCE;
+    
+    const connected = gc.ConnectedGenerate.create({
+        type: connectedType,
         from: fromMsg,
         to: toMsg,
     });
@@ -369,8 +419,12 @@ export async function createReferencesGenerateMessage(
     ];
     const fileContexts = await getFileContexts(workspaceTracker, paths);
 
+    const msg = await wrapGenerateConnected(fileContexts, connected);
+    const resultType = selectedItem.symbolType === 'implementation' 
+        ? GenerateResult.IMPLEMENTATION 
+        : GenerateResult.REFERENCE;
 
-    return await wrapGenerateReference(fileContexts, reference);
+    return { msg, type: resultType };
 }
 
 
@@ -400,29 +454,14 @@ export async function fromRange(selection: vscode.Selection): Promise<gc.Range> 
 }
 
 export async function wrapGenerateDefinition(fileContext: gc.FileContext[], msg: gc.ConnectedGenerate): Promise<gc.PushResponse> {
-    return gc.PushResponse.create({
-        type: gc.PushType.FILE_COMMAND,
-        data: {
-            oneofKind: "fileCommand",
-            fileCommand: gc.FileCommandPush.create({
-                type: gc.FileCommandType.GENERATE,
-                fileContexts: fileContext,
-                data: {
-                    oneofKind: "generate",
-                    generate: gc.GeneratePush.create({
-                        type: gc.GenerateType.CONNECTED,
-                        data: {
-                            oneofKind: "connected",
-                            connected: msg,
-                        },
-                    }),
-                },
-            }),
-        },
-    });
+    return wrapGenerateConnected(fileContext, msg);
 }
 
 export async function wrapGenerateReference(fileContext: gc.FileContext[], msg: gc.ConnectedGenerate): Promise<gc.PushResponse> {
+    return wrapGenerateConnected(fileContext, msg);
+}
+
+export async function wrapGenerateConnected(fileContext: gc.FileContext[], msg: gc.ConnectedGenerate): Promise<gc.PushResponse> {
     return gc.PushResponse.create({
         type: gc.PushType.FILE_COMMAND,
         data: {

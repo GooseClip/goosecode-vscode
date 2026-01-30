@@ -247,7 +247,11 @@ export enum ConnectedGenerateType {
     /**
      * @generated from protobuf enum value: CONNECTED_GENERATE_TYPE_REFERENCE = 2;
      */
-    REFERENCE = 2
+    REFERENCE = 2,
+    /**
+     * @generated from protobuf enum value: CONNECTED_GENERATE_TYPE_IMPLEMENTATION = 3;
+     */
+    IMPLEMENTATION = 3
 }
 /**
  * @generated from protobuf enum gooseclip.goosecode.ide.v1.FileCommandType

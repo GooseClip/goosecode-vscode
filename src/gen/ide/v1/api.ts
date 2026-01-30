@@ -191,6 +191,57 @@ export interface FindPattern {
      * @generated from protobuf field: repeated string excluded_files = 3
      */
     excludedFiles: string[];
+    /**
+     * @generated from protobuf field: bool case_sensitive = 4
+     */
+    caseSensitive: boolean;
+    /**
+     * @generated from protobuf field: bool use_regex = 5
+     */
+    useRegex: boolean;
+    /**
+     * @generated from protobuf field: int32 max_results = 6
+     */
+    maxResults: number; // 0 means no limit
+    /**
+     * @generated from protobuf field: int32 context_lines = 7
+     */
+    contextLines: number; // Lines of context before/after match
+}
+/**
+ * Rich search match with context
+ *
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.SearchMatch
+ */
+export interface SearchMatch {
+    /**
+     * @generated from protobuf field: string file_path = 1
+     */
+    filePath: string;
+    /**
+     * @generated from protobuf field: int32 line_number = 2
+     */
+    lineNumber: number;
+    /**
+     * @generated from protobuf field: string line_content = 3
+     */
+    lineContent: string; // The full line text containing the match
+    /**
+     * @generated from protobuf field: int32 match_start = 4
+     */
+    matchStart: number; // Start column of match (0-indexed)
+    /**
+     * @generated from protobuf field: int32 match_end = 5
+     */
+    matchEnd: number; // End column of match (0-indexed)
+    /**
+     * @generated from protobuf field: repeated string context_before = 6
+     */
+    contextBefore: string[]; // Lines before for context
+    /**
+     * @generated from protobuf field: repeated string context_after = 7
+     */
+    contextAfter: string[]; // Lines after for context
 }
 /**
  * @generated from protobuf message gooseclip.goosecode.ide.v1.FindPatternResult
@@ -199,7 +250,19 @@ export interface FindPatternResult {
     /**
      * @generated from protobuf field: repeated gooseclip.goosecode.ide.v1.Location locations = 1
      */
-    locations: Location[];
+    locations: Location[]; // Keep for backward compatibility
+    /**
+     * @generated from protobuf field: repeated gooseclip.goosecode.ide.v1.SearchMatch matches = 2
+     */
+    matches: SearchMatch[]; // Rich match results with context
+    /**
+     * @generated from protobuf field: bool truncated = 3
+     */
+    truncated: boolean; // True if results were capped
+    /**
+     * @generated from protobuf field: int32 total_matches = 4
+     */
+    totalMatches: number; // Total count before truncation
 }
 /**
  * @generated from protobuf message gooseclip.goosecode.ide.v1.FindUses
@@ -403,6 +466,12 @@ export interface ResolveSymbolResponse {
      * @generated from protobuf field: gooseclip.goosecode.ide.v1.LocationWithContext from_context = 6
      */
     fromContext?: LocationWithContext;
+    /**
+     * Implementations of the symbol (populated when is_on_definition is true for interfaces/abstract types)
+     *
+     * @generated from protobuf field: repeated gooseclip.goosecode.ide.v1.LocationWithContext implementations = 7
+     */
+    implementations: LocationWithContext[];
 }
 // //////////////////////////////////////////////////////////////////////////////////////////
 // Refactoring
@@ -1132,7 +1201,11 @@ class FindPattern$Type extends MessageType<FindPattern> {
         super("gooseclip.goosecode.ide.v1.FindPattern", [
             { no: 1, name: "search_pattern", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } },
             { no: 2, name: "included_files", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "excluded_files", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "excluded_files", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "case_sensitive", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "use_regex", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "max_results", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 7, name: "context_lines", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<FindPattern>): FindPattern {
@@ -1140,6 +1213,10 @@ class FindPattern$Type extends MessageType<FindPattern> {
         message.searchPattern = "";
         message.includedFiles = [];
         message.excludedFiles = [];
+        message.caseSensitive = false;
+        message.useRegex = false;
+        message.maxResults = 0;
+        message.contextLines = 0;
         if (value !== undefined)
             reflectionMergePartial<FindPattern>(this, message, value);
         return message;
@@ -1157,6 +1234,18 @@ class FindPattern$Type extends MessageType<FindPattern> {
                     break;
                 case /* repeated string excluded_files */ 3:
                     message.excludedFiles.push(reader.string());
+                    break;
+                case /* bool case_sensitive */ 4:
+                    message.caseSensitive = reader.bool();
+                    break;
+                case /* bool use_regex */ 5:
+                    message.useRegex = reader.bool();
+                    break;
+                case /* int32 max_results */ 6:
+                    message.maxResults = reader.int32();
+                    break;
+                case /* int32 context_lines */ 7:
+                    message.contextLines = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1179,6 +1268,18 @@ class FindPattern$Type extends MessageType<FindPattern> {
         /* repeated string excluded_files = 3; */
         for (let i = 0; i < message.excludedFiles.length; i++)
             writer.tag(3, WireType.LengthDelimited).string(message.excludedFiles[i]);
+        /* bool case_sensitive = 4; */
+        if (message.caseSensitive !== false)
+            writer.tag(4, WireType.Varint).bool(message.caseSensitive);
+        /* bool use_regex = 5; */
+        if (message.useRegex !== false)
+            writer.tag(5, WireType.Varint).bool(message.useRegex);
+        /* int32 max_results = 6; */
+        if (message.maxResults !== 0)
+            writer.tag(6, WireType.Varint).int32(message.maxResults);
+        /* int32 context_lines = 7; */
+        if (message.contextLines !== 0)
+            writer.tag(7, WireType.Varint).int32(message.contextLines);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1190,15 +1291,116 @@ class FindPattern$Type extends MessageType<FindPattern> {
  */
 export const FindPattern = new FindPattern$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class SearchMatch$Type extends MessageType<SearchMatch> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.SearchMatch", [
+            { no: 1, name: "file_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "line_number", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 3, name: "line_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "match_start", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "match_end", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 6, name: "context_before", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "context_after", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SearchMatch>): SearchMatch {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.filePath = "";
+        message.lineNumber = 0;
+        message.lineContent = "";
+        message.matchStart = 0;
+        message.matchEnd = 0;
+        message.contextBefore = [];
+        message.contextAfter = [];
+        if (value !== undefined)
+            reflectionMergePartial<SearchMatch>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SearchMatch): SearchMatch {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string file_path */ 1:
+                    message.filePath = reader.string();
+                    break;
+                case /* int32 line_number */ 2:
+                    message.lineNumber = reader.int32();
+                    break;
+                case /* string line_content */ 3:
+                    message.lineContent = reader.string();
+                    break;
+                case /* int32 match_start */ 4:
+                    message.matchStart = reader.int32();
+                    break;
+                case /* int32 match_end */ 5:
+                    message.matchEnd = reader.int32();
+                    break;
+                case /* repeated string context_before */ 6:
+                    message.contextBefore.push(reader.string());
+                    break;
+                case /* repeated string context_after */ 7:
+                    message.contextAfter.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SearchMatch, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string file_path = 1; */
+        if (message.filePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.filePath);
+        /* int32 line_number = 2; */
+        if (message.lineNumber !== 0)
+            writer.tag(2, WireType.Varint).int32(message.lineNumber);
+        /* string line_content = 3; */
+        if (message.lineContent !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.lineContent);
+        /* int32 match_start = 4; */
+        if (message.matchStart !== 0)
+            writer.tag(4, WireType.Varint).int32(message.matchStart);
+        /* int32 match_end = 5; */
+        if (message.matchEnd !== 0)
+            writer.tag(5, WireType.Varint).int32(message.matchEnd);
+        /* repeated string context_before = 6; */
+        for (let i = 0; i < message.contextBefore.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.contextBefore[i]);
+        /* repeated string context_after = 7; */
+        for (let i = 0; i < message.contextAfter.length; i++)
+            writer.tag(7, WireType.LengthDelimited).string(message.contextAfter[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.SearchMatch
+ */
+export const SearchMatch = new SearchMatch$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class FindPatternResult$Type extends MessageType<FindPatternResult> {
     constructor() {
         super("gooseclip.goosecode.ide.v1.FindPatternResult", [
-            { no: 1, name: "locations", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => Location }
+            { no: 1, name: "locations", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => Location },
+            { no: 2, name: "matches", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SearchMatch },
+            { no: 3, name: "truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "total_matches", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<FindPatternResult>): FindPatternResult {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.locations = [];
+        message.matches = [];
+        message.truncated = false;
+        message.totalMatches = 0;
         if (value !== undefined)
             reflectionMergePartial<FindPatternResult>(this, message, value);
         return message;
@@ -1210,6 +1412,15 @@ class FindPatternResult$Type extends MessageType<FindPatternResult> {
             switch (fieldNo) {
                 case /* repeated gooseclip.goosecode.ide.v1.Location locations */ 1:
                     message.locations.push(Location.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated gooseclip.goosecode.ide.v1.SearchMatch matches */ 2:
+                    message.matches.push(SearchMatch.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* bool truncated */ 3:
+                    message.truncated = reader.bool();
+                    break;
+                case /* int32 total_matches */ 4:
+                    message.totalMatches = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1226,6 +1437,15 @@ class FindPatternResult$Type extends MessageType<FindPatternResult> {
         /* repeated gooseclip.goosecode.ide.v1.Location locations = 1; */
         for (let i = 0; i < message.locations.length; i++)
             Location.internalBinaryWrite(message.locations[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated gooseclip.goosecode.ide.v1.SearchMatch matches = 2; */
+        for (let i = 0; i < message.matches.length; i++)
+            SearchMatch.internalBinaryWrite(message.matches[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* bool truncated = 3; */
+        if (message.truncated !== false)
+            writer.tag(3, WireType.Varint).bool(message.truncated);
+        /* int32 total_matches = 4; */
+        if (message.totalMatches !== 0)
+            writer.tag(4, WireType.Varint).int32(message.totalMatches);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1750,7 +1970,8 @@ class ResolveSymbolResponse$Type extends MessageType<ResolveSymbolResponse> {
             { no: 3, name: "found", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 4, name: "is_on_definition", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 5, name: "references", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocationWithContext },
-            { no: 6, name: "from_context", kind: "message", T: () => LocationWithContext }
+            { no: 6, name: "from_context", kind: "message", T: () => LocationWithContext },
+            { no: 7, name: "implementations", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocationWithContext }
         ]);
     }
     create(value?: PartialMessage<ResolveSymbolResponse>): ResolveSymbolResponse {
@@ -1759,6 +1980,7 @@ class ResolveSymbolResponse$Type extends MessageType<ResolveSymbolResponse> {
         message.found = false;
         message.isOnDefinition = false;
         message.references = [];
+        message.implementations = [];
         if (value !== undefined)
             reflectionMergePartial<ResolveSymbolResponse>(this, message, value);
         return message;
@@ -1785,6 +2007,9 @@ class ResolveSymbolResponse$Type extends MessageType<ResolveSymbolResponse> {
                     break;
                 case /* gooseclip.goosecode.ide.v1.LocationWithContext from_context */ 6:
                     message.fromContext = LocationWithContext.internalBinaryRead(reader, reader.uint32(), options, message.fromContext);
+                    break;
+                case /* repeated gooseclip.goosecode.ide.v1.LocationWithContext implementations */ 7:
+                    message.implementations.push(LocationWithContext.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1816,6 +2041,9 @@ class ResolveSymbolResponse$Type extends MessageType<ResolveSymbolResponse> {
         /* gooseclip.goosecode.ide.v1.LocationWithContext from_context = 6; */
         if (message.fromContext)
             LocationWithContext.internalBinaryWrite(message.fromContext, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* repeated gooseclip.goosecode.ide.v1.LocationWithContext implementations = 7; */
+        for (let i = 0; i < message.implementations.length; i++)
+            LocationWithContext.internalBinaryWrite(message.implementations[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

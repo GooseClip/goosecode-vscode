@@ -44,5 +44,5 @@
  #
  #vsce package --target win32-x64
  #vsce publish --packagePath PATH_TO_WIN32X64_VSIX
-
- #Why am I using yarn and node?
+vsce package --pre-release
+vsce publish --pre-release

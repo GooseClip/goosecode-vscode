@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as net from "net";
 
 import * as gc from "./gen/ide";
 
@@ -137,6 +138,66 @@ function getRandomString(length: number): string {
   return result;
 }
 
+/**
+ * Finds an available port starting from the given port.
+ * Tries binding to ports incrementally until one works.
+ */
+async function findAvailablePort(startPort: number, maxAttempts: number = 10): Promise<number | null> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const port = startPort + i;
+    const available = await isPortAvailable(port);
+    if (available) {
+      return port;
+    }
+  }
+  return null;
+}
+
+/**
+ * Checks if a port is available by attempting to bind to it.
+ */
+function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    
+    server.once('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(false);
+      } else {
+        resolve(false);
+      }
+    });
+    
+    server.once('listening', () => {
+      server.close(() => {
+        resolve(true);
+      });
+    });
+    
+    server.listen(port, '127.0.0.1');
+  });
+}
+
+/**
+ * Converts a file path to UNIX format (forward slashes).
+ * Used when sending paths to the external application.
+ */
+function toUnixPath(p: string): string {
+  return p.replace(/\\/g, '/');
+}
+
+/**
+ * Converts a UNIX-style path to the native format.
+ * On Windows, converts forward slashes to backslashes.
+ * On UNIX systems, this is a no-op.
+ */
+function toNativePath(p: string): string {
+  if (process.platform === 'win32') {
+    return p.replace(/\//g, '\\');
+  }
+  return p;
+}
+
 export {
   isEntireWord,
   // convertLocations,
@@ -144,4 +205,8 @@ export {
   convertRange,
   convertSymbols,
   getRandomString,
+  findAvailablePort,
+  isPortAvailable,
+  toUnixPath,
+  toNativePath,
 };

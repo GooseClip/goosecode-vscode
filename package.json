@@ -2,7 +2,7 @@
   "name": "goosecode",
   "displayName": "GooseCode",
   "description": "Your codebase minimap and more.",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "publisher": "gooseclip",
   "engines": {
     "vscode": "^1.77.0"
@@ -47,12 +47,17 @@
     "viewsWelcome": [
       {
         "view": "goosecode.connection",
-        "contents": "GooseCode extension is not running.\n[Click here](command:goosecode.enableAutoStart) if you want GooseCode to start automatically.\nOtherwise [start for this session](command:goosecode.start).\nPlease view the walkthrough for detailed instructions.\n[Walkthrough](command:goosecode.openWalkthrough)",
-        "when": "goosecode.started == false"
+        "contents": "GooseCode extension is not running.\n[Click here](command:goosecode.enableAutoStart) if you want GooseCode to start automatically.\nOtherwise [start for this session](command:goosecode.start).\n[Open Settings](command:goosecode.openSettings)\n[Documentation](command:goosecode.openWalkthrough)",
+        "when": "goosecode.started == false && goosecode.portConflict != true"
       },
       {
         "view": "goosecode.connection",
-        "contents": "Creating a [GooseCode](https://goosecode.app) Connection:\nCheck or update connection details in [Settings](command:goosecode.openSettings).\nConnect via the GooseCode IDE controls pane.\nPlease view the walkthrough for detailed instructions.\n[Walkthrough](command:goosecode.openWalkthrough)",
+        "contents": "The configured port is already in use by another application or VSCode window.\n[Change Port for This Workspace](command:goosecode.changePortForWorkspace)\n[Open Settings](command:goosecode.openSettings)",
+        "when": "goosecode.portConflict == true"
+      },
+      {
+        "view": "goosecode.connection",
+        "contents": "Creating a [GooseCode](https://goosecode.app) Connection:\nCheck or update connection details in [Settings](command:goosecode.openSettings).\nConnect via the GooseCode IDE controls pane.\nPlease view the walkthrough for detailed instructions.\n[Documentation](command:goosecode.openWalkthrough)",
         "when": "goosecode.started == true && goosecode.initialized == false"
       },
       {
@@ -232,6 +237,11 @@
           "light": "resources/light/toggle_on.svg",
           "dark": "resources/dark/toggle_on.svg"
         }
+      },
+      {
+        "command": "goosecode.changePortForWorkspace",
+        "title": "Change Port for This Workspace",
+        "category": "GooseCode"
       }
     ],
     "menus": {
@@ -300,6 +310,10 @@
         {
           "command": "goosecode.connections.disableLocalhostOnly",
           "when": "goosecode.started == true"
+        },
+        {
+          "command": "goosecode.changePortForWorkspace",
+          "when": "goosecode.portConflict == true || goosecode.started == true"
         }
       ],
       "view/title": [
@@ -347,6 +361,11 @@
         {
           "command": "goosecode.broadcast",
           "when": "view == goosecode.connection && viewItem == discoverableItem",
+          "group": "inline"
+        },
+        {
+          "command": "goosecode.changePortForWorkspace",
+          "when": "view == goosecode.connection && viewItem == portConflict",
           "group": "inline"
         },
         {

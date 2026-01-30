@@ -5,40 +5,8 @@ import * as gc from "../../gen/ide";
 import { LocationOrLocationLink, DocumentSymbolOrSymbolInformation } from "../../types";
 import { Uri } from "vscode";
 import { exec } from "child_process";
-
-
-const defaultExclusions = [
-  "**/node_modules/**",
-  "**/dist/**",
-  "**/build/**",
-  "**/out/**",
-  "**/target/**",
-  "**/__pycache__/**",
-  "**/.venv/**",
-  "**/venv/**",
-  "**/env/**",
-  "**/tmp/**",
-  "**/log/**",
-  "**/vendor/**",
-  "**/bin/**",
-  "**/obj/**",
-  "**/packages/**",
-  "**/.vs/**",
-  "**/Release/**",
-  "**/Debug/**",
-  "**/pkg/**",
-  "**/.dart_tool/**",
-  "**/DerivedData/**",
-  "**/dist-newstyle/**",
-  "**/app/build/**",
-  "**/.gradle/**",
-  "**/.idea/**",
-  "**/Pods/**",
-  "**/Carthage/**",
-  "**/.xcworkspace/**",
-  "**/.xcodeproj/**",
-  "**/.*",
-];
+import { defaultExclusions } from "../server/handlers/file-filters";
+import { toUnixPath, toNativePath } from "../../util";
 
 /**
  * Check if a buffer contains valid UTF-8 text.
@@ -197,6 +165,33 @@ export async function getReferences(): Promise<vscode.Location[]> {
   return [];
 }
 
+export async function getImplementations(): Promise<LocationOrLocationLink[]> {
+  const activeEditor = vscode.window.activeTextEditor;
+
+  if (activeEditor) {
+    const position = activeEditor.selection.active;
+
+    // Find all implementations of the symbol at the cursor position
+    const implementations = await vscode.commands.executeCommand<LocationOrLocationLink[]>(
+      "vscode.executeImplementationProvider",
+      activeEditor.document.uri,
+      position,
+    );
+
+    if (implementations && implementations.length > 0) {
+      return implementations;
+    } else {
+      console.log(
+        "[WARN][IMPLEMENTATIONS]",
+        "No implementations found for the symbol at the cursor position.",
+      );
+    }
+  } else {
+    console.log("[WARN][IMPLEMENTATIONS]", "No active text editor found.");
+  }
+  return [];
+}
+
 export async function goToDefinition(
   workspaceUri: Uri,
   loc: gc.Location,
@@ -207,7 +202,8 @@ export async function goToDefinition(
     return false;
   }
 
-  const fileUri = vscode.Uri.file(path.join(workspaceUri.fsPath, loc.path));
+  // Convert incoming UNIX-style path to native format
+  const fileUri = vscode.Uri.file(path.join(workspaceUri.fsPath, toNativePath(loc.path)));
   // openTextDocument will either open the file or return the existing document
   const document = await vscode.workspace.openTextDocument(fileUri);
 
@@ -300,7 +296,7 @@ export async function listProjectFiles(
   const searchPattern = new vscode.RelativePattern(workspaceUri, "**/*");
   const files = await vscode.workspace.findFiles(searchPattern, excludePattern);
 
-  return files.map((file) => path.relative(root, file.fsPath));
+  return files.map((file) => toUnixPath(path.relative(root, file.fsPath)));
 }
 
 // try {

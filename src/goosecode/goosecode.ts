@@ -84,6 +84,9 @@ export function registerGooseCodeCommands(
       case GenerateResult.REFERENCE:
         vscode.window.setStatusBarMessage("GooseCode: Reference generated ✅", 2000);
         break;
+      case GenerateResult.IMPLEMENTATION:
+        vscode.window.setStatusBarMessage("GooseCode: Implementation generated ✅", 2000);
+        break;
       default:
         break;
     }

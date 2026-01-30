@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { Uri } from "vscode";
 import * as gc from "../../../gen/ide";
 import * as path from "path";
-import { convertRange } from "../../../util";
+import { convertRange, toUnixPath, toNativePath } from "../../../util";
 import { LocationOrLocationLink } from "../../../types";
 import { getFileContents } from "../../commands/commands";
 import { getFileContentsAtCommit as getFileContentsAtHead } from "../../../git";
@@ -84,7 +84,8 @@ export async function handleResolveSymbol(
     return gc.ResolveSymbolResponse.create({ found: false });
   }
 
-  const filePath = location.path;
+  // Convert incoming UNIX-style path to native format
+  const filePath = toNativePath(location.path);
   const position = new vscode.Position(
     Number(location.range.start.line),
     Number(location.range.start.character)
@@ -126,9 +127,9 @@ export async function handleResolveSymbol(
     const onDefinition = isOnDefinition(definitions, fileUri, position);
     const filteredDefinitions = getDefinitionsWithoutCurrentPosition(definitions, fileUri, position);
 
-    // If we're on a definition, get references instead
+    // If we're on a definition, get references and implementations
     if (onDefinition && filteredDefinitions.length === 0) {
-      console.log("[ResolveSymbol] Clicked on definition, fetching references");
+      console.log("[ResolveSymbol] Clicked on definition, fetching references and implementations");
       
       // Get the definition info for the fromContext (the definition we're on)
       const clickedDef = definitions[0];
@@ -152,8 +153,33 @@ export async function handleResolveSymbol(
         return true;
       });
 
-      if (filteredRefs.length === 0) {
-        console.log("[ResolveSymbol] No references found");
+      // Get implementations of this symbol (for interfaces/abstract types)
+      const impls = await vscode.commands.executeCommand<LocationOrLocationLink[]>(
+        "vscode.executeImplementationProvider",
+        fileUri,
+        position
+      );
+
+      // Filter out the definition itself from implementations
+      const filteredImpls = (impls ?? []).filter((impl) => {
+        if (impl instanceof vscode.Location) {
+          if (impl.uri.fsPath === fileUri.fsPath && impl.range.intersection(fromRange)) {
+            return false;
+          }
+          return true;
+        }
+        const ll = impl as vscode.LocationLink;
+        if (ll.targetUri.fsPath === fileUri.fsPath && 
+            ll.targetSelectionRange && 
+            ll.targetSelectionRange.intersection(fromRange)) {
+          return false;
+        }
+        return true;
+      });
+
+      // If no references and no implementations found
+      if (filteredRefs.length === 0 && filteredImpls.length === 0) {
+        console.log("[ResolveSymbol] No references or implementations found");
         return gc.ResolveSymbolResponse.create({ 
           found: false, 
           isOnDefinition: true,
@@ -166,7 +192,7 @@ export async function handleResolveSymbol(
       const uniquePaths = new Set<string>([filePath]);
 
       for (const ref of filteredRefs) {
-        const refRelativePath = path.relative(workspaceUri.fsPath, ref.uri.fsPath);
+        const refRelativePath = toUnixPath(path.relative(workspaceUri.fsPath, ref.uri.fsPath));
         uniquePaths.add(refRelativePath);
 
         // Get full line range for context
@@ -186,15 +212,37 @@ export async function handleResolveSymbol(
         }));
       }
 
+      // Build implementation LocationWithContext for each implementation
+      const implementations: gc.LocationWithContext[] = [];
+
+      for (const impl of filteredImpls) {
+        const implUri = uriFromLocation(impl);
+        const implRange = targetRangeFromLocation(impl);
+        const implFullRange = targetFullRangeFromLocation(impl);
+        const implRelativePath = toUnixPath(path.relative(workspaceUri.fsPath, implUri.fsPath));
+        uniquePaths.add(implRelativePath);
+
+        implementations.push(gc.LocationWithContext.create({
+          location: gc.Location.create({
+            path: implRelativePath,
+            range: convertRange(implRange),
+          }),
+          context: gc.SnippetContext.create({
+            fullRange: convertRange(implFullRange),
+          }),
+        }));
+      }
+
       // Get file contexts
       const fileContexts = await getFileContextsForPaths(workspaceUri, uniquePaths);
 
-      console.log(`[ResolveSymbol] Found ${references.length} references`);
+      console.log(`[ResolveSymbol] Found ${references.length} references and ${implementations.length} implementations`);
 
       return gc.ResolveSymbolResponse.create({
         found: true,
         isOnDefinition: true,
         references,
+        implementations,
         fromContext,
         fileContexts,
       });
@@ -207,7 +255,7 @@ export async function handleResolveSymbol(
     const defFullRange = targetFullRangeFromLocation(definition);
 
     // Get relative path for the definition
-    const defRelativePath = path.relative(workspaceUri.fsPath, defUri.fsPath);
+    const defRelativePath = toUnixPath(path.relative(workspaceUri.fsPath, defUri.fsPath));
 
     // Build the LocationWithContext for the definition
     const definitionLocation = gc.LocationWithContext.create({
@@ -273,4 +321,3 @@ async function getFileContextsForPaths(
 
   return fileContexts;
 }
-
