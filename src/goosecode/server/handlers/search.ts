@@ -1,8 +1,12 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as gc from "../../../gen/ide";
-import { defaultExclusions, isBinaryFile } from "./file-filters";
+import { defaultExclusions, isBinaryFile, sortFilesByPriority } from "./file-filters";
+import { loadIgnorePatterns } from "./ignore-parser";
 import { toUnixPath, toNativePath } from "../../../util";
+
+// Maximum number of files to search through
+const MAX_FILES = 1000;
 
 interface SearchResult {
   filePath: string;
@@ -12,6 +16,15 @@ interface SearchResult {
   matchEnd: number;
   contextBefore: string[];
   contextAfter: string[];
+}
+
+interface SearchOutput {
+  results: SearchResult[];
+  truncated: boolean;
+  totalMatches: number;
+  filesTruncated: boolean;
+  totalFilesSearched: number;
+  totalFilesAvailable: number;
 }
 
 /**
@@ -28,44 +41,96 @@ async function searchInWorkspace(
     maxResults?: number;
     contextLines?: number;
   }
-): Promise<{ results: SearchResult[]; truncated: boolean; totalMatches: number }> {
+): Promise<SearchOutput> {
   const results: SearchResult[] = [];
   let totalMatches = 0;
   const maxResults = options.maxResults || 500;
   const contextLines = options.contextLines || 2;
 
+  // Load ignore patterns from .gitignore and .goosecodeignore
+  const ignoreConfig = await loadIgnorePatterns(workspaceUri);
+
+  // Build exclude pattern combining defaults + gitignore + goosecodeignore + user exclusions
+  const allExclusions = [
+    ...defaultExclusions,
+    ...ignoreConfig.excludePatterns,
+  ];
+  if (options.excludedFiles && options.excludedFiles.length > 0) {
+    allExclusions.push(...options.excludedFiles);
+  }
+  const excludePattern = allExclusions.length > 0 ? `{${allExclusions.join(",")}}` : undefined;
+
+  console.log(`[Search] Exclude patterns (${allExclusions.length}):`, allExclusions.slice(0, 5), allExclusions.length > 5 ? '...' : '');
+
   // Build include pattern
   let includePattern: vscode.GlobPattern;
   if (options.includedFiles && options.includedFiles.length > 0) {
-    // If specific files are provided, create a pattern for them
-    // Convert incoming UNIX-style paths to native format
-    const relativePaths = options.includedFiles.map(f => {
-      const nativePath = toNativePath(f);
-      return nativePath.startsWith('/') || nativePath.startsWith('\\') 
-        ? path.relative(workspaceUri.fsPath, nativePath) 
-        : nativePath;
-    });
-    includePattern = new vscode.RelativePattern(workspaceUri, `{${relativePaths.join(',')}}`);
+    const patterns = options.includedFiles;
+    console.log(`[Search] Include patterns:`, patterns);
+    
+    if (patterns.length === 1) {
+      includePattern = new vscode.RelativePattern(workspaceUri, patterns[0]);
+    } else {
+      includePattern = new vscode.RelativePattern(workspaceUri, `{${patterns.join(",")}}`);
+    }
   } else {
     includePattern = new vscode.RelativePattern(workspaceUri, "**/*");
   }
 
-  // Build exclude pattern
-  const excludePatterns = [...defaultExclusions];
-  if (options.excludedFiles) {
-    excludePatterns.push(...options.excludedFiles);
-  }
-  const excludePattern = `{${excludePatterns.join(",")}}`;
+  // Find all matching files - get extra to detect truncation
+  let files = await vscode.workspace.findFiles(
+    includePattern,
+    excludePattern,
+    MAX_FILES + 1
+  );
 
-  // Find all matching files first
-  const files = await vscode.workspace.findFiles(includePattern, excludePattern, 1000);
+  console.log(`[Search] Found ${files.length} files from findFiles`);
+
+  // Apply include patterns (overrides from .goosecodeignore) BEFORE truncation check
+  // These allow including files that would otherwise be excluded by gitignore
+  if (ignoreConfig.includePatterns.length > 0) {
+    console.log(`[Search] Applying ${ignoreConfig.includePatterns.length} override patterns from .goosecodeignore`);
+    try {
+      const existingPaths = new Set(files.map(f => f.fsPath));
+      for (const includeGlob of ignoreConfig.includePatterns) {
+        const overridePattern = new vscode.RelativePattern(workspaceUri, includeGlob);
+        const overrideFiles = await vscode.workspace.findFiles(overridePattern, undefined, 1000);
+        
+        for (const file of overrideFiles) {
+          if (!existingPaths.has(file.fsPath)) {
+            files.push(file);
+            existingPaths.add(file.fsPath);
+          }
+        }
+      }
+      console.log(`[Search] After overrides: ${files.length} files`);
+    } catch (e) {
+      console.error('[Search] Error applying override patterns:', e);
+    }
+  }
+
+  // Now check for truncation and apply limit
+  const totalFilesAvailable = files.length;
+  const filesTruncated = files.length > MAX_FILES;
+
+  if (filesTruncated) {
+    console.log(`[Search] File list truncated: ${files.length} -> ${MAX_FILES}`);
+    // Sort by priority BEFORE truncating so we keep the most important files
+    files = sortFilesByPriority(files);
+    files = files.slice(0, MAX_FILES);
+  } else {
+    // Still sort by priority for consistent ordering
+    files = sortFilesByPriority(files);
+  }
+
+  const totalFilesSearched = files.length;
+  console.log(`[Search] Searching ${totalFilesSearched} files for pattern: "${pattern}"`);
 
   // Create the search pattern (escape if not using regex)
   let searchPattern: string;
   if (options.useRegex) {
     searchPattern = pattern;
   } else {
-    // Escape special regex characters for literal search
     searchPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
@@ -80,7 +145,6 @@ async function searchInWorkspace(
       break;
     }
 
-    // Skip binary files
     if (isBinaryFile(fileUri.fsPath)) {
       continue;
     }
@@ -93,14 +157,13 @@ async function searchInWorkspace(
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        regex.lastIndex = 0; // Reset regex state
+        regex.lastIndex = 0;
         
         let match;
         while ((match = regex.exec(line)) !== null) {
           totalMatches++;
           
           if (results.length < maxResults) {
-            // Get context lines
             const contextBefore: string[] = [];
             const contextAfter: string[] = [];
 
@@ -113,7 +176,7 @@ async function searchInWorkspace(
 
             results.push({
               filePath: relativePath,
-              lineNumber: i + 1, // 1-indexed
+              lineNumber: i + 1,
               lineContent: line,
               matchStart: match.index,
               matchEnd: match.index + match[0].length,
@@ -122,22 +185,25 @@ async function searchInWorkspace(
             });
           }
 
-          // For non-global regex or zero-length matches, break to avoid infinite loop
           if (!regex.global || match[0].length === 0) {
             break;
           }
         }
       }
     } catch {
-      // Skip files that can't be opened (binary, too large, etc.)
-      // Silently ignore - binary files are already filtered above
+      // Skip files that can't be opened
     }
   }
+
+  console.log(`[Search] Found ${totalMatches} total matches, returning ${results.length} results`);
 
   return {
     results,
     truncated: totalMatches > maxResults,
     totalMatches,
+    filesTruncated,
+    totalFilesSearched,
+    totalFilesAvailable,
   };
 }
 
@@ -149,8 +215,6 @@ export async function handleSearchRequest(
   workspaceUri: vscode.Uri,
 ): Promise<gc.SearchResponse> {
   if (request.data.oneofKind !== "pattern") {
-    // For now, only pattern search is supported
-    // FindUses would require symbol analysis
     return gc.SearchResponse.create({
       type: gc.SearchType.USES,
       data: {
@@ -173,12 +237,17 @@ export async function handleSearchRequest(
           matches: [],
           truncated: false,
           totalMatches: 0,
+          filesTruncated: false,
+          totalFilesSearched: 0,
+          totalFilesAvailable: 0,
         }),
       },
     });
   }
 
-  const { results, truncated, totalMatches } = await searchInWorkspace(
+  console.log(`[Search] Request - pattern: "${searchPattern}", include: ${patternRequest.includedFiles?.length || 0}, exclude: ${patternRequest.excludedFiles?.length || 0}, maxResults: ${patternRequest.maxResults}`);
+
+  const searchOutput = await searchInWorkspace(
     workspaceUri,
     searchPattern,
     {
@@ -191,8 +260,7 @@ export async function handleSearchRequest(
     }
   );
 
-  // Convert to proto format
-  const matches: gc.SearchMatch[] = results.map((r) =>
+  const matches: gc.SearchMatch[] = searchOutput.results.map((r) =>
     gc.SearchMatch.create({
       filePath: r.filePath,
       lineNumber: r.lineNumber,
@@ -204,13 +272,12 @@ export async function handleSearchRequest(
     })
   );
 
-  // Also create Location objects for backward compatibility
-  const locations: gc.Location[] = results.map((r) =>
+  const locations: gc.Location[] = searchOutput.results.map((r) =>
     gc.Location.create({
       path: r.filePath,
       range: gc.Range.create({
         start: gc.Position.create({
-          line: BigInt(r.lineNumber - 1), // 0-indexed for Location
+          line: BigInt(r.lineNumber - 1),
           character: BigInt(r.matchStart),
         }),
         end: gc.Position.create({
@@ -228,8 +295,11 @@ export async function handleSearchRequest(
       pattern: gc.FindPatternResult.create({
         locations,
         matches,
-        truncated,
-        totalMatches,
+        truncated: searchOutput.truncated,
+        totalMatches: searchOutput.totalMatches,
+        filesTruncated: searchOutput.filesTruncated,
+        totalFilesSearched: searchOutput.totalFilesSearched,
+        totalFilesAvailable: searchOutput.totalFilesAvailable,
       }),
     },
   });

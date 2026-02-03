@@ -263,6 +263,18 @@ export interface FindPatternResult {
      * @generated from protobuf field: int32 total_matches = 4
      */
     totalMatches: number; // Total count before truncation
+    /**
+     * @generated from protobuf field: bool files_truncated = 5
+     */
+    filesTruncated: boolean; // True if file list was capped before searching
+    /**
+     * @generated from protobuf field: int32 total_files_searched = 6
+     */
+    totalFilesSearched: number; // How many files were actually searched
+    /**
+     * @generated from protobuf field: int32 total_files_available = 7
+     */
+    totalFilesAvailable: number; // How many files exist (before cap)
 }
 /**
  * @generated from protobuf message gooseclip.goosecode.ide.v1.FindUses
@@ -567,6 +579,62 @@ export interface LintRequest {
  * @generated from protobuf message gooseclip.goosecode.ide.v1.LintResponse
  */
 export interface LintResponse {
+}
+// //////////////////////////////////////////////////////////////////////////////////////////
+// Ignore Patterns (.goosecodeignore)
+// //////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.GetIgnorePatternsRequest
+ */
+export interface GetIgnorePatternsRequest {
+    /**
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.Context context = 1
+     */
+    context?: Context;
+}
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.GetIgnorePatternsResponse
+ */
+export interface GetIgnorePatternsResponse {
+    /**
+     * @generated from protobuf field: string goosecodeignore_content = 1
+     */
+    goosecodeignoreContent: string; // Current .goosecodeignore content
+    /**
+     * @generated from protobuf field: repeated string gitignore_patterns = 2
+     */
+    gitignorePatterns: string[]; // Patterns from .gitignore (for display)
+    /**
+     * @generated from protobuf field: bool goosecodeignore_exists = 3
+     */
+    goosecodeignoreExists: boolean; // Whether .goosecodeignore file exists
+}
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.SetIgnorePatternsRequest
+ */
+export interface SetIgnorePatternsRequest {
+    /**
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.Context context = 1
+     */
+    context?: Context;
+    /**
+     * @generated from protobuf field: string goosecodeignore_content = 2
+     */
+    goosecodeignoreContent: string; // Content to write to .goosecodeignore
+}
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.SetIgnorePatternsResponse
+ */
+export interface SetIgnorePatternsResponse {
+    /**
+     * @generated from protobuf field: bool success = 1
+     */
+    success: boolean;
+    /**
+     * @generated from protobuf field: string error = 2
+     */
+    error: string; // Error message if failed
 }
 /**
  * @generated from protobuf enum gooseclip.goosecode.ide.v1.NavigateType
@@ -1392,7 +1460,10 @@ class FindPatternResult$Type extends MessageType<FindPatternResult> {
             { no: 1, name: "locations", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => Location },
             { no: 2, name: "matches", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SearchMatch },
             { no: 3, name: "truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 4, name: "total_matches", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 4, name: "total_matches", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "files_truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "total_files_searched", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 7, name: "total_files_available", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<FindPatternResult>): FindPatternResult {
@@ -1401,6 +1472,9 @@ class FindPatternResult$Type extends MessageType<FindPatternResult> {
         message.matches = [];
         message.truncated = false;
         message.totalMatches = 0;
+        message.filesTruncated = false;
+        message.totalFilesSearched = 0;
+        message.totalFilesAvailable = 0;
         if (value !== undefined)
             reflectionMergePartial<FindPatternResult>(this, message, value);
         return message;
@@ -1421,6 +1495,15 @@ class FindPatternResult$Type extends MessageType<FindPatternResult> {
                     break;
                 case /* int32 total_matches */ 4:
                     message.totalMatches = reader.int32();
+                    break;
+                case /* bool files_truncated */ 5:
+                    message.filesTruncated = reader.bool();
+                    break;
+                case /* int32 total_files_searched */ 6:
+                    message.totalFilesSearched = reader.int32();
+                    break;
+                case /* int32 total_files_available */ 7:
+                    message.totalFilesAvailable = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1446,6 +1529,15 @@ class FindPatternResult$Type extends MessageType<FindPatternResult> {
         /* int32 total_matches = 4; */
         if (message.totalMatches !== 0)
             writer.tag(4, WireType.Varint).int32(message.totalMatches);
+        /* bool files_truncated = 5; */
+        if (message.filesTruncated !== false)
+            writer.tag(5, WireType.Varint).bool(message.filesTruncated);
+        /* int32 total_files_searched = 6; */
+        if (message.totalFilesSearched !== 0)
+            writer.tag(6, WireType.Varint).int32(message.totalFilesSearched);
+        /* int32 total_files_available = 7; */
+        if (message.totalFilesAvailable !== 0)
+            writer.tag(7, WireType.Varint).int32(message.totalFilesAvailable);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2404,6 +2496,224 @@ class LintResponse$Type extends MessageType<LintResponse> {
  * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.LintResponse
  */
 export const LintResponse = new LintResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetIgnorePatternsRequest$Type extends MessageType<GetIgnorePatternsRequest> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.GetIgnorePatternsRequest", [
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } }
+        ]);
+    }
+    create(value?: PartialMessage<GetIgnorePatternsRequest>): GetIgnorePatternsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetIgnorePatternsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetIgnorePatternsRequest): GetIgnorePatternsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* gooseclip.goosecode.ide.v1.Context context */ 1:
+                    message.context = Context.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetIgnorePatternsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* gooseclip.goosecode.ide.v1.Context context = 1; */
+        if (message.context)
+            Context.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.GetIgnorePatternsRequest
+ */
+export const GetIgnorePatternsRequest = new GetIgnorePatternsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetIgnorePatternsResponse$Type extends MessageType<GetIgnorePatternsResponse> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.GetIgnorePatternsResponse", [
+            { no: 1, name: "goosecodeignore_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "gitignore_patterns", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "goosecodeignore_exists", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetIgnorePatternsResponse>): GetIgnorePatternsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.goosecodeignoreContent = "";
+        message.gitignorePatterns = [];
+        message.goosecodeignoreExists = false;
+        if (value !== undefined)
+            reflectionMergePartial<GetIgnorePatternsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetIgnorePatternsResponse): GetIgnorePatternsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string goosecodeignore_content */ 1:
+                    message.goosecodeignoreContent = reader.string();
+                    break;
+                case /* repeated string gitignore_patterns */ 2:
+                    message.gitignorePatterns.push(reader.string());
+                    break;
+                case /* bool goosecodeignore_exists */ 3:
+                    message.goosecodeignoreExists = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetIgnorePatternsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string goosecodeignore_content = 1; */
+        if (message.goosecodeignoreContent !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.goosecodeignoreContent);
+        /* repeated string gitignore_patterns = 2; */
+        for (let i = 0; i < message.gitignorePatterns.length; i++)
+            writer.tag(2, WireType.LengthDelimited).string(message.gitignorePatterns[i]);
+        /* bool goosecodeignore_exists = 3; */
+        if (message.goosecodeignoreExists !== false)
+            writer.tag(3, WireType.Varint).bool(message.goosecodeignoreExists);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.GetIgnorePatternsResponse
+ */
+export const GetIgnorePatternsResponse = new GetIgnorePatternsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SetIgnorePatternsRequest$Type extends MessageType<SetIgnorePatternsRequest> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.SetIgnorePatternsRequest", [
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "goosecodeignore_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SetIgnorePatternsRequest>): SetIgnorePatternsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.goosecodeignoreContent = "";
+        if (value !== undefined)
+            reflectionMergePartial<SetIgnorePatternsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SetIgnorePatternsRequest): SetIgnorePatternsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* gooseclip.goosecode.ide.v1.Context context */ 1:
+                    message.context = Context.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string goosecodeignore_content */ 2:
+                    message.goosecodeignoreContent = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SetIgnorePatternsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* gooseclip.goosecode.ide.v1.Context context = 1; */
+        if (message.context)
+            Context.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string goosecodeignore_content = 2; */
+        if (message.goosecodeignoreContent !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.goosecodeignoreContent);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.SetIgnorePatternsRequest
+ */
+export const SetIgnorePatternsRequest = new SetIgnorePatternsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SetIgnorePatternsResponse$Type extends MessageType<SetIgnorePatternsResponse> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.SetIgnorePatternsResponse", [
+            { no: 1, name: "success", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "error", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SetIgnorePatternsResponse>): SetIgnorePatternsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.success = false;
+        message.error = "";
+        if (value !== undefined)
+            reflectionMergePartial<SetIgnorePatternsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SetIgnorePatternsResponse): SetIgnorePatternsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool success */ 1:
+                    message.success = reader.bool();
+                    break;
+                case /* string error */ 2:
+                    message.error = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SetIgnorePatternsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool success = 1; */
+        if (message.success !== false)
+            writer.tag(1, WireType.Varint).bool(message.success);
+        /* string error = 2; */
+        if (message.error !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.error);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.SetIgnorePatternsResponse
+ */
+export const SetIgnorePatternsResponse = new SetIgnorePatternsResponse$Type();
 /**
  * @generated ServiceType for protobuf service gooseclip.goosecode.ide.v1.IDEService
  */
@@ -2418,5 +2728,7 @@ export const IDEService = new ServiceType("gooseclip.goosecode.ide.v1.IDEService
     { name: "ResolveSymbol", options: {}, I: ResolveSymbolRequest, O: ResolveSymbolResponse },
     { name: "VersionControlDetails", options: {}, I: VersionControlDetailsRequest, O: VersionControlDetailsResponse },
     { name: "Lint", options: {}, I: LintRequest, O: LintResponse },
-    { name: "Push", serverStreaming: true, options: {}, I: PushRequest, O: PushResponse }
+    { name: "Push", serverStreaming: true, options: {}, I: PushRequest, O: PushResponse },
+    { name: "GetIgnorePatterns", options: {}, I: GetIgnorePatternsRequest, O: GetIgnorePatternsResponse },
+    { name: "SetIgnorePatterns", options: {}, I: SetIgnorePatternsRequest, O: SetIgnorePatternsResponse }
 ]);

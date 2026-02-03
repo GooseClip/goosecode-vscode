@@ -13,6 +13,7 @@ import { handleListFilesRequest } from './handlers/list-files';
 import { handleGoToDefinition } from './handlers/go-to';
 import { handleResolveSymbol } from './handlers/resolve-symbol';
 import { handleSearchRequest } from './handlers/search';
+import { handleGetIgnorePatternsRequest, handleSetIgnorePatternsRequest } from './handlers/goosecodeignore';
 import * as path from 'path';
 import { toUnixPath } from '../../util';
 
@@ -416,6 +417,71 @@ export class GooseCodeServer {
       // wait for the requested amount of milliseconds  
       return gc.LintResponse.create({
       });
+    },
+
+    getIgnorePatterns: async (request: gc.GetIgnorePatternsRequest, context: rpc.ServerCallContext): Promise<gc.GetIgnorePatternsResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
+
+      context.trailers = {
+        'status': '...done'
+      };
+
+      try {
+        if (!request.context) {
+          throw new ApiError("Request context is required", 400);
+        }
+
+        const workspace = await this.workspaceTracker.getWorkspaceFromContext(
+          request.context,
+        );
+
+        if (workspace === null) {
+          throw new ApiError(`Workspace not found: ${request.context.versionControlInfo?.repositoryFullname}`, 422);
+        }
+
+        return await handleGetIgnorePatternsRequest(request, workspace.uri!);
+      } catch (e) {
+        console.error("GetIgnorePatterns error:", e);
+        return gc.GetIgnorePatternsResponse.create({
+          goosecodeignoreContent: '',
+          gitignorePatterns: [],
+          goosecodeignoreExists: false,
+        });
+      }
+    },
+
+    setIgnorePatterns: async (request: gc.SetIgnorePatternsRequest, context: rpc.ServerCallContext): Promise<gc.SetIgnorePatternsResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
+
+      context.trailers = {
+        'status': '...done'
+      };
+
+      try {
+        if (!request.context) {
+          throw new ApiError("Request context is required", 400);
+        }
+
+        const workspace = await this.workspaceTracker.getWorkspaceFromContext(
+          request.context,
+        );
+
+        if (workspace === null) {
+          throw new ApiError(`Workspace not found: ${request.context.versionControlInfo?.repositoryFullname}`, 422);
+        }
+
+        return await handleSetIgnorePatternsRequest(request, workspace.uri!);
+      } catch (e) {
+        console.error("SetIgnorePatterns error:", e);
+        return gc.SetIgnorePatternsResponse.create({
+          success: false,
+          error: e instanceof Error ? e.message : 'Unknown error',
+        });
+      }
     },
   };
 

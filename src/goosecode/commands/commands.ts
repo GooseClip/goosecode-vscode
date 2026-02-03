@@ -6,6 +6,7 @@ import { LocationOrLocationLink, DocumentSymbolOrSymbolInformation } from "../..
 import { Uri } from "vscode";
 import { exec } from "child_process";
 import { defaultExclusions } from "../server/handlers/file-filters";
+import { loadIgnorePatterns } from "../server/handlers/ignore-parser";
 import { toUnixPath, toNativePath } from "../../util";
 
 /**
@@ -93,18 +94,6 @@ export async function getDocumentSymbols(): Promise<undefined> {
   if (!symbols) {
     return;
   }
-
-  // console.log("[INFO][GET DOCUMENT SYMBOLS]", "Symbols", symbols.length);
-
-  // for (const s of symbols) {
-  //   if (s instanceof vscode.DocumentSymbol) {
-  //     console.log("[INFO][GET SYMBOL RANGE]", "DocumentSymbol", s);
-  //   } else if (s instanceof vscode.SymbolInformation) {
-  //     console.log("[INFO][GET SYMBOL RANGE]", "SymbolInformation", s);
-  //   } else {
-  //     console.log("[WARN][GET SYMBOL RANGE]", "Unknown symbol type", s);
-  //   }
-  // }
 }
 
 export async function getDefinitions(): Promise<LocationOrLocationLink[]> {
@@ -119,9 +108,6 @@ export async function getDefinitions(): Promise<LocationOrLocationLink[]> {
     );
 
     if (definitions && definitions.length > 0) {
-      // for (const d of definitions) {
-      //   console.log("[INFO][GET DEFINITIONS]", "Definition", d);
-      // }
       return definitions;
     } else {
       console.log(
@@ -284,28 +270,32 @@ export async function goToDefinition(
   return true;
 }
 
+/**
+ * List all project files, respecting .gitignore and .goosecodeignore patterns.
+ * Uses the same ignore system as search for consistency.
+ */
 export async function listProjectFiles(
   workspaceUri: Uri,
   exclusions?: string[],
 ): Promise<string[]> {
-
-  const root = await workspaceUri.fsPath;
-  const excludePattern = exclusions
-    ? `{${exclusions.join(",")}}`
-    : `{${defaultExclusions.join(",")}}`;
+  const root = workspaceUri.fsPath;
+  
+  // Load ignore patterns from .gitignore and .goosecodeignore
+  const ignoreConfig = await loadIgnorePatterns(workspaceUri);
+  
+  // Combine all exclusions: defaults + gitignore + goosecodeignore + custom
+  const allExclusions = [
+    ...defaultExclusions,
+    ...ignoreConfig.excludePatterns,
+    ...(exclusions || []),
+  ];
+  
+  const excludePattern = allExclusions.length > 0 
+    ? `{${allExclusions.join(",")}}` 
+    : undefined;
+  
   const searchPattern = new vscode.RelativePattern(workspaceUri, "**/*");
   const files = await vscode.workspace.findFiles(searchPattern, excludePattern);
 
   return files.map((file) => toUnixPath(path.relative(root, file.fsPath)));
 }
-
-// try {
-//   const isCursor = process.env.VSCODE_IPC_HOOK?.toLocaleLowerCase().includes("cursor") || process.env.VSCODE_NLS_CONFIG?.toLocaleLowerCase().includes("cursor")
-//   if (isCursor) {
-//     exec(`cursor .`, { cwd: workspaceUri.fsPath })
-//   } else {
-//     exec(`code .`, { cwd: workspaceUri.fsPath })
-//   }
-// } catch (e) {
-//   console.error(`failed to bring to front`)
-// }

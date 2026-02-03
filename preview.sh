@@ -44,8 +44,5 @@
  #
  #vsce package --target win32-x64
  #vsce publish --packagePath PATH_TO_WIN32X64_VSIX
-vsce package
-vsce publish
-
-# Cursor uses https://open-vsx.org/
-#   npx ovsx publish --packagePath your-extension.vsix -p YOUR_TOKEN
+vsce package --pre-release
+vsce publish --pre-release
