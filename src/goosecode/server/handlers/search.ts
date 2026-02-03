@@ -77,11 +77,10 @@ async function searchInWorkspace(
     includePattern = new vscode.RelativePattern(workspaceUri, "**/*");
   }
 
-  // Find all matching files - get extra to detect truncation
+  // Find all matching files (no limit - let exclusions filter first, then check truncation)
   let files = await vscode.workspace.findFiles(
     includePattern,
-    excludePattern,
-    MAX_FILES + 1
+    excludePattern
   );
 
   console.log(`[Search] Found ${files.length} files from findFiles`);
