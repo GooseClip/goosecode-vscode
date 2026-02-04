@@ -39,7 +39,6 @@ export class SessionEvent extends vscode.TreeItem {
     super(label, collapsibleState);
 
     this.tooltip = `${this.label}-${this.enabled}`;
-    // this.description = this.tooltip;
   }
 
   iconPath = {

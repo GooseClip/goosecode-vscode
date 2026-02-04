@@ -171,7 +171,6 @@ export async function loadWorkspaceConfiguration(
   // If file doesn't exist, create it
   // Generate a uuid
   const gitInfo = await getGitInfoFromVscodeApi(Uri.file(root));
-  // dart: base64Encode(utf8.encode("${repository.fullName}@${commit}"))
   const valid = gitInfo?.repositoryFullName && gitInfo?.commit;
   const c: GooseCodeWorkspace = {
     path: root,

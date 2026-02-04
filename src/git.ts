@@ -2,12 +2,9 @@ import { exec as execCallback } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
 import * as vscode from 'vscode';
-// Use 'import type' for declaration files
-// Use a distinct alias to avoid potential naming conflicts
 import * as git from './git.d';
 
 const exec = promisify(execCallback);
-
 export interface GitInfo {
     repositoryRoot: string;
     repositoryFullName: string | null;
@@ -26,84 +23,6 @@ function parseRepoFullName(url: string): string | null {
     const match = url.match(/^(?:https?:\/\/|git@)[^:\/]+[:\/]([^/]+\/[^/]+?)(?:\.git)?$/);
     return match ? match[1] : null;
 }
-
-// export async function getGitInfo(cwd: string): Promise<GitInfo | null> {
-//     try {
-//         const repositoryRoot = await runGitCommand('git rev-parse --show-toplevel', cwd);
-
-//         let repositoryFullName: string | null = null;
-//         try {
-//             const remoteUrl = await runGitCommand('git remote get-url origin', repositoryRoot);
-//             repositoryFullName = parseRepoFullName(remoteUrl);
-//         } catch (error: any) {
-//             if (error.message !== 'Remote origin not found') {
-//                 // Log or handle unexpected errors fetching/parsing the remote URL, but don't fail the whole function
-//                 console.error('Could not determine repository full name:', error);
-//             }
-//             // If 'origin' doesn't exist or URL parsing fails, repositoryFullName remains null
-//         }
-
-//         const branch = await runGitCommand('git rev-parse --abbrev-ref HEAD', repositoryRoot);
-//         const commit = await runGitCommand('git rev-parse HEAD', repositoryRoot);
-//         const statusOutput = await runGitCommand('git status --porcelain', repositoryRoot);
-
-//         const stagedFiles: string[] = [];
-//         const unstagedFiles: string[] = [];
-//         const statusLines = statusOutput.split('\n').filter(line => line.length > 0);
-
-//         for (const line of statusLines) {
-//             const status = line.substring(0, 2);
-//             // Extract the file path, handling potential renames (R/C status)
-//             let filePath = line.substring(3);
-//             if (['R', 'C'].includes(status[0]) || ['R', 'C'].includes(status[1])) {
-//                 // For renamed/copied files, the format is "XY old_path -> new_path" or "XY path"
-//                 // We are interested in the final path name.
-//                 const parts = filePath.split(' -> ');
-//                 filePath = parts[parts.length - 1]; // Take the new path if rename/copy
-//             }
-
-//             const absoluteFilePath = path.join(repositoryRoot, filePath);
-
-//             const indexStatus = status[0];
-//             const workTreeStatus = status[1];
-
-//             // Check Staged Status (Index)
-//             if (['M', 'A', 'D', 'R', 'C'].includes(indexStatus)) {
-//                 stagedFiles.push(absoluteFilePath);
-//             }
-
-//             // Check Unstaged Status (Working Tree) or Untracked
-//             if (['M', 'D'].includes(workTreeStatus)) {
-//                 // Avoid adding the same file twice if it's both staged and unstaged modified
-//                 if (!stagedFiles.includes(absoluteFilePath) || indexStatus !== 'M') {
-//                      unstagedFiles.push(absoluteFilePath);
-//                 } else if (indexStatus === 'M' && workTreeStatus === 'M' && !unstagedFiles.includes(absoluteFilePath)) {
-//                     // If staged modified (M ) and also unstaged modified ( M), add to unstaged as well
-//                     unstagedFiles.push(absoluteFilePath);
-//                  }
-//             } else if (status === '??') { // Untracked files
-//                 unstagedFiles.push(absoluteFilePath);
-//             }
-//         }
-
-//         return {
-//             repositoryRoot,
-//             repositoryFullName,
-//             branch,
-//             commit,
-//             stagedFiles,
-//             unstagedFiles,
-//         };
-//     } catch (error: any) {
-//         if (error.message === 'Not a git repository') {
-//             // console.log('Directory is not a git repository:', cwd);
-//             return null;
-//         }
-//         // Log other errors if needed
-//         console.error('Failed to get Git info:', error);
-//         return null;
-//     }
-// }
 
 async function  _getRepo(resourceUri: vscode.Uri, wait: boolean): Promise<git.Repository | null>{
     const extension = vscode.extensions.getExtension('vscode.git');

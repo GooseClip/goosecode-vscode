@@ -151,9 +151,6 @@ async function guard(
 
   // External dependency
   if (!workspace) {
-    // vscode.window.showErrorMessage(
-    //     "No code source to associate with external dependency",
-    // );
     return true;
   }
 

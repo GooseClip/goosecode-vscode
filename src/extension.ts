@@ -1,5 +1,3 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import { ConfigurationTarget, workspace } from "vscode";
 import { GooseCodeServer } from "./goosecode/server/server";
@@ -44,9 +42,6 @@ export function getInstanceId(): string {
 }
 
 
-// package.json (dependencies)
-// "bonjour-service": "^1.2.1"
-
 import Bonjour from 'bonjour-service';
 
 let bonjour: Bonjour | undefined;
@@ -76,7 +71,6 @@ async function startBonjourService(
   const mdnsHost = `goosecode-${smallId}.local`;
 
 
-  // TXT records are handy for metadata: version, instanceId, public key hash, etc.
   bonjourService = bonjour.publish({
     name: `GooseCode (${smallId})`,
     type: "goosecode", // creates _goosecode._tcp.local
@@ -90,7 +84,6 @@ async function startBonjourService(
     }
   });
 
-  // Make sure the advertisement is up before you rely on it
   bonjourService.on("up", () => {
     connectionProvider?.refresh();
   });

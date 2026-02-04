@@ -67,8 +67,6 @@ export class ConnectionProvider implements vscode.TreeDataProvider<Connection> {
       return Promise.resolve([]);
     }
 
-    const localhostOnly = server.extensionConfig.settings.localhostOnly;
-
     const items = [
       new Connection(
         "Server running",

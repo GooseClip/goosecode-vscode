@@ -80,40 +80,5 @@ export class CodeSource extends vscode.TreeItem {
     ),
   };
 
-  /**
-   * The {@link Uri} of the resource representing this item.
-   *
-   * Will be used to derive the {@link TreeItem.label label}, when it is not provided.
-   * Will be used to derive the icon from current file icon theme, when {@link TreeItem.iconPath iconPath} has {@link ThemeIcon} value.
-   */
-  // resourceUri?: Uri;
-
-  /**
-   * The {@link Command} that should be executed when the tree item is selected.
-   *
-   * Please use `vscode.open` or `vscode.diff` as command IDs when the tree item is opening
-   * something in the editor. Using these commands ensures that the resulting editor will
-   * appear consistent with how other built-in trees open editors.
-   */
-  // command?: Command;
-
-  /**
-   * Context value of the tree item. This can be used to contribute item specific actions in the tree.
-   * For example, a tree item is given a context value as `folder`. When contributing actions to `view/item/context`
-   * using `menus` extension point, you can specify context value for key `viewItem` in `when` expression like `viewItem == folder`.
-   * ```json
-   * "contributes": {
-   *   "menus": {
-   *     "view/item/context": [
-   *       {
-   *         "command": "extension.deleteFolder",
-   *         "when": "viewItem == folder"
-   *       }
-   *     ]
-   *   }
-   * }
-   * ```
-   * This will show action `extension.deleteFolder` only for items with `contextValue` is `folder`.
-   */
   contextValue = "codeSource:" + (this.enabled ? "enabled" : "disabled");
 }
