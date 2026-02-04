@@ -7,3 +7,14 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 - Initial release
+
+
+## [0.1.6] - 2026-02-04
+
+### Added
+
+- Support for .goosecodeignore files
+
+### Fixed
+
+- Search dropping files silently when hitting threshold

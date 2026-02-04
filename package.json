@@ -2,7 +2,7 @@
   "name": "goosecode",
   "displayName": "GooseCode",
   "description": "Your codebase minimap and more.",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "publisher": "gooseclip",
   "engines": {
     "vscode": "^1.77.0"
@@ -24,7 +24,7 @@
     "visualize"
   ],
   "preview": false,
-  "homepage": "https://goosecode.app",
+  "homepage": "https://gooseclip.com/goosecode",
   "qna": "https://github.com/GooseClip/goosecode-issues/issues",
   "icon": "resources/icon_transparent.png",
   "galleryBanner": {
