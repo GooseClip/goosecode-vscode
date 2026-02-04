@@ -2,7 +2,7 @@
   "name": "goosecode",
   "displayName": "GooseCode",
   "description": "Your codebase minimap and more.",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "publisher": "gooseclip",
   "engines": {
     "vscode": "^1.77.0"
@@ -246,6 +246,11 @@
         "command": "goosecode.changePortForWorkspace",
         "title": "Change Port for This Workspace",
         "category": "GooseCode"
+      },
+      {
+        "command": "goosecode.addFile",
+        "title": "Add to GooseCode",
+        "category": "GooseCode"
       }
     ],
     "menus": {
@@ -318,6 +323,10 @@
         {
           "command": "goosecode.changePortForWorkspace",
           "when": "goosecode.portConflict == true || goosecode.started == true"
+        },
+        {
+          "command": "goosecode.addFile",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -381,6 +390,13 @@
           "command": "goosecode.codeSources.disableCodeSource",
           "when": "view == goosecode.codeSources && viewItem == codeSource:enabled",
           "group": "inline"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "goosecode.addFile",
+          "when": "goosecode.connected == true && !explorerResourceIsFolder",
+          "group": "goosecode"
         }
       ],
       "editor/context": [

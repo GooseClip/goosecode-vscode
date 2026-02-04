@@ -4,10 +4,16 @@ All notable changes to the "goosecode" extension will be documented in this file
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [Unreleased]
 
-- Initial release
+## [0.1.8] - 2026-02-04
 
+### Added
+
+- Support for adding files from solution explorer
+
+### Changed
+
+- README.md
 
 ## [0.1.7] - 2026-02-04
 
@@ -25,3 +31,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Fixed
 
 - Search dropping files silently when hitting threshold
+
+## [Unreleased]
+
+- Initial release

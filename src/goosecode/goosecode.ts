@@ -8,6 +8,7 @@ import { GenerateResult, handleGenerateCommand } from "./goosecode_generate";
 import { handleSnippetCommand } from "./goosecode_snippet";
 import { handleMinimapCommand } from "./goosecode_minimap";
 import { handleOverlayCommand } from "./goosecode_overlay";
+import { handleAddFileCommand } from "./goosecode_add_file";
 import { GenerateType } from "../gen/ide";
 
 
@@ -90,6 +91,23 @@ export function registerGooseCodeCommands(
       default:
         break;
     }
+  });
+  subscriptions.push(sub);
+
+  // Add file from explorer context menu
+  sub = vscode.commands.registerCommand("goosecode.addFile", async (fileUri: vscode.Uri) => {
+    if (!gooseCodeServer?.connected) {
+      vscode.window.showErrorMessage("GooseCode is not connected");
+      return;
+    }
+
+    if (!fileUri) {
+      vscode.window.showErrorMessage("No file selected");
+      return;
+    }
+
+    await handleAddFileCommand(gooseCodeServer!, workspaceTracker, fileUri);
+    vscode.window.setStatusBarMessage("GooseCode: File added ✅", 2000);
   });
   subscriptions.push(sub);
 
