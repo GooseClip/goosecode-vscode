@@ -3,7 +3,7 @@
 [![Version](https://img.shields.io/visual-studio-marketplace/v/gooseclip.goosecode)](https://marketplace.visualstudio.com/items?itemName=gooseclip.goosecode)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/gooseclip.goosecode)](https://marketplace.visualstudio.com/items?itemName=gooseclip.goosecode)
 
-This VS Code extension enables integration with the [GooseCode App](https://goosecode.app), your codebase minimap and code navigation supercharger.
+This VS Code extension enables integration with the [GooseCode App](https://gooseclip.com), your codebase minimap and code navigation supercharger.
 
 ![GooseCode Logo](https://storage.googleapis.com/goosecode-prod-public/branding/icon.png)
 
@@ -18,7 +18,7 @@ This VS Code extension enables integration with the [GooseCode App](https://goos
 
 ## Getting Started
 
-1.  **Download GooseCode:** Get the GooseCode application for your OS (Windows, Mac, iPadOS) from [goosecode.app](https://goosecode.app).
+1.  **Download GooseCode:** Get the GooseCode application for your OS (Windows, Mac, iPadOS) from [gooseclip.com](https://gooseclip.com).
 2.  **Install Extension:** Install this "GooseCode" extension from the VS Code Marketplace.
 3.  **Check Settings:**
     *   Open VS Code Settings (`Cmd+,` or `Ctrl+,`).
@@ -76,8 +76,3 @@ Refer to the [GitHub Issues page](https://github.com/GooseClip/goosecode-issues/
 ## Links
 
 - **Website:** [gooseclip.com](https://gooseclip.com)
-- **GooseCode App:** [goosecode.app](https://goosecode.app)
-
-## License
-
-UNLICENSED (Private)
