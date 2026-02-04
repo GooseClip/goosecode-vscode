@@ -7,7 +7,7 @@
   "engines": {
     "vscode": "^1.77.0"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "categories": [
     "Other",
@@ -34,6 +34,10 @@
   "bugs": {
     "url": "https://github.com/GooseClip/goosecode-issues/issues",
     "email": "support@gooseclip.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GooseClip/goosecode-vscode.git"
   },
   "pricing": "Free",
   "activationEvents": [

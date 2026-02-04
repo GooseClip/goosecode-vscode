@@ -9,6 +9,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Initial release
 
 
+## [0.1.7] - 2026-02-04
+
+### Added
+
+- MIT license
+
+
 ## [0.1.6] - 2026-02-04
 
 ### Added
