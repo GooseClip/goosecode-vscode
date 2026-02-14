@@ -66,7 +66,8 @@
       },
       {
         "view": "goosecode.codeSources",
-        "contents": "Open a workspace to configure your code sources."
+        "contents": "Open a workspace to configure your code sources.",
+        "when": "workspaceFolderCount == 0"
       }
     ],
     "viewsContainers": {
@@ -89,9 +90,9 @@
           "name": "Code Sources"
         },
         {
-          "id": "goosecode.activeSession",
-          "name": "Active Session",
-          "when": "goosecode.initialized == true"
+          "id": "goosecode.warnings",
+          "name": "Warnings",
+          "when": "goosecode.hasWarnings == true"
         }
       ]
     },

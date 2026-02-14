@@ -3,6 +3,7 @@ import { Disposable } from "vscode";
 import { GooseCodeServer } from "./server/server";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { loadWorkspaceConfiguration } from "../config";
+import { getGitInfoFromVscodeApi } from "../git";
 import * as gc from "../gen/ide";
 import { GenerateResult, handleGenerateCommand } from "./goosecode_generate";
 import { handleSnippetCommand } from "./goosecode_snippet";
@@ -145,6 +146,14 @@ async function guard(
   var workspace = workspaceTracker.getWorkspaceFromFile(editor.document.uri);
 
   if (workspace && !workspace.isEnabled) {
+    const gitInfo = await getGitInfoFromVscodeApi(workspace.uri);
+    if (!gitInfo?.commit) {
+      vscode.window.showErrorMessage(
+        "Cannot enable: Git must be initialized with at least one commit.",
+      );
+      return false;
+    }
+
     const selection = await vscode.window.showErrorMessage(
       "The current file workspace isn't a GooseCode code source. Do you want to enable it?",
       { modal: true },
@@ -153,8 +162,13 @@ async function guard(
     );
 
     if (selection === "Yes") {
-      // Handle yes
-      loadWorkspaceConfiguration(workspace!.uri.fsPath, true);
+      const config = await loadWorkspaceConfiguration(workspace!.uri.fsPath, true);
+      if (!config) {
+        vscode.window.showErrorMessage(
+          "Cannot enable: Git must be initialized with at least one commit.",
+        );
+        return false;
+      }
       vscode.window.showInformationMessage("Code source enabled");
       const workspaces = await workspaceTracker.refresh();
       gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);

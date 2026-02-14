@@ -636,6 +636,141 @@ export interface SetIgnorePatternsResponse {
      */
     error: string; // Error message if failed
 }
+// //////////////////////////////////////////////////////////////////////////////////////////
+// Commit History
+// //////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.ListFileCommitsRequest
+ */
+export interface ListFileCommitsRequest {
+    /**
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.Context context = 1
+     */
+    context?: Context;
+    /**
+     * @generated from protobuf field: string file_path = 2
+     */
+    filePath: string; // Relative path from workspace root
+    /**
+     * @generated from protobuf field: int32 page = 3
+     */
+    page: number; // Page number (1-indexed), default 1
+    /**
+     * @generated from protobuf field: int32 per_page = 4
+     */
+    perPage: number; // Items per page, default 20
+}
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.ListFileCommitsResponse
+ */
+export interface ListFileCommitsResponse {
+    /**
+     * @generated from protobuf field: repeated gooseclip.goosecode.ide.v1.FileCommitInfo commits = 1
+     */
+    commits: FileCommitInfo[];
+    /**
+     * @generated from protobuf field: bool has_next_page = 2
+     */
+    hasNextPage: boolean;
+    /**
+     * @generated from protobuf field: int32 total_count = 3
+     */
+    totalCount: number; // Optional: total number of commits
+    /**
+     * @generated from protobuf field: string head_sha = 4
+     */
+    headSha: string; // Current HEAD commit SHA of the repository
+}
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.FileCommitInfo
+ */
+export interface FileCommitInfo {
+    /**
+     * @generated from protobuf field: string sha = 1
+     */
+    sha: string; // Full 40-character commit SHA
+    /**
+     * @generated from protobuf field: string message = 2
+     */
+    message: string; // Full commit message
+    /**
+     * @generated from protobuf field: string author_name = 3
+     */
+    authorName: string; // Author name
+    /**
+     * @generated from protobuf field: string author_email = 4
+     */
+    authorEmail: string; // Author email
+    /**
+     * @generated from protobuf field: int64 timestamp = 5
+     */
+    timestamp: bigint; // Unix timestamp in seconds
+}
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.GetFileAtCommitRequest
+ */
+export interface GetFileAtCommitRequest {
+    /**
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.Context context = 1
+     */
+    context?: Context;
+    /**
+     * @generated from protobuf field: string file_path = 2
+     */
+    filePath: string; // Relative path from workspace root
+    /**
+     * @generated from protobuf field: string commit_sha = 3
+     */
+    commitSha: string; // Full or short commit SHA
+}
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.GetFileAtCommitResponse
+ */
+export interface GetFileAtCommitResponse {
+    /**
+     * @generated from protobuf field: string content = 1
+     */
+    content: string; // File content as UTF-8 string
+    /**
+     * @generated from protobuf field: bool file_existed = 2
+     */
+    fileExisted: boolean; // False if file didn't exist at this commit
+}
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.GetFileDiffRequest
+ */
+export interface GetFileDiffRequest {
+    /**
+     * @generated from protobuf field: gooseclip.goosecode.ide.v1.Context context = 1
+     */
+    context?: Context;
+    /**
+     * @generated from protobuf field: string file_path = 2
+     */
+    filePath: string; // Relative path from workspace root
+    /**
+     * @generated from protobuf field: string base_ref = 3
+     */
+    baseRef: string; // Git ref to diff FROM (commit SHA, branch, tag, HEAD~n)
+    /**
+     * @generated from protobuf field: string head_ref = 4
+     */
+    headRef: string; // Git ref to diff TO. Empty = working copy
+}
+/**
+ * @generated from protobuf message gooseclip.goosecode.ide.v1.GetFileDiffResponse
+ */
+export interface GetFileDiffResponse {
+    /**
+     * @generated from protobuf field: string diff = 1
+     */
+    diff: string; // Raw unified diff string (parseable by parseDiff)
+    /**
+     * @generated from protobuf field: bool has_changes = 2
+     */
+    hasChanges: boolean; // False if no differences found
+}
 /**
  * @generated from protobuf enum gooseclip.goosecode.ide.v1.NavigateType
  */
@@ -2714,6 +2849,468 @@ class SetIgnorePatternsResponse$Type extends MessageType<SetIgnorePatternsRespon
  * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.SetIgnorePatternsResponse
  */
 export const SetIgnorePatternsResponse = new SetIgnorePatternsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListFileCommitsRequest$Type extends MessageType<ListFileCommitsRequest> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.ListFileCommitsRequest", [
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "file_path", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } },
+            { no: 3, name: "page", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "per_page", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListFileCommitsRequest>): ListFileCommitsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.filePath = "";
+        message.page = 0;
+        message.perPage = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ListFileCommitsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListFileCommitsRequest): ListFileCommitsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* gooseclip.goosecode.ide.v1.Context context */ 1:
+                    message.context = Context.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string file_path */ 2:
+                    message.filePath = reader.string();
+                    break;
+                case /* int32 page */ 3:
+                    message.page = reader.int32();
+                    break;
+                case /* int32 per_page */ 4:
+                    message.perPage = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListFileCommitsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* gooseclip.goosecode.ide.v1.Context context = 1; */
+        if (message.context)
+            Context.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string file_path = 2; */
+        if (message.filePath !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.filePath);
+        /* int32 page = 3; */
+        if (message.page !== 0)
+            writer.tag(3, WireType.Varint).int32(message.page);
+        /* int32 per_page = 4; */
+        if (message.perPage !== 0)
+            writer.tag(4, WireType.Varint).int32(message.perPage);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.ListFileCommitsRequest
+ */
+export const ListFileCommitsRequest = new ListFileCommitsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListFileCommitsResponse$Type extends MessageType<ListFileCommitsResponse> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.ListFileCommitsResponse", [
+            { no: 1, name: "commits", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FileCommitInfo },
+            { no: 2, name: "has_next_page", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "total_count", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "head_sha", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListFileCommitsResponse>): ListFileCommitsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.commits = [];
+        message.hasNextPage = false;
+        message.totalCount = 0;
+        message.headSha = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListFileCommitsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListFileCommitsResponse): ListFileCommitsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated gooseclip.goosecode.ide.v1.FileCommitInfo commits */ 1:
+                    message.commits.push(FileCommitInfo.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* bool has_next_page */ 2:
+                    message.hasNextPage = reader.bool();
+                    break;
+                case /* int32 total_count */ 3:
+                    message.totalCount = reader.int32();
+                    break;
+                case /* string head_sha */ 4:
+                    message.headSha = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListFileCommitsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated gooseclip.goosecode.ide.v1.FileCommitInfo commits = 1; */
+        for (let i = 0; i < message.commits.length; i++)
+            FileCommitInfo.internalBinaryWrite(message.commits[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bool has_next_page = 2; */
+        if (message.hasNextPage !== false)
+            writer.tag(2, WireType.Varint).bool(message.hasNextPage);
+        /* int32 total_count = 3; */
+        if (message.totalCount !== 0)
+            writer.tag(3, WireType.Varint).int32(message.totalCount);
+        /* string head_sha = 4; */
+        if (message.headSha !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.headSha);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.ListFileCommitsResponse
+ */
+export const ListFileCommitsResponse = new ListFileCommitsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class FileCommitInfo$Type extends MessageType<FileCommitInfo> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.FileCommitInfo", [
+            { no: 1, name: "sha", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "message", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "author_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "author_email", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "timestamp", kind: "scalar", T: 3 /*ScalarType.INT64*/, L: 0 /*LongType.BIGINT*/ }
+        ]);
+    }
+    create(value?: PartialMessage<FileCommitInfo>): FileCommitInfo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sha = "";
+        message.message = "";
+        message.authorName = "";
+        message.authorEmail = "";
+        message.timestamp = 0n;
+        if (value !== undefined)
+            reflectionMergePartial<FileCommitInfo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: FileCommitInfo): FileCommitInfo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string sha */ 1:
+                    message.sha = reader.string();
+                    break;
+                case /* string message */ 2:
+                    message.message = reader.string();
+                    break;
+                case /* string author_name */ 3:
+                    message.authorName = reader.string();
+                    break;
+                case /* string author_email */ 4:
+                    message.authorEmail = reader.string();
+                    break;
+                case /* int64 timestamp */ 5:
+                    message.timestamp = reader.int64().toBigInt();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: FileCommitInfo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string sha = 1; */
+        if (message.sha !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.sha);
+        /* string message = 2; */
+        if (message.message !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.message);
+        /* string author_name = 3; */
+        if (message.authorName !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.authorName);
+        /* string author_email = 4; */
+        if (message.authorEmail !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.authorEmail);
+        /* int64 timestamp = 5; */
+        if (message.timestamp !== 0n)
+            writer.tag(5, WireType.Varint).int64(message.timestamp);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.FileCommitInfo
+ */
+export const FileCommitInfo = new FileCommitInfo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetFileAtCommitRequest$Type extends MessageType<GetFileAtCommitRequest> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.GetFileAtCommitRequest", [
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "file_path", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } },
+            { no: 3, name: "commit_sha", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } }
+        ]);
+    }
+    create(value?: PartialMessage<GetFileAtCommitRequest>): GetFileAtCommitRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.filePath = "";
+        message.commitSha = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetFileAtCommitRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetFileAtCommitRequest): GetFileAtCommitRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* gooseclip.goosecode.ide.v1.Context context */ 1:
+                    message.context = Context.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string file_path */ 2:
+                    message.filePath = reader.string();
+                    break;
+                case /* string commit_sha */ 3:
+                    message.commitSha = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetFileAtCommitRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* gooseclip.goosecode.ide.v1.Context context = 1; */
+        if (message.context)
+            Context.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string file_path = 2; */
+        if (message.filePath !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.filePath);
+        /* string commit_sha = 3; */
+        if (message.commitSha !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.commitSha);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.GetFileAtCommitRequest
+ */
+export const GetFileAtCommitRequest = new GetFileAtCommitRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetFileAtCommitResponse$Type extends MessageType<GetFileAtCommitResponse> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.GetFileAtCommitResponse", [
+            { no: 1, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "file_existed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetFileAtCommitResponse>): GetFileAtCommitResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.content = "";
+        message.fileExisted = false;
+        if (value !== undefined)
+            reflectionMergePartial<GetFileAtCommitResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetFileAtCommitResponse): GetFileAtCommitResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string content */ 1:
+                    message.content = reader.string();
+                    break;
+                case /* bool file_existed */ 2:
+                    message.fileExisted = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetFileAtCommitResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string content = 1; */
+        if (message.content !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.content);
+        /* bool file_existed = 2; */
+        if (message.fileExisted !== false)
+            writer.tag(2, WireType.Varint).bool(message.fileExisted);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.GetFileAtCommitResponse
+ */
+export const GetFileAtCommitResponse = new GetFileAtCommitResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetFileDiffRequest$Type extends MessageType<GetFileDiffRequest> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.GetFileDiffRequest", [
+            { no: 1, name: "context", kind: "message", T: () => Context, options: { "buf.validate.field": { required: true } } },
+            { no: 2, name: "file_path", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } },
+            { no: 3, name: "base_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { required: true } } },
+            { no: 4, name: "head_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetFileDiffRequest>): GetFileDiffRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.filePath = "";
+        message.baseRef = "";
+        message.headRef = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetFileDiffRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetFileDiffRequest): GetFileDiffRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* gooseclip.goosecode.ide.v1.Context context */ 1:
+                    message.context = Context.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string file_path */ 2:
+                    message.filePath = reader.string();
+                    break;
+                case /* string base_ref */ 3:
+                    message.baseRef = reader.string();
+                    break;
+                case /* string head_ref */ 4:
+                    message.headRef = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetFileDiffRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* gooseclip.goosecode.ide.v1.Context context = 1; */
+        if (message.context)
+            Context.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string file_path = 2; */
+        if (message.filePath !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.filePath);
+        /* string base_ref = 3; */
+        if (message.baseRef !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.baseRef);
+        /* string head_ref = 4; */
+        if (message.headRef !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.headRef);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.GetFileDiffRequest
+ */
+export const GetFileDiffRequest = new GetFileDiffRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetFileDiffResponse$Type extends MessageType<GetFileDiffResponse> {
+    constructor() {
+        super("gooseclip.goosecode.ide.v1.GetFileDiffResponse", [
+            { no: 1, name: "diff", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "has_changes", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetFileDiffResponse>): GetFileDiffResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.diff = "";
+        message.hasChanges = false;
+        if (value !== undefined)
+            reflectionMergePartial<GetFileDiffResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetFileDiffResponse): GetFileDiffResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string diff */ 1:
+                    message.diff = reader.string();
+                    break;
+                case /* bool has_changes */ 2:
+                    message.hasChanges = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetFileDiffResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string diff = 1; */
+        if (message.diff !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.diff);
+        /* bool has_changes = 2; */
+        if (message.hasChanges !== false)
+            writer.tag(2, WireType.Varint).bool(message.hasChanges);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message gooseclip.goosecode.ide.v1.GetFileDiffResponse
+ */
+export const GetFileDiffResponse = new GetFileDiffResponse$Type();
 /**
  * @generated ServiceType for protobuf service gooseclip.goosecode.ide.v1.IDEService
  */
@@ -2730,5 +3327,8 @@ export const IDEService = new ServiceType("gooseclip.goosecode.ide.v1.IDEService
     { name: "Lint", options: {}, I: LintRequest, O: LintResponse },
     { name: "Push", serverStreaming: true, options: {}, I: PushRequest, O: PushResponse },
     { name: "GetIgnorePatterns", options: {}, I: GetIgnorePatternsRequest, O: GetIgnorePatternsResponse },
-    { name: "SetIgnorePatterns", options: {}, I: SetIgnorePatternsRequest, O: SetIgnorePatternsResponse }
+    { name: "SetIgnorePatterns", options: {}, I: SetIgnorePatternsRequest, O: SetIgnorePatternsResponse },
+    { name: "ListFileCommits", options: {}, I: ListFileCommitsRequest, O: ListFileCommitsResponse },
+    { name: "GetFileAtCommit", options: {}, I: GetFileAtCommitRequest, O: GetFileAtCommitResponse },
+    { name: "GetFileDiff", options: {}, I: GetFileDiffRequest, O: GetFileDiffResponse }
 ]);

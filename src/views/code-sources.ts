@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import * as fs from "fs";
 import * as path from "path";
 import { Command, Uri } from "vscode";
 import { WorkspaceTracker } from "../workspace-tracker";
+import { getGitInfoFromVscodeApi } from "../git";
 
 export class CodeSourcesProvider
   implements vscode.TreeDataProvider<CodeSource>
@@ -34,12 +34,20 @@ export class CodeSourcesProvider
 
     const dependencies: Array<CodeSource> = [];
     for (const workspace of workspaces) {
+      let hasValidGit = true;
+      if (!workspace.isEnabled) {
+        // Only check if a Git repo exists for the UI indicator.
+        // The stricter check (remote + commit) is enforced at enable time.
+        const gitInfo = await getGitInfoFromVscodeApi(workspace.uri);
+        hasValidGit = gitInfo !== null;
+      }
       dependencies.push(
         new CodeSource(
           workspace.workspace.name,
           vscode.TreeItemCollapsibleState.None,
           workspace.isEnabled,
           workspace.uri,
+          hasValidGit,
         ),
       );
     }
@@ -53,12 +61,18 @@ export class CodeSource extends vscode.TreeItem {
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly enabled: boolean,
     public readonly resourceUri?: Uri,
+    public readonly gitValid: boolean = true,
     public readonly command?: vscode.Command,
   ) {
     super(label, collapsibleState);
 
-    this.tooltip = `${this.label}-${this.enabled}`;
-    // this.description = this.tooltip;
+    const showGitNotConfigured = !enabled && gitValid === false;
+    if (showGitNotConfigured) {
+      this.description = "Git not configured";
+      this.tooltip = "Initialize a Git repository with at least one commit to enable";
+    } else {
+      this.tooltip = `${this.label}-${this.enabled}`;
+    }
   }
 
   iconPath = {
@@ -80,5 +94,9 @@ export class CodeSource extends vscode.TreeItem {
     ),
   };
 
-  contextValue = "codeSource:" + (this.enabled ? "enabled" : "disabled");
+  contextValue = this.enabled
+    ? "codeSource:enabled"
+    : this.gitValid
+      ? "codeSource:disabled"
+      : "codeSource:noGit";
 }

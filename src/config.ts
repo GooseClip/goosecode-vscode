@@ -31,6 +31,11 @@ function getWorkspaceId(p: string): string {
   return crypto.createHash("md5").update(p).digest("hex");
 }
 
+function getLocalWorkspaceIdentifier(workspacePath: string): string {
+  const hash = crypto.createHash("sha256").update(workspacePath).digest("hex");
+  return `local/${hash}`;
+}
+
 // Define the GooseCode type
 type GooseCodeWorkspace = {
   path: string;
@@ -128,7 +133,8 @@ export async function updateWorkspaceConfiguration(
   const globalConfig = await loadAllWorkspaces();
   const newWorkspaceConfig: GooseCodeWorkspace = {
     path: root,
-    repositoryFullName: config?.config?.repositoryFullName ?? "",
+    repositoryFullName:
+      config?.config?.repositoryFullName || getLocalWorkspaceIdentifier(root),
     branch: branch ?? "",
     commit: commit,
   };
@@ -169,12 +175,15 @@ export async function loadWorkspaceConfiguration(
   }
 
   // If file doesn't exist, create it
-  // Generate a uuid
   const gitInfo = await getGitInfoFromVscodeApi(Uri.file(root));
-  const valid = gitInfo?.repositoryFullName && gitInfo?.commit;
+  if (!gitInfo?.commit) {
+    return null;
+  }
+
   const c: GooseCodeWorkspace = {
     path: root,
-    repositoryFullName: gitInfo?.repositoryFullName ?? "",
+    repositoryFullName:
+      gitInfo?.repositoryFullName || getLocalWorkspaceIdentifier(root),
     branch: gitInfo?.branch ?? "",
     commit: gitInfo?.commit ?? "",
   };

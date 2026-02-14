@@ -67,13 +67,17 @@ export class ConnectionProvider implements vscode.TreeDataProvider<Connection> {
       return Promise.resolve([]);
     }
 
+    const serverRunningItem = new Connection(
+      "Server running",
+      vscode.TreeItemCollapsibleState.None,
+      server !== null,
+      true,
+    );
+    if (server !== null) {
+      serverRunningItem.description = `Port: ${server.port}`;
+    }
     const items = [
-      new Connection(
-        "Server running",
-        vscode.TreeItemCollapsibleState.None,
-        server !== null,
-        true,
-      ),
+      serverRunningItem,
       new Connection(
         "Connected",
         vscode.TreeItemCollapsibleState.None,

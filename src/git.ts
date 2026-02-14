@@ -56,6 +56,26 @@ async function  _getRepo(resourceUri: vscode.Uri, wait: boolean): Promise<git.Re
     return repo;
 }
 
+/**
+ * Gets file content at a specific commit. Returns null if repo not found or on error.
+ * Use fileExisted: false when the file didn't exist at that commit.
+ */
+export async function getFileContentsAtSpecificCommit(
+    resourceUri: vscode.Uri,
+    commitSha: string
+): Promise<{ content: string; fileExisted: boolean }> {
+    try {
+        const repo = await _getRepo(resourceUri, true);
+        if (repo == null) {
+            return { content: '', fileExisted: false };
+        }
+        const content = await repo.show(commitSha, resourceUri.fsPath);
+        return { content, fileExisted: true };
+    } catch (error: unknown) {
+        return { content: '', fileExisted: false };
+    }
+}
+
 export async function getFileContentsAtCommit(resourceUri: vscode.Uri): Promise<string | null> {
     try {
        
@@ -72,8 +92,13 @@ export async function getFileContentsAtCommit(resourceUri: vscode.Uri): Promise<
         return await repo.show(head.commit, resourceUri.fsPath);
 
     } catch (error: any) {
-        // This will catch errors if the file doesn't exist in HEAD either (e.g. new untracked file)
-        console.error(`Failed to get file contents for ${resourceUri.fsPath}:`, error);
+        const msg = String(error?.message ?? error);
+        if (msg.includes("not found") || msg.includes("Git relative path")) {
+            // Expected: file exists on disk but not yet committed
+            console.log(`File not in HEAD commit (uncommitted): ${resourceUri.fsPath}`);
+        } else {
+            console.error(`Failed to get file contents for ${resourceUri.fsPath}:`, error);
+        }
         return null;
     }
     
@@ -95,8 +120,13 @@ export async function getDiffToHead(resourceUri: vscode.Uri): Promise<string | n
         return await repo.diffWithHEAD(resourceUri.fsPath);
 
     } catch (error: any) {
-        // This will catch errors if the file doesn't exist in HEAD either (e.g. new untracked file)
-        console.error(`Failed to get file contents for ${resourceUri.fsPath}:`, error);
+        const msg = String(error?.message ?? error);
+        if (msg.includes("not found") || msg.includes("Git relative path")) {
+            // Expected: file exists on disk but not yet committed
+            console.log(`File not in HEAD (uncommitted, no diff): ${resourceUri.fsPath}`);
+        } else {
+            console.error(`Failed to get diff for ${resourceUri.fsPath}:`, error);
+        }
         return null;
     }
     

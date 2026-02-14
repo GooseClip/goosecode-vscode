@@ -13,7 +13,10 @@ import { openSettingsPage } from "./getting-started";
 import { WorkspaceTracker } from "./workspace-tracker";
 import { registerGooseCodeCommands } from "./goosecode/goosecode";
 import { ConnectionProvider } from "./views/connection";
-import { ActiveSessionProvider } from "./views/active-session";
+import {
+  WarningsProvider,
+  WorkspaceWarning,
+} from "./views/warnings";
 import * as gc from "./gen/ide";
 import { findAvailablePort } from "./util";
 
@@ -24,7 +27,7 @@ let gooseCodeServer: GooseCodeServer | null = null;
 let goosecodeSubscriptions: Array<vscode.Disposable> = [];
 let codeSourcesProvider: CodeSourcesProvider | null = null;
 let connectionProvider: ConnectionProvider | null = null;
-let activeSessionProvider: ActiveSessionProvider | null = null;
+let warningsProvider: WarningsProvider | null = null;
 let extensionContext: vscode.ExtensionContext | null = null;
 
 // Server error state
@@ -435,12 +438,12 @@ function createTreeProviders(
 ): Array<vscode.Disposable> {
   const subscriptions: Array<vscode.Disposable> = [];
 
-  // Active session provider
-  activeSessionProvider = new ActiveSessionProvider();
+  // Warnings provider
+  warningsProvider = new WarningsProvider();
 
   var sub = vscode.window.registerTreeDataProvider(
-    "goosecode.activeSession",
-    activeSessionProvider,
+    "goosecode.warnings",
+    warningsProvider,
   );
   subscriptions.push(sub);
 
@@ -474,7 +477,13 @@ function createTreeProviders(
     async (codeSource: CodeSource) => {
       try {
         const root = codeSource.resourceUri!.fsPath;
-        await loadWorkspaceConfiguration(root, true);
+        const config = await loadWorkspaceConfiguration(root, true);
+        if (!config) {
+          vscode.window.showErrorMessage(
+            "Cannot enable: Git must be initialized with at least one commit.",
+          );
+          return;
+        }
         const workspaces = await workspaceTracker!.refresh();
         gooseCodeServer?.pushWorkspacesToGooseCode(workspaces);
         codeSourcesProvider?.refresh();
@@ -549,6 +558,23 @@ export async function activate(context: vscode.ExtensionContext) {
       "setContext",
       "goosecode.hasActiveCodeSources",
       workspaceTracker!.activeWorkspaces().length > 0 ? true : false,
+    );
+
+    const warnings: WorkspaceWarning[] = [];
+    for (const ws of workspaceTracker!.activeWorkspaces()) {
+      if (ws.config?.config.repositoryFullName.startsWith("local/")) {
+        warnings.push({
+          workspaceName: ws.workspace.name,
+          message: "Remote repository not detected",
+          severity: "warning",
+        });
+      }
+    }
+    warningsProvider?.refresh(warnings);
+    vscode.commands.executeCommand(
+      "setContext",
+      "goosecode.hasWarnings",
+      warnings.length > 0,
     );
   });
   // Store context to not show welcome view again

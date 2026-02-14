@@ -14,6 +14,7 @@ import { handleGoToDefinition } from './handlers/go-to';
 import { handleResolveSymbol } from './handlers/resolve-symbol';
 import { handleSearchRequest } from './handlers/search';
 import { handleGetIgnorePatternsRequest, handleSetIgnorePatternsRequest } from './handlers/goosecodeignore';
+import { handleListFileCommits, handleGetFileAtCommit, handleGetFileDiff } from './handlers/commit-history';
 import * as path from 'path';
 import { toUnixPath } from '../../util';
 
@@ -81,7 +82,9 @@ export class GooseCodeServer {
       message.context = gc.PushContext.create({
         workspaceRoot: toUnixPath(activeWorkspace.uri.fsPath),
         versionControl: gc.VersionControlInfo.create({
-          repositoryFullname: gitInfo?.repositoryFullName ?? "",
+          repositoryFullname:
+            gitInfo?.repositoryFullName ||
+            activeWorkspace.config!.config.repositoryFullName,
           branch: gitInfo?.branch ?? "",
           commit: gitInfo?.commit ?? "",
         }),
@@ -480,6 +483,103 @@ export class GooseCodeServer {
         return gc.SetIgnorePatternsResponse.create({
           success: false,
           error: e instanceof Error ? e.message : 'Unknown error',
+        });
+      }
+    },
+
+    listFileCommits: async (request: gc.ListFileCommitsRequest, context: rpc.ServerCallContext): Promise<gc.ListFileCommitsResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
+
+      context.trailers = {
+        'status': '...done'
+      };
+
+      try {
+        if (!request.context) {
+          throw new ApiError("Request context is required", 400);
+        }
+
+        const workspace = await this.workspaceTracker.getWorkspaceFromContext(
+          request.context,
+        );
+
+        if (workspace === null) {
+          throw new ApiError(`Workspace not found: ${request.context.versionControlInfo?.repositoryFullname}`, 422);
+        }
+
+        return await handleListFileCommits(request, workspace.uri!);
+      } catch (e) {
+        console.error("ListFileCommits error:", e);
+        return gc.ListFileCommitsResponse.create({
+          commits: [],
+          hasNextPage: false,
+          totalCount: 0,
+        });
+      }
+    },
+
+    getFileAtCommit: async (request: gc.GetFileAtCommitRequest, context: rpc.ServerCallContext): Promise<gc.GetFileAtCommitResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
+
+      context.trailers = {
+        'status': '...done'
+      };
+
+      try {
+        if (!request.context) {
+          throw new ApiError("Request context is required", 400);
+        }
+
+        const workspace = await this.workspaceTracker.getWorkspaceFromContext(
+          request.context,
+        );
+
+        if (workspace === null) {
+          throw new ApiError(`Workspace not found: ${request.context.versionControlInfo?.repositoryFullname}`, 422);
+        }
+
+        return await handleGetFileAtCommit(request, workspace.uri!);
+      } catch (e) {
+        console.error("GetFileAtCommit error:", e);
+        return gc.GetFileAtCommitResponse.create({
+          content: '',
+          fileExisted: false,
+        });
+      }
+    },
+
+    getFileDiff: async (request: gc.GetFileDiffRequest, context: rpc.ServerCallContext): Promise<gc.GetFileDiffResponse> => {
+      context.sendResponseHeaders({
+        'status': 'processing...'
+      });
+
+      context.trailers = {
+        'status': '...done'
+      };
+
+      try {
+        if (!request.context) {
+          throw new ApiError("Request context is required", 400);
+        }
+
+        const workspace = await this.workspaceTracker.getWorkspaceFromContext(
+          request.context,
+        );
+
+        if (workspace === null) {
+          throw new ApiError(`Workspace not found: ${request.context.versionControlInfo?.repositoryFullname}`, 422);
+        }
+
+        return await handleGetFileDiff(request, workspace.uri!);
+      } catch (e) {
+        console.error("GetFileDiff error:", e);
+        return gc.GetFileDiffResponse.create({
+          diff: '',
+          hasChanges: false,
         });
       }
     },
