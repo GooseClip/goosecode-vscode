@@ -3,16 +3,20 @@ import { getFileContentsRaw } from "../../commands/commands";
 import * as vscode from "vscode";
 import * as path from "path";
 
-import * as gc from "../../../gen/ide";
-import { getDiffToHead, getFileContentsAtCommit as getFileContentsAtHead } from "../../../git";
+import { create } from "@bufbuild/protobuf";
+import type { GetFilesRequest, GetFilesResponse } from "../../../gen/ide-connect/v1/api_pb";
+import { GetFilesResponseSchema } from "../../../gen/ide-connect/v1/api_pb";
+import type { FileContext } from "../../../gen/ide-connect/v1/files_pb";
+import { FileContextSchema } from "../../../gen/ide-connect/v1/files_pb";
+import { getFileContentsAtCommit as getFileContentsAtHead } from "../../../git";
 import { toNativePath } from "../../../util";
 
 async function handleGetFilesRequest(
-  request: gc.GetFilesRequest,
+  request: GetFilesRequest,
   workspaceUri: vscode.Uri,
 
-): Promise<gc.GetFilesResponse> {
-  const fileContext: gc.FileContext[] = [];
+): Promise<GetFilesResponse> {
+  const fileContext: FileContext[] = [];
 
   for (var v of request.filePaths) {
     // Convert incoming UNIX-style path to native format
@@ -39,7 +43,7 @@ async function handleGetFilesRequest(
       console.error("Failed to get head content");
     }
 
-    fileContext.push(gc.FileContext.create({
+    fileContext.push(create(FileContextSchema, {
       filePath: v,
       headContent: head ?? "",
       // Keep currentContent for backward compatibility with text files
@@ -50,7 +54,7 @@ async function handleGetFilesRequest(
     }));
   }
 
-  const response = gc.GetFilesResponse.create({
+  const response = create(GetFilesResponseSchema, {
     fileContext: fileContext,
   });
 

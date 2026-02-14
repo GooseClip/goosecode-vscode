@@ -1,4 +1,5 @@
 {
+  "exclude": ["**/*.bak", "**/*.old", "**/*.grpc_backup"],
   "compilerOptions": {
     "module": "commonjs",
     "target": "ES2020",

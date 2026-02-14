@@ -12,7 +12,7 @@ import * as path from "node:path";
 import { getGitInfoFromVscodeApi } from "./git";
 import { Uri } from "vscode";
 import * as os from "os";
-import * as gc from "./gen/ide";
+import type { Context } from "./gen/ide-connect/v1/api_pb";
 
 const globalConfigDir = path.join(
   os.homedir(),
@@ -56,6 +56,7 @@ export type ConfigWrapper = {
 export type GooseCodeSettings = {
   port: number;
   localhostOnly: boolean;
+  useTLS: boolean;
   startAutomatically: boolean;
   password: string;
 };
@@ -98,7 +99,7 @@ async function saveAllWorkspaces(config: ConfigWrapper): Promise<void> {
 }
 
 export async function findWorkspace(
-  context: gc.Context,
+  context: Context,
 ): Promise<GooseCodeWorkspace | null> {
   const allWorkspaces = await loadAllWorkspaces();
   const workspaces = Object.values(allWorkspaces.GooseCode);
@@ -210,6 +211,9 @@ export async function loadGlobalConfigurations(
     localhostOnly: vscode.workspace
       .getConfiguration("goosecode")
       .get("connections.localhostOnly") as boolean,
+    useTLS: vscode.workspace
+      .getConfiguration("goosecode")
+      .get("connections.useTLS") ?? true,
     password: vscode.workspace
       .getConfiguration("goosecode")
       .get("connections.password") as string,

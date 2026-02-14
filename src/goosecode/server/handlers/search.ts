@@ -1,11 +1,14 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import * as gc from "../../../gen/ide";
+import { create } from "@bufbuild/protobuf";
 import { defaultExclusions, isBinaryFile, sortFilesByPriority } from "./file-filters";
 import { loadIgnorePatterns } from "./ignore-parser";
 import { toUnixPath, toNativePath } from "../../../util";
+import type { SearchRequest, SearchResponse } from "../../../gen/ide-connect/v1/api_pb";
+import { SearchResponseSchema, SearchType, SearchMatchSchema, FindPatternResultSchema, FindUsesResultSchema } from "../../../gen/ide-connect/v1/api_pb";
+import type { Location } from "../../../gen/ide-connect/v1/vscode_pb";
+import { LocationSchema, PositionSchema, RangeSchema } from "../../../gen/ide-connect/v1/vscode_pb";
 
-// Maximum number of files to search through
 const MAX_FILES = 1000;
 
 interface SearchResult {
@@ -27,9 +30,6 @@ interface SearchOutput {
   totalFilesAvailable: number;
 }
 
-/**
- * Search for a pattern in workspace files using VSCode's search API
- */
 async function searchInWorkspace(
   workspaceUri: vscode.Uri,
   pattern: string,
@@ -47,10 +47,8 @@ async function searchInWorkspace(
   const maxResults = options.maxResults || 500;
   const contextLines = options.contextLines || 2;
 
-  // Load ignore patterns from .gitignore and .goosecodeignore
   const ignoreConfig = await loadIgnorePatterns(workspaceUri);
 
-  // Build exclude pattern combining defaults + gitignore + goosecodeignore + user exclusions
   const allExclusions = [
     ...defaultExclusions,
     ...ignoreConfig.excludePatterns,
@@ -62,12 +60,11 @@ async function searchInWorkspace(
 
   console.log(`[Search] Exclude patterns (${allExclusions.length}):`, allExclusions.slice(0, 5), allExclusions.length > 5 ? '...' : '');
 
-  // Build include pattern
   let includePattern: vscode.GlobPattern;
   if (options.includedFiles && options.includedFiles.length > 0) {
     const patterns = options.includedFiles;
     console.log(`[Search] Include patterns:`, patterns);
-    
+
     if (patterns.length === 1) {
       includePattern = new vscode.RelativePattern(workspaceUri, patterns[0]);
     } else {
@@ -77,7 +74,6 @@ async function searchInWorkspace(
     includePattern = new vscode.RelativePattern(workspaceUri, "**/*");
   }
 
-  // Find all matching files (no limit - let exclusions filter first, then check truncation)
   let files = await vscode.workspace.findFiles(
     includePattern,
     excludePattern
@@ -85,8 +81,6 @@ async function searchInWorkspace(
 
   console.log(`[Search] Found ${files.length} files from findFiles`);
 
-  // Apply include patterns (overrides from .goosecodeignore) BEFORE truncation check
-  // These allow including files that would otherwise be excluded by gitignore
   if (ignoreConfig.includePatterns.length > 0) {
     console.log(`[Search] Applying ${ignoreConfig.includePatterns.length} override patterns from .goosecodeignore`);
     try {
@@ -94,7 +88,7 @@ async function searchInWorkspace(
       for (const includeGlob of ignoreConfig.includePatterns) {
         const overridePattern = new vscode.RelativePattern(workspaceUri, includeGlob);
         const overrideFiles = await vscode.workspace.findFiles(overridePattern, undefined, 1000);
-        
+
         for (const file of overrideFiles) {
           if (!existingPaths.has(file.fsPath)) {
             files.push(file);
@@ -108,24 +102,20 @@ async function searchInWorkspace(
     }
   }
 
-  // Now check for truncation and apply limit
   const totalFilesAvailable = files.length;
   const filesTruncated = files.length > MAX_FILES;
 
   if (filesTruncated) {
     console.log(`[Search] File list truncated: ${files.length} -> ${MAX_FILES}`);
-    // Sort by priority BEFORE truncating so we keep the most important files
     files = sortFilesByPriority(files);
     files = files.slice(0, MAX_FILES);
   } else {
-    // Still sort by priority for consistent ordering
     files = sortFilesByPriority(files);
   }
 
   const totalFilesSearched = files.length;
   console.log(`[Search] Searching ${totalFilesSearched} files for pattern: "${pattern}"`);
 
-  // Create the search pattern (escape if not using regex)
   let searchPattern: string;
   if (options.useRegex) {
     searchPattern = pattern;
@@ -138,7 +128,6 @@ async function searchInWorkspace(
     options.caseSensitive ? 'g' : 'gi'
   );
 
-  // Search through each file
   for (const fileUri of files) {
     if (results.length >= maxResults) {
       break;
@@ -157,11 +146,11 @@ async function searchInWorkspace(
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         regex.lastIndex = 0;
-        
+
         let match;
         while ((match = regex.exec(line)) !== null) {
           totalMatches++;
-          
+
           if (results.length < maxResults) {
             const contextBefore: string[] = [];
             const contextAfter: string[] = [];
@@ -206,32 +195,29 @@ async function searchInWorkspace(
   };
 }
 
-/**
- * Handle search request from GooseCode
- */
 export async function handleSearchRequest(
-  request: gc.SearchRequest,
+  request: SearchRequest,
   workspaceUri: vscode.Uri,
-): Promise<gc.SearchResponse> {
-  if (request.data.oneofKind !== "pattern") {
-    return gc.SearchResponse.create({
-      type: gc.SearchType.USES,
+): Promise<SearchResponse> {
+  if (request.data.case !== "pattern") {
+    return create(SearchResponseSchema, {
+      type: SearchType.USES,
       data: {
-        oneofKind: "uses",
-        uses: gc.FindUsesResult.create({ locations: [] }),
+        case: "uses",
+        value: create(FindUsesResultSchema, { locations: [] }),
       },
     });
   }
 
-  const patternRequest = request.data.pattern;
+  const patternRequest = request.data.value;
   const searchPattern = patternRequest.searchPattern;
 
   if (!searchPattern || searchPattern.trim() === "") {
-    return gc.SearchResponse.create({
-      type: gc.SearchType.PATTERN,
+    return create(SearchResponseSchema, {
+      type: SearchType.PATTERN,
       data: {
-        oneofKind: "pattern",
-        pattern: gc.FindPatternResult.create({
+        case: "pattern",
+        value: create(FindPatternResultSchema, {
           locations: [],
           matches: [],
           truncated: false,
@@ -259,8 +245,8 @@ export async function handleSearchRequest(
     }
   );
 
-  const matches: gc.SearchMatch[] = searchOutput.results.map((r) =>
-    gc.SearchMatch.create({
+  const matches = searchOutput.results.map((r) =>
+    create(SearchMatchSchema, {
       filePath: r.filePath,
       lineNumber: r.lineNumber,
       lineContent: r.lineContent,
@@ -271,15 +257,15 @@ export async function handleSearchRequest(
     })
   );
 
-  const locations: gc.Location[] = searchOutput.results.map((r) =>
-    gc.Location.create({
+  const locations: Location[] = searchOutput.results.map((r) =>
+    create(LocationSchema, {
       path: r.filePath,
-      range: gc.Range.create({
-        start: gc.Position.create({
+      range: create(RangeSchema, {
+        start: create(PositionSchema, {
           line: BigInt(r.lineNumber - 1),
           character: BigInt(r.matchStart),
         }),
-        end: gc.Position.create({
+        end: create(PositionSchema, {
           line: BigInt(r.lineNumber - 1),
           character: BigInt(r.matchEnd),
         }),
@@ -287,11 +273,11 @@ export async function handleSearchRequest(
     })
   );
 
-  return gc.SearchResponse.create({
-    type: gc.SearchType.PATTERN,
+  return create(SearchResponseSchema, {
+    type: SearchType.PATTERN,
     data: {
-      oneofKind: "pattern",
-      pattern: gc.FindPatternResult.create({
+      case: "pattern",
+      value: create(FindPatternResultSchema, {
         locations,
         matches,
         truncated: searchOutput.truncated,

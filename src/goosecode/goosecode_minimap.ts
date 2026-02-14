@@ -1,18 +1,19 @@
-import * as gc from "../gen/ide";
+import { create } from "@bufbuild/protobuf";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { GooseCodeServer } from "./server/server";
+import { PushResponseSchema, PushType, AppCommandPushSchema, AppCommandType } from "../gen/ide-connect/v1/push_pb";
 
 export async function handleMinimapCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker) {
     gooseCodeServer.push(
-        gc.PushResponse.create({
-            type: gc.PushType.APP_COMMAND,
+        create(PushResponseSchema, {
+            type: PushType.APP_COMMAND,
             data: {
-                oneofKind: "appCommand",
-                appCommand: gc.AppCommandPush.create({
-                    type: gc.AppCommandType.MINIMAP,
+                case: "appCommand",
+                value: create(AppCommandPushSchema, {
+                    type: AppCommandType.MINIMAP,
                 }),
-            }
-        })
+            },
+        }),
     );
 }
 

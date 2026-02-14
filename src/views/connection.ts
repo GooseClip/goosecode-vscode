@@ -99,6 +99,20 @@ export class ConnectionProvider implements vscode.TreeDataProvider<Connection> {
           "localhostItem",
         ),
       );
+
+      const useTLS = server.extensionConfig.settings.useTLS ?? true;
+      items.push(
+        new Connection(
+          "Use TLS",
+          vscode.TreeItemCollapsibleState.None,
+          useTLS,
+          true,
+          undefined,
+          undefined,
+          "status",
+          "tlsItem",
+        ),
+      );
       
       // Show discoverable item with instance ID when broadcasting
       const isDiscoverable = isBonjourRunning();

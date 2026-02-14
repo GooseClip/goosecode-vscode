@@ -2,7 +2,9 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as gc from '../../../gen/ide';
+import { create } from '@bufbuild/protobuf';
+import type { ListFileCommitsRequest, GetFileAtCommitRequest, GetFileDiffRequest } from '../../../gen/ide-connect/v1/api_pb';
+import { ListFileCommitsResponseSchema, FileCommitInfoSchema, GetFileAtCommitResponseSchema, GetFileDiffResponseSchema } from '../../../gen/ide-connect/v1/api_pb';
 import { getFileContentsAtSpecificCommit } from '../../../git';
 import { toNativePath } from '../../../util';
 
@@ -13,9 +15,9 @@ const execFileAsync = promisify(execFile);
  * Uses `git log --follow` to track file renames.
  */
 export async function handleListFileCommits(
-    request: gc.ListFileCommitsRequest,
+    request: ListFileCommitsRequest,
     workspaceUri: vscode.Uri
-): Promise<gc.ListFileCommitsResponse> {
+) {
     const page = request.page || 1;
     const perPage = request.perPage || 20;
     const skip = (page - 1) * perPage;
@@ -46,10 +48,10 @@ export async function handleListFileCommits(
         const hasNextPage = lines.length > perPage;
         const commitLines = hasNextPage ? lines.slice(0, perPage) : lines;
 
-        const commits: gc.FileCommitInfo[] = commitLines.map((line) => {
+        const commits = commitLines.map((line) => {
             const [sha, message, authorName, authorEmail, timestampStr] = line.split('\0');
             const timestamp = BigInt(parseInt(timestampStr || '0', 10));
-            return gc.FileCommitInfo.create({
+            return create(FileCommitInfoSchema, {
                 sha: sha || '',
                 message: message || '',
                 authorName: authorName || '',
@@ -58,7 +60,7 @@ export async function handleListFileCommits(
             });
         });
 
-        return gc.ListFileCommitsResponse.create({
+        return create(ListFileCommitsResponseSchema, {
             commits,
             hasNextPage,
             totalCount: 0, // Not computed for efficiency
@@ -66,7 +68,7 @@ export async function handleListFileCommits(
         });
     } catch (error) {
         console.error('ListFileCommits error:', error);
-        return gc.ListFileCommitsResponse.create({
+        return create(ListFileCommitsResponseSchema, {
             commits: [],
             hasNextPage: false,
             totalCount: 0,
@@ -78,15 +80,15 @@ export async function handleListFileCommits(
  * Gets file content at a specific commit.
  */
 export async function handleGetFileAtCommit(
-    request: gc.GetFileAtCommitRequest,
+    request: GetFileAtCommitRequest,
     workspaceUri: vscode.Uri
-): Promise<gc.GetFileAtCommitResponse> {
+) {
     const nativePath = toNativePath(request.filePath);
     const fullPath = path.join(workspaceUri.fsPath, nativePath);
     const resourceUri = vscode.Uri.file(fullPath);
 
     const result = await getFileContentsAtSpecificCommit(resourceUri, request.commitSha);
-    return gc.GetFileAtCommitResponse.create({
+    return create(GetFileAtCommitResponseSchema, {
         content: result.content,
         fileExisted: result.fileExisted,
     });
@@ -97,9 +99,9 @@ export async function handleGetFileAtCommit(
  * If headRef is empty, diffs against the working copy.
  */
 export async function handleGetFileDiff(
-    request: gc.GetFileDiffRequest,
+    request: GetFileDiffRequest,
     workspaceUri: vscode.Uri
-): Promise<gc.GetFileDiffResponse> {
+) {
     const nativePath = toNativePath(request.filePath);
     const workspaceRoot = workspaceUri.fsPath;
 
@@ -121,13 +123,13 @@ export async function handleGetFileDiff(
             maxBuffer: 10 * 1024 * 1024, // 10MB for large diffs
         });
 
-        return gc.GetFileDiffResponse.create({
+        return create(GetFileDiffResponseSchema, {
             diff: stdout,
             hasChanges: stdout.trim().length > 0,
         });
     } catch (error) {
         console.error('GetFileDiff error:', error);
-        return gc.GetFileDiffResponse.create({
+        return create(GetFileDiffResponseSchema, {
             diff: '',
             hasChanges: false,
         });

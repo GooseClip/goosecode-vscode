@@ -1,10 +1,12 @@
 import * as vscode from "vscode";
 import { getWordAtPosition } from "./vscode_extension_helpers";
-import * as gc from "../gen/ide";
+import { create } from "@bufbuild/protobuf";
 import { convertRange } from "../util";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { GooseCodeServer } from "./server/server";
 import { getFileContexts } from "./context";
+import { PushResponseSchema, PushType, FileCommandPushSchema, FileCommandType, SnippetPushSchema } from "../gen/ide-connect/v1/push_pb";
+import { LocationWithContextSchema, LocationSchema, SnippetContextSchema } from "../gen/ide-connect/v1/vscode_pb";
 
 export async function handleSnippetCommand(gooseCodeServer: GooseCodeServer, workspaceTracker: WorkspaceTracker, args: { minimized: boolean }) {
     const editor = vscode.window.activeTextEditor!;
@@ -25,28 +27,28 @@ export async function handleSnippetCommand(gooseCodeServer: GooseCodeServer, wor
     }
 
     gooseCodeServer.push(
-        gc.PushResponse.create({
-            type: gc.PushType.FILE_COMMAND,
+        create(PushResponseSchema, {
+            type: PushType.FILE_COMMAND,
             data: {
-                oneofKind: "fileCommand",
-                fileCommand: gc.FileCommandPush.create({
-                    type: gc.FileCommandType.SNIPPET,
+                case: "fileCommand",
+                value: create(FileCommandPushSchema, {
+                    type: FileCommandType.SNIPPET,
                     fileContexts: await getFileContexts(workspaceTracker, [workspaceTracker.currentRelativeFilePath()]),
                     data: {
-                        oneofKind: "snippet",
-                        snippet: gc.SnippetPush.create({
+                        case: "snippet",
+                        value: create(SnippetPushSchema, {
                             minimize: args.minimized,
-                            location: gc.LocationWithContext.create({
-                                location: gc.Location.create({
+                            location: create(LocationWithContextSchema, {
+                                location: create(LocationSchema, {
                                     path: workspaceTracker.currentRelativeFilePath(),
                                     range: convertRange(range),
                                 }),
-                                context: gc.SnippetContext.create({
-                                    fullRange: convertRange(fullRange)
-                                })
+                                context: create(SnippetContextSchema, {
+                                    fullRange: convertRange(fullRange),
+                                }),
                             }),
                         }),
-                    }
+                    },
                 }),
             },
         }),

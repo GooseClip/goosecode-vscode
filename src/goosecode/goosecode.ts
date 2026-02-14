@@ -4,13 +4,11 @@ import { GooseCodeServer } from "./server/server";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { loadWorkspaceConfiguration } from "../config";
 import { getGitInfoFromVscodeApi } from "../git";
-import * as gc from "../gen/ide";
 import { GenerateResult, handleGenerateCommand } from "./goosecode_generate";
 import { handleSnippetCommand } from "./goosecode_snippet";
 import { handleMinimapCommand } from "./goosecode_minimap";
 import { handleOverlayCommand } from "./goosecode_overlay";
 import { handleAddFileCommand } from "./goosecode_add_file";
-import { GenerateType } from "../gen/ide";
 
 
 export function registerGooseCodeCommands(

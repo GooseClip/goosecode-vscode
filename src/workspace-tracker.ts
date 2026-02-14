@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import * as gc from "./gen/ide";
+import type { Context } from "./gen/ide-connect/v1/api_pb";
 import {
   GooseCodeWorkspaceConfig,
   loadWorkspaceConfiguration,
@@ -43,7 +43,7 @@ export class WorkspaceTracker {
   }
 
   public async getWorkspaceFromContext(
-    context: gc.Context,
+    context: Context,
   ): Promise<Workspace | null> {
     const config = await findWorkspace(context);
     if (!config) {

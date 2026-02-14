@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
-import * as gc from "../../../gen/ide";
+import { create } from "@bufbuild/protobuf";
+import type { GetIgnorePatternsRequest, SetIgnorePatternsRequest } from "../../../gen/ide-connect/v1/api_pb";
+import { GetIgnorePatternsResponseSchema, SetIgnorePatternsResponseSchema } from "../../../gen/ide-connect/v1/api_pb";
 import { getIgnorePatternsForUI, setGooseCodeIgnoreContent } from "./ignore-parser";
 
 /**
@@ -7,12 +9,12 @@ import { getIgnorePatternsForUI, setGooseCodeIgnoreContent } from "./ignore-pars
  * Returns .goosecodeignore content and .gitignore patterns for display.
  */
 export async function handleGetIgnorePatternsRequest(
-  request: gc.GetIgnorePatternsRequest,
+  request: GetIgnorePatternsRequest,
   workspaceUri: vscode.Uri
-): Promise<gc.GetIgnorePatternsResponse> {
+) {
   const result = await getIgnorePatternsForUI(workspaceUri);
 
-  return gc.GetIgnorePatternsResponse.create({
+  return create(GetIgnorePatternsResponseSchema, {
     goosecodeignoreContent: result.goosecodeignoreContent,
     gitignorePatterns: result.gitignorePatterns,
     goosecodeignoreExists: result.goosecodeignoreExists,
@@ -23,15 +25,15 @@ export async function handleGetIgnorePatternsRequest(
  * Handle request to set/update .goosecodeignore content.
  */
 export async function handleSetIgnorePatternsRequest(
-  request: gc.SetIgnorePatternsRequest,
+  request: SetIgnorePatternsRequest,
   workspaceUri: vscode.Uri
-): Promise<gc.SetIgnorePatternsResponse> {
+) {
   const result = await setGooseCodeIgnoreContent(
     workspaceUri,
     request.goosecodeignoreContent
   );
 
-  return gc.SetIgnorePatternsResponse.create({
+  return create(SetIgnorePatternsResponseSchema, {
     success: result.success,
     error: result.error ?? "",
   });

@@ -17,7 +17,9 @@ import {
   WarningsProvider,
   WorkspaceWarning,
 } from "./views/warnings";
-import * as gc from "./gen/ide";
+import { create } from "@bufbuild/protobuf";
+import { WorkspaceDetailsSchema } from "./gen/ide-connect/v1/workspace_pb";
+import { VersionControlInfoSchema } from "./gen/ide-connect/v1/version_control_pb";
 import { findAvailablePort } from "./util";
 
 import { v4 as uuidv4 } from "uuid";
@@ -58,6 +60,7 @@ export function isBonjourRunning(): boolean {
 async function startBonjourService(
   context: vscode.ExtensionContext,
   durationSeconds?: number,
+  extensionConfig?: GooseCodeExtensionConfig,
 ) {
   await stopBonjourService();
 
@@ -73,6 +76,10 @@ async function startBonjourService(
   const smallId = instanceId.slice(0, 8);
   const mdnsHost = `goosecode-${smallId}.local`;
 
+  const useTLS =
+    extensionConfig?.settings.useTLS ??
+    gooseCodeServer?.extensionConfig.settings.useTLS ??
+    true;
 
   bonjourService = bonjour.publish({
     name: `GooseCode (${smallId})`,
@@ -81,10 +88,10 @@ async function startBonjourService(
     port,
     host: mdnsHost,
     txt: {
-      proto: 'https', // Added: Specify HTTPS protocol
-      v: '1.0',
-      id: context.globalState.get('instanceId') ?? 'default'
-    }
+      proto: useTLS ? "https" : "http",
+      v: "1.0",
+      id: context.globalState.get("instanceId") ?? "default",
+    },
   });
 
   bonjourService.on("up", () => {
@@ -262,7 +269,7 @@ async function restartServer(context: vscode.ExtensionContext) {
   
   // Re-advertise with new port if Bonjour was active and server started successfully
   if (result.success && wasBonjour) {
-    await startBonjourService(context);
+    await startBonjourService(context, undefined, config);
   }
 }
 
@@ -337,6 +344,34 @@ async function persistentCommands(
         .getConfiguration("goosecode")
         .update(
           "connections.localhostOnly",
+          false,
+          ConfigurationTarget.Global,
+        );
+    },
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.connections.enableTLS",
+    async () => {
+      await vscode.workspace
+        .getConfiguration("goosecode")
+        .update(
+          "connections.useTLS",
+          true,
+          ConfigurationTarget.Global,
+        );
+    },
+  );
+  subscriptions.push(sub);
+
+  sub = vscode.commands.registerCommand(
+    "goosecode.connections.disableTLS",
+    async () => {
+      await vscode.workspace
+        .getConfiguration("goosecode")
+        .update(
+          "connections.useTLS",
           false,
           ConfigurationTarget.Global,
         );
@@ -433,6 +468,16 @@ async function updateLocalhostOnlyContext() {
   );
 }
 
+async function updateUseTLSContext() {
+  const config = workspace.getConfiguration("goosecode");
+  const isUseTLS = config.get("connections.useTLS") ?? true;
+  await vscode.commands.executeCommand(
+    "setContext",
+    "goosecode.isUseTLS",
+    isUseTLS,
+  );
+}
+
 function createTreeProviders(
   context: vscode.ExtensionContext,
 ): Array<vscode.Disposable> {
@@ -501,15 +546,17 @@ function createTreeProviders(
         codeSource.resourceUri!.fsPath,
       );
       const workspaces = await workspaceTracker!.refresh();
-      gooseCodeServer?.pushWorkspacesToGooseCode(workspaces, gc.WorkspaceDetails.create({
-        workspaceRoot: codeSource.resourceUri!.fsPath,
-        versionControlInfo: gc.VersionControlInfo.create({
-          repositoryFullname: removed?.repositoryFullName ?? "",
-          branch: removed?.branch ?? "",
-          commit: removed?.commit ?? "",
+      gooseCodeServer?.pushWorkspacesToGooseCode(
+        workspaces,
+        create(WorkspaceDetailsSchema, {
+          workspaceRoot: codeSource.resourceUri!.fsPath,
+          versionControlInfo: create(VersionControlInfoSchema, {
+            repositoryFullname: removed?.repositoryFullName ?? "",
+            branch: removed?.branch ?? "",
+            commit: removed?.commit ?? "",
+          }),
+          deleted: true,
         }),
-        deleted: true,
-      }),
       );
     },
   );
@@ -634,6 +681,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
         connectionProvider?.refresh();
         await updateLocalhostOnlyContext();
+        await updateUseTLSContext();
       }
     },
   );
@@ -644,6 +692,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(...persistentCommandSubscriptions);
 
   await updateLocalhostOnlyContext();
+  await updateUseTLSContext();
 
 
   context.subscriptions.push({
@@ -655,7 +704,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("goosecode.broadcast", () => {
       if (gooseCodeServer) {
-        startBonjourService(context, 60);
+        startBonjourService(context, 60, gooseCodeServer.extensionConfig);
         vscode.window.showInformationMessage(
           "Broadcasting GooseCode service for 60 seconds.",
         );

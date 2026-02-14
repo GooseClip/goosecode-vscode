@@ -1,23 +1,25 @@
 import { Uri } from "vscode";
+import { create } from "@bufbuild/protobuf";
 import { goToDefinition } from "../../commands/commands";
 import { ApiError } from "../../errors";
-import * as gc from "../../../gen/ide";
+import type { NavigateRequest } from "../../../gen/ide-connect/v1/api_pb";
+import { NavigateResponseSchema } from "../../../gen/ide-connect/v1/api_pb";
 
 async function handleGoToDefinition(
-  request: gc.NavigateRequest,
+  request: NavigateRequest,
   workspaceUri: Uri,
-): Promise<gc.NavigateResponse> {
-  const req = request.data as {
-    oneofKind: "goToDefinition";
-    goToDefinition: gc.GoToDefinitionRequest
-  };
-  const location = req.goToDefinition.location;
+) {
+  if (request.data.case !== "goToDefinition") {
+    throw new ApiError("Expected goToDefinition request", 400);
+  }
+  const req = request.data.value;
+  const location = req.location;
   // Open IDE
-  if (!(await goToDefinition(workspaceUri, location!, req.goToDefinition.select))) {
+  if (!(await goToDefinition(workspaceUri, location!, req.select))) {
     throw new ApiError("Failed to go to definition", 500);
   }
 
-  return gc.NavigateResponse.create({});
+  return create(NavigateResponseSchema, {});
 }
 
 export { handleGoToDefinition };

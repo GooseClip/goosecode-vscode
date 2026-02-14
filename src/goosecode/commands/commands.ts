@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import * as gc from "../../gen/ide";
+import type { Location } from "../../gen/ide-connect/v1/vscode_pb";
 import { LocationOrLocationLink, DocumentSymbolOrSymbolInformation } from "../../types";
 import { Uri } from "vscode";
 import { exec } from "child_process";
@@ -180,7 +180,7 @@ export async function getImplementations(): Promise<LocationOrLocationLink[]> {
 
 export async function goToDefinition(
   workspaceUri: Uri,
-  loc: gc.Location,
+  loc: Location,
   select: boolean,
 ): Promise<boolean> {
   const activeEditor = vscode.window.activeTextEditor;

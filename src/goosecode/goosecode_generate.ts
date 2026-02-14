@@ -1,9 +1,17 @@
 import * as vscode from "vscode";
 import { getWordAtPosition, targetFullRangeFromLocation, targetRangeFromLocation, uriFromLocation } from "./vscode_extension_helpers";
-import * as gc from "../gen/ide";
-import { getSelectedOneofValue, setOneofValue } from "@protobuf-ts/runtime";
-
+import { create } from "@bufbuild/protobuf";
 import { convertRange } from "../util";
+import type { LocationWithContext } from "../gen/ide-connect/v1/vscode_pb";
+import type { FileContext } from "../gen/ide-connect/v1/files_pb";
+import type { PushResponse, ConnectedGenerate } from "../gen/ide-connect/v1/push_pb";
+import type { Range } from "../gen/ide-connect/v1/vscode_pb";
+import {
+  PushResponseSchema, PushType, FileCommandPushSchema, FileCommandType, GeneratePushSchema,
+  GenerateType, SnippetGenerateSchema, ConnectedGenerateSchema, ConnectedGenerateType,
+} from "../gen/ide-connect/v1/push_pb";
+import { LocationWithContextSchema, LocationSchema, SnippetContextSchema } from "../gen/ide-connect/v1/vscode_pb";
+import { PositionSchema, RangeSchema } from "../gen/ide-connect/v1/vscode_pb";
 import { LocationOrLocationLink } from "../types";
 import { getDefinitions, getFileContents, getReferences, getImplementations, goToDefinition } from "./commands/commands";
 import { WorkspaceTracker } from "../workspace-tracker";
@@ -80,33 +88,33 @@ async function snippetGenerate(gooseCodeServer: GooseCodeServer, workspaceTracke
     fullRange = new vscode.Range(startLine.range.start, endLine.range.end);
 
     gooseCodeServer.push(
-        gc.PushResponse.create({
-            type: gc.PushType.FILE_COMMAND,
+        create(PushResponseSchema, {
+            type: PushType.FILE_COMMAND,
             data: {
-                oneofKind: "fileCommand",
-                fileCommand: gc.FileCommandPush.create({
-                    type: gc.FileCommandType.GENERATE,
+                case: "fileCommand",
+                value: create(FileCommandPushSchema, {
+                    type: FileCommandType.GENERATE,
                     fileContexts: await getFileContexts(workspaceTracker, [workspaceTracker.currentRelativeFilePath()]),
                     data: {
-                        oneofKind: "generate",
-                        generate: gc.GeneratePush.create({
-                            type: gc.GenerateType.SNIPPET,
+                        case: "generate",
+                        value: create(GeneratePushSchema, {
+                            type: GenerateType.SNIPPET,
                             data: {
-                                oneofKind: "snippet",
-                                snippet: gc.SnippetGenerate.create({
-                                    location: gc.LocationWithContext.create({
-                                        location: gc.Location.create({
+                                case: "snippet",
+                                value: create(SnippetGenerateSchema, {
+                                    location: create(LocationWithContextSchema, {
+                                        location: create(LocationSchema, {
                                             path: workspaceTracker.currentRelativeFilePath(),
                                             range: convertRange(range),
                                         }),
-                                        context: gc.SnippetContext.create({
-                                            fullRange: convertRange(fullRange)
-                                        })
+                                        context: create(SnippetContextSchema, {
+                                            fullRange: convertRange(fullRange),
+                                        }),
                                     }),
                                 }),
                             },
                         }),
-                    }
+                    },
                 }),
             },
         }),
@@ -129,8 +137,8 @@ async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTrac
     let definitions = await getDefinitions();
 
     const from = await fromRange(selection);
-    const fromMsg = gc.LocationWithContext.create({
-        location: gc.Location.create({
+    const fromMsg = create(LocationWithContextSchema, {
+        location: create(LocationSchema, {
             path: workspaceTracker.relativePath(
                 editor.document.uri.fsPath,
             ),
@@ -152,15 +160,13 @@ async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTrac
 
 
         try {
-            // Navigate in edittor to the definition
-            if (msg.data.oneofKind == "fileCommand" && msg.data.fileCommand.data.oneofKind == "generate" && msg.data.fileCommand.data.generate.data.oneofKind == "connected") {
+            if (msg.data.case === "fileCommand" && msg.data.value.data.case === "generate" && msg.data.value.data.value.data.case === "connected") {
                 await goToDefinition(
                     workspaceUri,
-                    msg.data.fileCommand.data.generate.data.connected.to!.location!,
+                    msg.data.value.data.value.data.value.to!.location!,
                     false,
                 );
             }
-
         } catch (e) {
             console.error("Failed to navigate to definition", e);
             return;
@@ -171,7 +177,7 @@ async function connectedGenerate(gooseCodeServer: GooseCodeServer, workspaceTrac
 
     const clickedDefinitionRef = await testDefinitionClicked(definitions, selection);
     if (clickedDefinitionRef) {
-        const result = await createReferencesOrImplementationsMessage(gooseCodeServer, workspaceTracker, selection, gc.LocationWithContext.clone(fromMsg), clickedDefinitionRef);
+        const result = await createReferencesOrImplementationsMessage(gooseCodeServer, workspaceTracker, selection, create(LocationWithContextSchema, { location: fromMsg.location, context: fromMsg.context }), clickedDefinitionRef);
         if (!result) {
             // User cancelled or chose "do nothing"
             return;
@@ -227,9 +233,9 @@ export function getDefinitionsWithoutCurrentPosition(definitions: LocationOrLoca
 
 export async function createDefinitionGenerateMessage(
     workspaceTracker: WorkspaceTracker,
-    fromMsg: gc.LocationWithContext,
+    fromMsg: LocationWithContext,
     definitions: LocationOrLocationLink[],
-): Promise<gc.PushResponse | undefined> {
+): Promise<PushResponse | undefined> {
     const definition = definitions[0];
 
 
@@ -240,19 +246,19 @@ export async function createDefinitionGenerateMessage(
     // The full range - e.g. the function
     const fullRange = convertRange(targetFullRangeFromLocation(definition));
 
-    const toMsg = gc.LocationWithContext.create({
-        location: gc.Location.create({
+    const toMsg = create(LocationWithContextSchema, {
+        location: create(LocationSchema, {
             path: workspaceTracker.relativePath(
                 uri.fsPath,
             ),
             range: toRange,
         }),
-        context: gc.SnippetContext.create({
+        context: create(SnippetContextSchema, {
             fullRange: fullRange,
         }),
     });
-    const defMsg = gc.ConnectedGenerate.create({
-        type: gc.ConnectedGenerateType.DEFINITION,
+    const defMsg = create(ConnectedGenerateSchema, {
+        type: ConnectedGenerateType.DEFINITION,
         from: fromMsg,
         to: toMsg,
     });
@@ -278,9 +284,9 @@ export async function createReferencesOrImplementationsMessage(
     gooseCodeServer: GooseCodeServer,
     workspaceTracker: WorkspaceTracker,
     selection: vscode.Selection,
-    fromMsg: gc.LocationWithContext,
+    fromMsg: LocationWithContext,
     clickedDefinitionRef: LocationOrLocationLink
-): Promise<{ msg: gc.PushResponse; type: GenerateResult } | undefined> {
+): Promise<{ msg: PushResponse; type: GenerateResult } | undefined> {
 
     // Filter out references that are in the current selection
     let refs = (await getReferences()).filter((ref) => {
@@ -387,34 +393,38 @@ export async function createReferencesOrImplementationsMessage(
         return;
     }
 
+    let fromMsgWithContext = fromMsg;
     if (clickedDefinitionRef) {
-        fromMsg.context = gc.SnippetContext.create({
-            fullRange: convertRange(targetFullRangeFromLocation(clickedDefinitionRef)),
+        fromMsgWithContext = create(LocationWithContextSchema, {
+            location: fromMsg.location,
+            context: create(SnippetContextSchema, {
+                fullRange: convertRange(targetFullRangeFromLocation(clickedDefinitionRef)),
+            }),
         });
     }
 
-    const toMsg = gc.LocationWithContext.create({
-        location: gc.Location.create({
+    const toMsg = create(LocationWithContextSchema, {
+        location: create(LocationSchema, {
             path: workspaceTracker.relativePath(selectedItem.location.uri.fsPath),
             range: convertRange(selectedItem.location.range),
         }),
-        context: gc.SnippetContext.create({
+        context: create(SnippetContextSchema, {
             fullRange: convertRange(targetFullRangeFromLocation(selectedItem.location)),
         }),
     });
 
-    const connectedType = selectedItem.symbolType === 'implementation' 
-        ? gc.ConnectedGenerateType.IMPLEMENTATION 
-        : gc.ConnectedGenerateType.REFERENCE;
-    
-    const connected = gc.ConnectedGenerate.create({
+    const connectedType = selectedItem.symbolType === 'implementation'
+        ? ConnectedGenerateType.IMPLEMENTATION
+        : ConnectedGenerateType.REFERENCE;
+
+    const connected = create(ConnectedGenerateSchema, {
         type: connectedType,
-        from: fromMsg,
+        from: fromMsgWithContext,
         to: toMsg,
     });
 
     const paths = [
-        fromMsg.location!.path,
+        fromMsgWithContext.location!.path,
         toMsg.location!.path,
     ];
     const fileContexts = await getFileContexts(workspaceTracker, paths);
@@ -428,54 +438,52 @@ export async function createReferencesOrImplementationsMessage(
 }
 
 
-export async function fromRange(selection: vscode.Selection): Promise<gc.Range> {
+export async function fromRange(selection: vscode.Selection): Promise<Range> {
     const selectionLine = selection.active.line;
-
 
     const tup = await getWordAtPosition();
     if (tup) {
-        const { word, range } = tup;
+        const { range } = tup;
         return convertRange(range);
     }
 
-    // Default to cursor position
     const selectionCharacter = selection.active.character;
 
-    return gc.Range.create({
-        start: gc.Position.create({
+    return create(RangeSchema, {
+        start: create(PositionSchema, {
             line: BigInt(selectionLine),
             character: BigInt(selectionCharacter),
         }),
-        end: gc.Position.create({
+        end: create(PositionSchema, {
             line: BigInt(selectionLine),
             character: BigInt(selectionCharacter),
         }),
     });
 }
 
-export async function wrapGenerateDefinition(fileContext: gc.FileContext[], msg: gc.ConnectedGenerate): Promise<gc.PushResponse> {
+export async function wrapGenerateDefinition(fileContext: FileContext[], msg: ConnectedGenerate): Promise<PushResponse> {
     return wrapGenerateConnected(fileContext, msg);
 }
 
-export async function wrapGenerateReference(fileContext: gc.FileContext[], msg: gc.ConnectedGenerate): Promise<gc.PushResponse> {
+export async function wrapGenerateReference(fileContext: FileContext[], msg: ConnectedGenerate): Promise<PushResponse> {
     return wrapGenerateConnected(fileContext, msg);
 }
 
-export async function wrapGenerateConnected(fileContext: gc.FileContext[], msg: gc.ConnectedGenerate): Promise<gc.PushResponse> {
-    return gc.PushResponse.create({
-        type: gc.PushType.FILE_COMMAND,
+export async function wrapGenerateConnected(fileContext: FileContext[], msg: ConnectedGenerate): Promise<PushResponse> {
+    return create(PushResponseSchema, {
+        type: PushType.FILE_COMMAND,
         data: {
-            oneofKind: "fileCommand",
-            fileCommand: gc.FileCommandPush.create({
-                type: gc.FileCommandType.GENERATE,
+            case: "fileCommand",
+            value: create(FileCommandPushSchema, {
+                type: FileCommandType.GENERATE,
                 fileContexts: fileContext,
                 data: {
-                    oneofKind: "generate",
-                    generate: gc.GeneratePush.create({
-                        type: gc.GenerateType.CONNECTED,
+                    case: "generate",
+                    value: create(GeneratePushSchema, {
+                        type: GenerateType.CONNECTED,
                         data: {
-                            oneofKind: "connected",
-                            connected: msg,
+                            case: "connected",
+                            value: msg,
                         },
                     }),
                 },

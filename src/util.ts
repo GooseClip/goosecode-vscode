@@ -1,7 +1,10 @@
 import * as vscode from "vscode";
 import * as net from "net";
 
-import * as gc from "./gen/ide";
+import { create } from "@bufbuild/protobuf";
+import { SymbolKind } from "./gen/ide-connect/v1/vscode_pb";
+import type { Range, DocumentSymbol } from "./gen/ide-connect/v1/vscode_pb";
+import { PositionSchema, RangeSchema, DocumentSymbolSchema } from "./gen/ide-connect/v1/vscode_pb";
 
 function isEntireWord(selection: vscode.Selection): boolean {
   const document = vscode.window.activeTextEditor?.document;
@@ -18,77 +21,77 @@ function isEntireWord(selection: vscode.Selection): boolean {
 function convertSymbolKind(symbolKind: vscode.SymbolKind): number {
   switch (symbolKind) {
     case vscode.SymbolKind.File:
-      return gc.SymbolKind.FILE;
+      return SymbolKind.FILE;
     case vscode.SymbolKind.Module:
-      return gc.SymbolKind.MODULE;
+      return SymbolKind.MODULE;
     case vscode.SymbolKind.Namespace:
-      return gc.SymbolKind.NAMESPACE;
+      return SymbolKind.NAMESPACE;
     case vscode.SymbolKind.Package:
-      return gc.SymbolKind.PACKAGE;
+      return SymbolKind.PACKAGE;
     case vscode.SymbolKind.Class:
-      return gc.SymbolKind.CLASS;
+      return SymbolKind.CLASS;
     case vscode.SymbolKind.Method:
-      return gc.SymbolKind.METHOD;
+      return SymbolKind.METHOD;
     case vscode.SymbolKind.Property:
-      return gc.SymbolKind.PROPERTY;
+      return SymbolKind.PROPERTY;
     case vscode.SymbolKind.Field:
-      return gc.SymbolKind.FIELD;
+      return SymbolKind.FIELD;
     case vscode.SymbolKind.Constructor:
-      return gc.SymbolKind.CONSTRUCTOR;
+      return SymbolKind.CONSTRUCTOR;
     case vscode.SymbolKind.Enum:
-      return gc.SymbolKind.ENUM;
+      return SymbolKind.ENUM;
     case vscode.SymbolKind.Interface:
-      return gc.SymbolKind.INTERFACE;
+      return SymbolKind.INTERFACE;
     case vscode.SymbolKind.Function:
-      return gc.SymbolKind.FUNCTION;
+      return SymbolKind.FUNCTION;
     case vscode.SymbolKind.Variable:
-      return gc.SymbolKind.VARIABLE;
+      return SymbolKind.VARIABLE;
     case vscode.SymbolKind.Constant:
-      return gc.SymbolKind.CONSTANT;
+      return SymbolKind.CONSTANT;
     case vscode.SymbolKind.String:
-      return gc.SymbolKind.STRING;
+      return SymbolKind.STRING;
     case vscode.SymbolKind.Number:
-      return gc.SymbolKind.NUMBER;
+      return SymbolKind.NUMBER;
     case vscode.SymbolKind.Boolean:
-      return gc.SymbolKind.BOOLEAN;
+      return SymbolKind.BOOLEAN;
     case vscode.SymbolKind.Array:
-      return gc.SymbolKind.ARRAY;
+      return SymbolKind.ARRAY;
     case vscode.SymbolKind.Object:
-      return gc.SymbolKind.OBJECT;
+      return SymbolKind.OBJECT;
     case vscode.SymbolKind.Key:
-      return gc.SymbolKind.KEY;
+      return SymbolKind.KEY;
     case vscode.SymbolKind.Null:
-      return gc.SymbolKind.NULL;
+      return SymbolKind.NULL;
     case vscode.SymbolKind.EnumMember:
-      return gc.SymbolKind.ENUM_MEMBER;
+      return SymbolKind.ENUM_MEMBER;
     case vscode.SymbolKind.Struct:
-      return gc.SymbolKind.STRUCT;
+      return SymbolKind.STRUCT;
     case vscode.SymbolKind.Event:
-      return gc.SymbolKind.EVENT;
+      return SymbolKind.EVENT;
     case vscode.SymbolKind.Operator:
-      return gc.SymbolKind.OPERATOR;
+      return SymbolKind.OPERATOR;
     case vscode.SymbolKind.TypeParameter:
-      return gc.SymbolKind.TYPE_PARAMETER;
+      return SymbolKind.TYPE_PARAMETER;
     default:
       throw new Error(`Unknown symbol kind: ${symbolKind}`);
   }
 }
 
-function convertRange(vsRange: vscode.Range | vscode.Location): gc.Range {
+function convertRange(vsRange: vscode.Range | vscode.Location): Range {
   const r =
     vsRange instanceof vscode.Range
       ? vsRange
       : (vsRange as vscode.Location).range;
 
-  const startPos = gc.Position.create({
+  const startPos = create(PositionSchema, {
     line: BigInt(r.start.line),
     character: BigInt(r.start.character),
   });
-  const endPos = gc.Position.create({
+  const endPos = create(PositionSchema, {
     line: BigInt(r.end.line),
     character: BigInt(r.end.character),
   });
-  const range = gc.Range.create({
+  const range = create(RangeSchema, {
     start: startPos,
     end: endPos,
   });
@@ -98,12 +101,12 @@ function convertRange(vsRange: vscode.Range | vscode.Location): gc.Range {
 
 function convertSymbols(
   vsSymbols: Array<vscode.DocumentSymbol | vscode.SymbolInformation>,
-): gc.DocumentSymbol[] {
-  const pbSymbols: gc.DocumentSymbol[] = [];
+): DocumentSymbol[] {
+  const pbSymbols: DocumentSymbol[] = [];
   for (const d of vsSymbols) {
-    let symbol: gc.DocumentSymbol;
+    let symbol: DocumentSymbol;
     if (d instanceof vscode.DocumentSymbol) {
-      symbol = gc.DocumentSymbol.create({
+      symbol = create(DocumentSymbolSchema, {
         name: d.name,
         detail: d.detail,
         kind: convertSymbolKind(d.kind),
@@ -112,7 +115,7 @@ function convertSymbols(
         children: convertSymbols(d.children),
       });
     } else if (d instanceof vscode.SymbolInformation) {
-      symbol = gc.DocumentSymbol.create({
+      symbol = create(DocumentSymbolSchema, {
         name: d.name,
         detail: d.containerName,
         kind: convertSymbolKind(d.kind),

@@ -1,6 +1,8 @@
-export class ApiError extends Error{
-    constructor(message: string, private readonly code: number){
-        super(message);
-        this.name = "ApiError";
-    }
+export class ApiError extends Error {
+  readonly code: number;
+  constructor(message: string, code: number) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+  }
 }

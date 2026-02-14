@@ -1,15 +1,17 @@
 import * as vscode from "vscode";
 
-import * as gc from "../../../gen/ide";
+import { create } from "@bufbuild/protobuf";
+import type { ListFilesRequest } from "../../../gen/ide-connect/v1/api_pb";
+import { ListFilesResponseSchema } from "../../../gen/ide-connect/v1/api_pb";
 import { listProjectFiles } from "../../commands/commands";
 
 async function handleListFilesRequest(
-    request: gc.ListFilesRequest,
+    request: ListFilesRequest,
     workspaceUri: vscode.Uri,
 ) {
     const files = await listProjectFiles(workspaceUri);
     
-    const response = gc.ListFilesResponse.create({
+    const response = create(ListFilesResponseSchema, {
         filePaths: files,
       });
     

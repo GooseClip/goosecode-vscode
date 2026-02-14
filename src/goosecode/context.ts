@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
-import * as gc from "../gen/ide";
+import { create } from "@bufbuild/protobuf";
+import type { FileContext } from "../gen/ide-connect/v1/files_pb";
+import { FileContextSchema } from "../gen/ide-connect/v1/files_pb";
 import { getFileContents } from "./commands/commands";
 import { WorkspaceTracker } from "../workspace-tracker";
 import { getFileContentsAtCommit as getFileContentsAtHead } from "../git";
@@ -8,8 +10,8 @@ import * as path from "path";
 export async function getFileContexts(
     workspaceTracker: WorkspaceTracker,
     paths: string[],
-): Promise<gc.FileContext[]> {
-    const fileContexts: gc.FileContext[] = [];
+): Promise<FileContext[]> {
+    const fileContexts: FileContext[] = [];
 
     const ws = workspaceTracker.getLastActiveGooseCodeWorkspace();
     if (!ws) {
@@ -31,7 +33,7 @@ export async function getFileContexts(
             console.error(`Failed to get patch for ${v}`, e);
         }
 
-        fileContexts.push(gc.FileContext.create({
+        fileContexts.push(create(FileContextSchema, {
             filePath: v,
             headContent: headContent ?? "",
             currentContent: currentContents.length > 0 ? currentContents[0] : "",
